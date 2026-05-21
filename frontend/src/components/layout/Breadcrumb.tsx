@@ -5,11 +5,12 @@ import { en } from '@/lib/i18n/en'
 
 interface BreadcrumbProps {
   items: BreadcrumbItem[]
+  homeHref?: string
 }
 
-export function Breadcrumb({ items }: BreadcrumbProps) {
+export function Breadcrumb({ items, homeHref = '/' }: BreadcrumbProps) {
   const allItems = [
-    { name: en.breadcrumb.home, path: '/' },
+    { name: en.breadcrumb.home, path: homeHref },
     ...items,
   ]
 

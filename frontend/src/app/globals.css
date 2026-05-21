@@ -118,11 +118,18 @@
     min-height: 100dvh;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  :is(h1, h2, h3, h4, h5, h6) {
     line-height: 1.2;
     letter-spacing: -0.02em;
-    color: var(--color-primary-950);
     font-weight: 700;
+  }
+
+  :not(.on-dark) :is(h1, h2, h3, h4, h5, h6) {
+    color: var(--color-primary-950);
+  }
+
+  .on-dark :is(h1, h2, h3, h4, h5, h6) {
+    color: #ffffff;
   }
 
   h1 { letter-spacing: -0.03em; }

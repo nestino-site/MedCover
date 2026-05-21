@@ -25,3 +25,21 @@ export async function getContentList(): Promise<ContentListItem[]> {
   const data = await apiFetch('/api/v1/content/pages', ContentListSchema)
   return data
 }
+
+/** For hub/listing pages — uncached; returns empty array when API is unavailable. */
+export async function getContentListSafe(): Promise<ContentListItem[]> {
+  try {
+    return await apiFetch('/api/v1/content/pages', ContentListSchema)
+  } catch {
+    return []
+  }
+}
+
+/** Uncached fetch for optional rendering when API may be offline (e.g. local build). */
+export async function getContentBySlugOptional(slug: string): Promise<ContentPage | null> {
+  try {
+    return await apiFetch(`/api/v1/content/by-slug/${slug}`, ContentPageSchema)
+  } catch {
+    return null
+  }
+}

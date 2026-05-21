@@ -22,7 +22,7 @@ export function CtaBlock({
   return (
     <section className="not-prose mt-12 overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--color-primary-900)] to-[var(--color-primary-800)] px-6 py-10 sm:px-10 sm:py-12">
       <div className="mx-auto max-w-2xl text-center">
-        <h2 className="text-[var(--text-3xl)] font-bold tracking-tight text-white">
+        <h2 className="text-3xl font-bold tracking-tight text-white">
           {headline}
         </h2>
         <p className="mt-3 text-[var(--color-primary-200)]">{description}</p>

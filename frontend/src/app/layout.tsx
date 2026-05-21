@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
+import { DEFAULT_LOCALE, getLocaleDir } from '@/lib/i18n/locales'
+import { en } from '@/lib/i18n/en'
 
 const geist = Geist({
   variable: '--font-geist',
@@ -21,12 +23,11 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.com'
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'MedCover — Verified IVF Clinic Data for Medical Tourists',
+    default: en.meta.layout.title,
     template: '%s | MedCover',
   },
-  description:
-    'Verified patient interviews and real cost data for IVF clinics abroad. Find the best IVF destination based on truth — not clinic marketing.',
-  keywords: ['IVF abroad', 'medical tourism', 'IVF clinics', 'fertility treatment abroad'],
+  description: en.meta.layout.description,
+  keywords: [...en.meta.layout.keywords],
   authors: [{ name: 'MedCover' }],
   creator: 'MedCover',
   publisher: 'MedCover',
@@ -57,15 +58,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const locale = DEFAULT_LOCALE
+  const dir = getLocaleDir(locale)
+
   return (
     <html
-      lang="en"
+      lang={locale}
+      dir={dir}
       className={`${geist.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
     >
       <body className="flex min-h-dvh flex-col bg-[var(--color-surface)] font-sans antialiased">
-        <Header />
+        <Header locale={locale} />
         <main className="flex-1">{children}</main>
-        <Footer />
+        <Footer locale={locale} />
       </body>
     </html>
   )

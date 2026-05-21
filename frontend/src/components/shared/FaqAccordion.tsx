@@ -20,7 +20,7 @@ export function FaqAccordion({ faqs, title = en.page.faqTitle }: FaqAccordionPro
     <section className="py-10" aria-labelledby="faq-heading">
       <h2
         id="faq-heading"
-        className="mb-6 text-[var(--text-3xl)] font-bold tracking-tight text-[var(--color-primary-950)]"
+        className="mb-6 text-3xl font-bold tracking-tight text-[var(--color-primary-950)]"
       >
         {title}
       </h2>

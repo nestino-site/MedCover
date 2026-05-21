@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
-import { getContentBySlug } from '@/lib/api/content'
+import { Suspense } from 'react'
+import { getContentBySlugOptional } from '@/lib/api/content'
+import { countryMeta } from '@/lib/content/hubs'
 import { buildCountryGuideSchemas } from '@/lib/schema/country-guide'
 import { JsonLd } from '@/components/shared/JsonLd'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
@@ -11,16 +12,25 @@ import { ContentHtml } from '@/components/shared/ContentHtml'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { SpeakableSummary } from '@/components/shared/SpeakableSummary'
 import { RelatedPages } from '@/components/shared/RelatedPages'
-import { en } from '@/lib/i18n/en'
+import { CrossHubNav } from '@/components/hubs/CrossHubNav'
+import { getDictionary, localizedPath } from '@/lib/i18n'
+import { activeLocale } from '@/lib/i18n/locale'
 
 type Params = Promise<{ countrySlug: string }>
+
+export function generateStaticParams() {
+  return Object.keys(countryMeta).map((slug) => ({
+    countrySlug: slug.replace(/^guides\//, ''),
+  }))
+}
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { countrySlug } = await params
   const slug = `guides/${countrySlug}`
 
   try {
-    const page = await getContentBySlug(slug)
+    const page = await getContentBySlugOptional(slug)
+    if (!page) throw new Error('unavailable')
     const canonicalUrl =
       page.seo.canonicalUrl ||
       `${process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.com'}/${slug}/`
@@ -58,15 +68,19 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   }
 }
 
-export default async function CountryGuidePage({ params }: { params: Params }) {
-  const { countrySlug } = await params
+async function CountryGuideContent({ countrySlug }: { countrySlug: string }) {
+  const locale = activeLocale
+  const t = getDictionary(locale)
   const slug = `guides/${countrySlug}`
 
-  let page
-  try {
-    page = await getContentBySlug(slug)
-  } catch {
-    notFound()
+  const page = await getContentBySlugOptional(slug)
+  if (!page) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
+        <CrossHubNav locale={locale} guideSlug={slug} />
+        <p className="mt-8 text-[var(--color-neutral-600)]">{t.page.noDataYet}</p>
+      </div>
+    )
   }
 
   const schemas = buildCountryGuideSchemas(page)
@@ -74,51 +88,32 @@ export default async function CountryGuidePage({ params }: { params: Params }) {
   return (
     <>
       <JsonLd schemas={schemas} />
-
       <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
-        {/* Breadcrumb */}
         {page.breadcrumbs.length > 0 && (
-          <Breadcrumb items={page.breadcrumbs} />
+          <Breadcrumb items={page.breadcrumbs} homeHref={localizedPath('/', locale)} />
         )}
-
-        {/* Hero — H1 + hero answer block (AEO snippet target) */}
+        <CrossHubNav locale={locale} guideSlug={slug} className="mt-2" />
         <div className="mt-4">
           <HeroAnswerBlock page={page} />
         </div>
-
-        {/* Truth Score */}
         <TruthScoreCard scores={page.scores} />
-
-        {/* Speakable summary */}
         {page.metaDescription && (
-          <SpeakableSummary label={en.countryGuide.speakableSummaryLabel}>
+          <SpeakableSummary label={t.countryGuide.speakableSummaryLabel}>
             <p>{page.metaDescription}</p>
           </SpeakableSummary>
         )}
-
-        {/* Main article content — backend delivers structured HTML */}
-        {page.content.html && (
-          <ContentHtml html={page.content.html} className="mt-8" />
-        )}
-
-        {/* Related pages / on-page navigation */}
+        {page.content.html && <ContentHtml html={page.content.html} className="mt-8" />}
         {page.toc.length > 0 && <RelatedPages toc={page.toc} />}
-
-        {/* FAQ Accordion */}
         {page.faq.length > 0 && <FaqAccordion faqs={page.faq} />}
-
-        {/* CTA */}
         <CtaBlock
-          headline={`Get Your Personalized IVF Report`}
+          headline="Get Your Personalized IVF Report"
           description="Based on verified patient interviews — not clinic marketing materials."
         />
-
-        {/* Last updated */}
         {page.updatedAt && (
           <p className="mt-8 text-center text-xs text-[var(--color-neutral-400)]">
-            {en.page.lastUpdated}:{' '}
+            {t.page.lastUpdated}:{' '}
             <time dateTime={page.updatedAt}>
-              {new Date(page.updatedAt).toLocaleDateString('en-US', {
+              {new Date(page.updatedAt).toLocaleDateString(locale, {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -128,5 +123,25 @@ export default async function CountryGuidePage({ params }: { params: Params }) {
         )}
       </div>
     </>
+  )
+}
+
+function GuideSkeleton() {
+  return (
+    <div className="mx-auto max-w-4xl animate-pulse px-4 py-16 sm:px-6">
+      <div className="h-4 w-48 rounded bg-[var(--color-neutral-100)]" />
+      <div className="mt-8 h-12 w-full rounded bg-[var(--color-neutral-100)]" />
+      <div className="mt-4 h-64 rounded bg-[var(--color-neutral-100)]" />
+    </div>
+  )
+}
+
+export default async function CountryGuidePage({ params }: { params: Params }) {
+  const { countrySlug } = await params
+
+  return (
+    <Suspense fallback={<GuideSkeleton />}>
+      <CountryGuideContent countrySlug={countrySlug} />
+    </Suspense>
   )
 }

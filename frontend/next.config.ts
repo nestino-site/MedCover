@@ -5,6 +5,17 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
   compress: true,
   poweredByHeader: false,
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
+
+  async redirects() {
+    return [
+      {
+        source: '/for-clinics/',
+        destination: '/start/',
+        permanent: false,
+      },
+    ]
+  },
 
   images: {
     formats: ['image/avif', 'image/webp'],

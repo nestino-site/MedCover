@@ -13,8 +13,8 @@ export function ContentHtml({ html, className }: ContentHtmlProps) {
       className={cn(
         'prose prose-neutral max-w-none',
         'prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-[var(--color-primary-950)]',
-        'prose-h2:text-[var(--text-3xl)] prose-h2:mt-10 prose-h2:mb-4',
-        'prose-h3:text-[var(--text-2xl)] prose-h3:mt-8 prose-h3:mb-3',
+        'prose-h2:text-3xl prose-h2:mt-10 prose-h2:mb-4',
+        'prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-3',
         'prose-p:text-[var(--color-neutral-700)] prose-p:leading-relaxed',
         'prose-a:text-[var(--color-primary-700)] prose-a:font-medium prose-a:no-underline hover:prose-a:underline',
         'prose-strong:text-[var(--color-neutral-900)] prose-strong:font-semibold',

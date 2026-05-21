@@ -29,7 +29,7 @@ export function CityHeroAnswer({ page }: CityHeroAnswerProps) {
         </div>
 
         {/* H1 */}
-        <h1 className="text-[var(--text-5xl)] font-bold leading-tight tracking-tight text-white">
+        <h1 className="text-5xl font-bold leading-tight tracking-tight text-white">
           {page.title}
         </h1>
 
