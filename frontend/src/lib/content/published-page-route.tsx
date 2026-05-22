@@ -10,6 +10,7 @@ import { RelatedPages } from '@/components/shared/RelatedPages'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { pageTitleFromSlug } from '@/lib/content/hubs'
+import { isNextImageOptimizable, resolveHeroImage } from '@/lib/content/hero-image'
 import { getDictionary, localizedPath } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 
@@ -142,6 +143,7 @@ export function createPublishedPageHandlers(prefixSegments: string[] = []) {
     }
 
     const page = result.page
+    const hero = resolveHeroImage(page)
 
     return (
       <>
@@ -149,16 +151,28 @@ export function createPublishedPageHandlers(prefixSegments: string[] = []) {
         <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
           {page.breadcrumbs.length > 0 && <Breadcrumb items={page.breadcrumbs} />}
 
-          {page.heroImage?.url && (
+          {hero && (
             <div className="mt-4 overflow-hidden rounded-2xl">
-              <Image
-                src={page.heroImage.url}
-                alt={page.heroImage.alt ?? page.seo.title ?? ''}
-                width={page.heroImage.width ?? 1200}
-                height={page.heroImage.height ?? 630}
-                priority
-                className="w-full object-cover"
-              />
+              {isNextImageOptimizable(hero.url) ? (
+                <Image
+                  src={hero.url}
+                  alt={hero.alt}
+                  width={hero.width}
+                  height={hero.height}
+                  priority
+                  className="w-full object-cover"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={hero.url}
+                  alt={hero.alt}
+                  width={hero.width}
+                  height={hero.height}
+                  className="w-full object-cover"
+                  fetchPriority="high"
+                />
+              )}
             </div>
           )}
 

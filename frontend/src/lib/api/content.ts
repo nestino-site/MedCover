@@ -1,4 +1,5 @@
 import 'server-only'
+import { cache } from 'react'
 import {
   apiFetch,
   isTrafficEngineUnreachable,
@@ -20,12 +21,6 @@ export function canonicalSlugPath(slug: string): string {
   const trimmed = slug.trim()
   const withLead = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
   return withLead.replace(/\/+$/, '') || '/'
-}
-
-function slugVariants(slugPath: string): string[] {
-  const canonical = canonicalSlugPath(slugPath)
-  const noLead = canonical.replace(/^\//, '')
-  return [...new Set([canonical, `/${noLead}`, noLead, `${canonical}/`])]
 }
 
 function slugsMatch(a: string, b: string): boolean {
@@ -121,52 +116,56 @@ async function fetchPageById(
   }
 }
 
+async function loadPublishedPageByIdFromList(
+  slug: string,
+  mode: 'cached' | 'no-store',
+): Promise<PageFetchResult | null> {
+  const target = canonicalSlugPath(slug)
+  const pages = await listPublishedPagesSafe()
+  const item = pages.find((p) => slugsMatch(p.slug, target))
+  if (!item) return null
+
+  const byId = await fetchPageById(item.id, mode)
+  if (byId.status === 'ok' || byId.status === 'invalid') return byId
+  return byId.status === 'unavailable' ? byId : null
+}
+
 /**
  * Load a published page through the Next.js Data Cache.
- * Tries cached fetch first, then fresh no-store retries with slug variants.
+ * One cached by-slug attempt, then cached by-id from the published list.
+ * No-store is only used after API unreachable on a cache miss.
  */
-export async function loadPublishedPage(slug: string): Promise<PageFetchResult> {
-  const variants = slugVariants(slug)
-  let lastResult: PageFetchResult = { status: 'not_found' }
+async function loadPublishedPageImpl(slug: string): Promise<PageFetchResult> {
+  const canonical = canonicalSlugPath(slug)
 
-  for (const variant of variants) {
-    const cached = await fetchPageByPath(variant, 'cached')
-    if (cached.status === 'ok') return cached
-    if (cached.status === 'invalid') return cached
-    if (cached.status === 'unavailable') {
-      lastResult = cached
-      break
+  const bySlug = await fetchPageByPath(canonical, 'cached')
+  if (bySlug.status === 'ok' || bySlug.status === 'invalid') return bySlug
+  if (bySlug.status === 'unavailable') return bySlug
+
+  const byIdCached = await loadPublishedPageByIdFromList(slug, 'cached')
+  if (byIdCached) return byIdCached
+
+  // Cold cache or webhook not yet run: one fresh fetch (not 4+ round trips).
+  const freshSlug = await fetchPageByPath(canonical, 'no-store')
+  if (freshSlug.status === 'ok' || freshSlug.status === 'invalid') return freshSlug
+
+  const byIdFresh = await loadPublishedPageByIdFromList(slug, 'no-store')
+  if (byIdFresh) return byIdFresh
+
+  if (freshSlug.status === 'unavailable') {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        `[Traffic Engine] unreachable for ${canonical} — check API or env on Vercel.`,
+      )
     }
-    lastResult = cached
+    return freshSlug
   }
 
-  for (const variant of variants) {
-    const fresh = await fetchPageByPath(variant, 'no-store')
-    if (fresh.status === 'ok') return fresh
-    if (fresh.status === 'invalid') return fresh
-    if (fresh.status === 'unavailable') return fresh
-    lastResult = fresh
-  }
-
-  if (lastResult.status === 'not_found') {
-    const target = canonicalSlugPath(slug)
-    const pages = await listPublishedPagesSafe()
-    const item = pages.find((p) => slugsMatch(p.slug, target))
-    if (item) {
-      const byId = await fetchPageById(item.id, 'no-store')
-      if (byId.status === 'ok' || byId.status === 'invalid') return byId
-      lastResult = byId
-    }
-  }
-
-  if (lastResult.status === 'unavailable' && process.env.NODE_ENV === 'development') {
-    console.warn(
-      `[Traffic Engine] unreachable for ${canonicalSlugPath(slug)} — check API or env on Vercel.`,
-    )
-  }
-
-  return lastResult
+  return { status: 'not_found' }
 }
+
+/** Dedupes metadata + page body fetches within the same request. */
+export const loadPublishedPage = cache(loadPublishedPageImpl)
 
 export async function getPageBySlug(slug: string): Promise<ContentPage | null> {
   const result = await loadPublishedPage(slug)
