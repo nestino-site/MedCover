@@ -1,5 +1,3 @@
-export const runtime = 'nodejs'
-
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { cacheTags } from '@/lib/cache/tags'

@@ -1,4 +1,5 @@
 import 'server-only'
+import { cacheLife, cacheTag } from 'next/cache'
 import { apiFetch, revalidateSeconds, siteHeaders, trafficEngineUrl } from './client'
 import {
   ContentPageSchema,
@@ -15,18 +16,13 @@ function normalizePath(slug: string): string {
 }
 
 export async function getPageBySlug(slug: string): Promise<ContentPage | null> {
+  'use cache'
   const slugPath = normalizePath(slug)
-  const revalidate = revalidateSeconds()
+  cacheTag(cacheTags.pageBySlug(slugPath), cacheTags.site(SITE_ID))
+  cacheLife('days')
 
   const res = await fetch(`${trafficEngineUrl()}/content/by-slug${slugPath}`, {
     headers: siteHeaders(),
-    next: {
-      revalidate,
-      tags: [
-        cacheTags.pageBySlug(slugPath),
-        cacheTags.site(SITE_ID),
-      ],
-    },
   })
 
   if (res.status === 404) return null
@@ -39,18 +35,11 @@ export async function getPageBySlug(slug: string): Promise<ContentPage | null> {
 }
 
 export async function listPublishedPages(): Promise<ContentListItem[]> {
-  const revalidate = revalidateSeconds()
+  'use cache'
+  cacheTag(cacheTags.publishedPages, cacheTags.site(SITE_ID))
+  cacheLife('days')
 
-  const data = await apiFetch('/content/pages', ContentListResponseSchema, {
-    next: {
-      revalidate,
-      tags: [
-        cacheTags.publishedPages,
-        cacheTags.site(SITE_ID),
-      ],
-    },
-  } as RequestInit)
-
+  const data = await apiFetch('/content/pages', ContentListResponseSchema)
   return data.items ?? []
 }
 
