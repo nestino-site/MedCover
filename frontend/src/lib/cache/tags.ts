@@ -1,5 +1,6 @@
 export const cacheTags = {
-  page: (slug: string) => `page:${slug}`,
-  contentList: 'content-list',
-  allContent: 'all-content',
+  pageBySlug: (slugPath: string) => `page-slug-${slugPath}`,
+  pageById: (id: number | string) => `page-${id}`,
+  publishedPages: 'published-pages',
+  site: (siteId: number | string) => `site-${siteId}`,
 } as const

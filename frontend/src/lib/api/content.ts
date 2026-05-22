@@ -1,45 +1,64 @@
 import 'server-only'
-import { cacheTag, cacheLife } from 'next/cache'
-import { apiFetch } from './client'
+import { apiFetch, revalidateSeconds, siteHeaders, trafficEngineUrl } from './client'
 import {
   ContentPageSchema,
-  ContentListSchema,
+  ContentListResponseSchema,
   type ContentPage,
   type ContentListItem,
 } from './types'
 import { cacheTags } from '../cache/tags'
 
-export async function getContentBySlug(slug: string): Promise<ContentPage> {
-  'use cache'
-  cacheTag(cacheTags.page(slug), cacheTags.contentList)
-  cacheLife('days')
+const SITE_ID = process.env.SITE_ID ?? ''
 
-  return apiFetch(`/api/v1/content/by-slug/${slug}`, ContentPageSchema)
+function normalizePath(slug: string): string {
+  return slug.startsWith('/') ? slug : `/${slug}`
 }
 
-export async function getContentList(): Promise<ContentListItem[]> {
-  'use cache'
-  cacheTag(cacheTags.contentList, cacheTags.allContent)
-  cacheLife('days')
+export async function getPageBySlug(slug: string): Promise<ContentPage | null> {
+  const slugPath = normalizePath(slug)
+  const revalidate = revalidateSeconds()
 
-  const data = await apiFetch('/api/v1/content/pages', ContentListSchema)
-  return data
+  const res = await fetch(`${trafficEngineUrl()}/content/by-slug${slugPath}`, {
+    headers: siteHeaders(),
+    next: {
+      revalidate,
+      tags: [
+        cacheTags.pageBySlug(slugPath),
+        cacheTags.site(SITE_ID),
+      ],
+    },
+  })
+
+  if (res.status === 404) return null
+  if (!res.ok) {
+    throw new Error(`Traffic Engine: ${res.status} ${res.statusText} — /content/by-slug${slugPath}`)
+  }
+
+  const json = await res.json()
+  return ContentPageSchema.parse(json)
 }
 
-/** For hub/listing pages — uncached; returns empty array when API is unavailable. */
-export async function getContentListSafe(): Promise<ContentListItem[]> {
+export async function listPublishedPages(): Promise<ContentListItem[]> {
+  const revalidate = revalidateSeconds()
+
+  const data = await apiFetch('/content/pages', ContentListResponseSchema, {
+    next: {
+      revalidate,
+      tags: [
+        cacheTags.publishedPages,
+        cacheTags.site(SITE_ID),
+      ],
+    },
+  } as RequestInit)
+
+  return data.items ?? []
+}
+
+/** Safe variant — returns empty array instead of throwing when the API is unavailable. */
+export async function listPublishedPagesSafe(): Promise<ContentListItem[]> {
   try {
-    return await apiFetch('/api/v1/content/pages', ContentListSchema)
+    return await listPublishedPages()
   } catch {
     return []
-  }
-}
-
-/** Uncached fetch for optional rendering when API may be offline (e.g. local build). */
-export async function getContentBySlugOptional(slug: string): Promise<ContentPage | null> {
-  try {
-    return await apiFetch(`/api/v1/content/by-slug/${slug}`, ContentPageSchema)
-  } catch {
-    return null
   }
 }

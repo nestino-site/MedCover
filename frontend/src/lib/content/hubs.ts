@@ -78,8 +78,9 @@ export function partitionGuides(pages: ContentListItem[], locale?: Locale) {
   const cities: ContentListItem[] = []
 
   for (const page of filtered) {
-    if (isCountryGuideSlug(page.slug)) countries.push(page)
-    else if (isCityGuideSlug(page.slug)) cities.push(page)
+    const slug = page.slug.replace(/^\//, '')
+    if (isCountryGuideSlug(slug)) countries.push(page)
+    else if (isCityGuideSlug(slug)) cities.push(page)
   }
 
   return { countries, cities }
@@ -94,7 +95,8 @@ export function slugToLabel(segment: string): string {
 }
 
 export function parseCitySlug(slug: string): { countryKey: string; countryName: string; cityName: string } | null {
-  const match = slug.match(/^guides\/([^/]+)\/(.+)-ivf-guide$/)
+  const normalized = slug.replace(/^\//, '')
+  const match = normalized.match(/^guides\/([^/]+)\/(.+)-ivf-guide$/)
   if (!match) return null
 
   const [, countryKey, citySegment] = match

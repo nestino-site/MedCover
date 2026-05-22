@@ -7,26 +7,37 @@ function getRequiredEnv(key: string): string {
   return value
 }
 
+export function siteHeaders(): HeadersInit {
+  return {
+    'X-Site-Api-Key': getRequiredEnv('SITE_API_KEY'),
+    'X-Site-Id': getRequiredEnv('SITE_ID'),
+    'Content-Type': 'application/json',
+  }
+}
+
+export function trafficEngineUrl(): string {
+  return getRequiredEnv('TRAFFIC_ENGINE_URL')
+}
+
+export function revalidateSeconds(): number {
+  return Number(process.env.CONTENT_REVALIDATE_SECONDS ?? 3600)
+}
+
 export async function apiFetch<T>(
   path: string,
   schema: ZodType<T>,
+  fetchOptions?: RequestInit,
 ): Promise<T> {
-  const baseUrl = getRequiredEnv('API_BASE_URL')
-  const apiKey = getRequiredEnv('SITE_API_KEY')
-  const siteId = getRequiredEnv('SITE_ID')
-
+  const baseUrl = trafficEngineUrl()
   const url = `${baseUrl}${path}`
 
   const res = await fetch(url, {
-    headers: {
-      'X-Site-Api-Key': apiKey,
-      'X-Site-Id': siteId,
-      'Content-Type': 'application/json',
-    },
+    headers: siteHeaders(),
+    ...fetchOptions,
   })
 
   if (!res.ok) {
-    throw new Error(`API request failed: ${res.status} ${res.statusText} — ${url}`)
+    throw new Error(`Traffic Engine API failed: ${res.status} ${res.statusText} — ${url}`)
   }
 
   const json = await res.json()

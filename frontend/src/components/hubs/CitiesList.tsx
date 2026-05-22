@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getContentListSafe } from '@/lib/api/content'
+import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 import { parseCitySlug, partitionGuides } from '@/lib/content/hubs'
 
@@ -12,16 +12,17 @@ type CityItem = {
 
 export async function CitiesList({ locale }: { locale: Locale }) {
   const t = getDictionary(locale)
-  const pages = await getContentListSafe()
+  const pages = await listPublishedPagesSafe()
   const { cities: cityPages } = partitionGuides(pages, locale)
 
   const cities: CityItem[] = cityPages
     .map((page) => {
-      const parsed = parseCitySlug(page.slug)
+      const normalizedSlug = page.slug.replace(/^\//, '')
+      const parsed = parseCitySlug(normalizedSlug)
       if (!parsed) return null
       return {
-        slug: page.slug,
-        href: localizedPath(`/${page.slug}`, locale),
+        slug: normalizedSlug,
+        href: localizedPath(`/${normalizedSlug}`, locale),
         cityName: parsed.cityName,
         countryName: parsed.countryName,
       }

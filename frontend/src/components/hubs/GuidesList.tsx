@@ -1,12 +1,12 @@
 import Link from 'next/link'
-import { getContentListSafe } from '@/lib/api/content'
+import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 import { getCountryDisplay, partitionGuides, parseCitySlug } from '@/lib/content/hubs'
 import { hubPath } from '@/lib/content/site-nav'
 
 export async function GuidesList({ locale }: { locale: Locale }) {
   const t = getDictionary(locale)
-  const pages = await getContentListSafe()
+  const pages = await listPublishedPagesSafe()
   const { countries, cities } = partitionGuides(pages, locale)
 
   if (countries.length === 0 && cities.length === 0) {
@@ -22,11 +22,12 @@ export async function GuidesList({ locale }: { locale: Locale }) {
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {countries.map((page) => {
-              const display = getCountryDisplay(page.slug, locale)
+              const normalizedSlug = page.slug.replace(/^\//, '')
+              const display = getCountryDisplay(normalizedSlug, locale)
               return (
                 <GuideCard
                   key={page.slug}
-                  href={localizedPath(`/${page.slug}`, locale)}
+                  href={localizedPath(`/${normalizedSlug}`, locale)}
                   title={display.name}
                   subtitle={display.tagline}
                   flag={display.flag}
@@ -46,16 +47,17 @@ export async function GuidesList({ locale }: { locale: Locale }) {
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cities.map((page) => {
-              const parsed = parseCitySlug(page.slug)
+              const normalizedSlug = page.slug.replace(/^\//, '')
+              const parsed = parseCitySlug(normalizedSlug)
               const countrySlug = parsed
                 ? `guides/${parsed.countryKey}-ivf-guide`
-                : page.slug
+                : normalizedSlug
               const country = getCountryDisplay(countrySlug, locale)
               return (
                 <GuideCard
                   key={page.slug}
-                  href={localizedPath(`/${page.slug}`, locale)}
-                  title={parsed?.cityName ?? page.slug}
+                  href={localizedPath(`/${normalizedSlug}`, locale)}
+                  title={parsed?.cityName ?? normalizedSlug}
                   subtitle={`${country.name} · ${country.tagline}`}
                   flag={country.flag}
                   viewLabel={t.hubs.guides.viewGuide}

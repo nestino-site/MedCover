@@ -26,7 +26,7 @@ export function buildBreadcrumbList(breadcrumbs: BreadcrumbItem[]) {
       '@type': 'ListItem',
       position: index + 1,
       name: crumb.name,
-      item: `${SITE_URL}${crumb.path}`,
+      item: `${SITE_URL}${crumb.slug}`,
     })),
   }
 }

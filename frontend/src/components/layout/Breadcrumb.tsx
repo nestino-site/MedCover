@@ -9,9 +9,11 @@ interface BreadcrumbProps {
 }
 
 export function Breadcrumb({ items, homeHref = '/' }: BreadcrumbProps) {
+  const sorted = [...items].sort((a, b) => a.position - b.position)
+
   const allItems = [
-    { name: en.breadcrumb.home, path: homeHref },
-    ...items,
+    { name: en.breadcrumb.home, slug: homeHref },
+    ...sorted,
   ]
 
   return (
@@ -21,7 +23,7 @@ export function Breadcrumb({ items, homeHref = '/' }: BreadcrumbProps) {
           const isLast = index === allItems.length - 1
 
           return (
-            <li key={item.path} className="flex items-center gap-1">
+            <li key={item.slug} className="flex items-center gap-1">
               {index === 0 ? (
                 <Home size={13} className="shrink-0" aria-hidden="true" />
               ) : (
@@ -34,7 +36,7 @@ export function Breadcrumb({ items, homeHref = '/' }: BreadcrumbProps) {
                 </span>
               ) : (
                 <Link
-                  href={item.path}
+                  href={item.slug}
                   className="hover:text-[var(--color-primary-700)] transition-colors"
                 >
                   {item.name}

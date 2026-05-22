@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getContentListSafe } from '@/lib/api/content'
+import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import { partitionGuides } from '@/lib/content/hubs'
 import { getFeaturedCountries } from '@/lib/content/hubs'
@@ -101,7 +101,7 @@ function HubCard({ hub, locale, description }: { hub: SiteHub; locale: Locale; d
 
 export async function HubExploreGrid({ locale }: { locale: Locale }) {
   const t = getDictionary(locale)
-  const pages = await getContentListSafe()
+  const pages = await listPublishedPagesSafe()
   const { countries, cities } = partitionGuides(pages, locale)
   const countryCount = countries.length || getFeaturedCountries(locale).length
   const cityCount = cities.length

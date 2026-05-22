@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getContentListSafe } from '@/lib/api/content'
+import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import { getFeaturedCountries, getCountryDisplay, partitionGuides } from '@/lib/content/hubs'
 
@@ -15,13 +15,14 @@ export async function CountriesList({ locale }: { locale: Locale }) {
     clinics: c.clinics,
   }))
 
-  const pages = await getContentListSafe()
+  const pages = await listPublishedPagesSafe()
   const { countries } = partitionGuides(pages, locale)
   if (countries.length > 0) {
     items = countries.map((page) => {
-      const display = getCountryDisplay(page.slug, locale)
+      const normalizedSlug = page.slug.replace(/^\//, '')
+      const display = getCountryDisplay(normalizedSlug, locale)
       return {
-        slug: page.slug,
+        slug: normalizedSlug,
         href: display.href,
         name: display.name,
         flag: display.flag,

@@ -1,16 +1,19 @@
 interface JsonLdProps {
-  schemas: object[]
+  schema: unknown
 }
 
-export function JsonLd({ schemas }: JsonLdProps) {
+export function JsonLd({ schema }: JsonLdProps) {
+  if (schema === null || schema === undefined) return null
+
+  const entries = Array.isArray(schema) ? schema : [schema]
+
   return (
     <>
-      {schemas.map((schema, index) => (
+      {entries.map((entry, index) => (
         <script
           key={index}
           type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(entry) }}
         />
       ))}
     </>

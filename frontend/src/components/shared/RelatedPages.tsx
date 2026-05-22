@@ -19,9 +19,9 @@ export function RelatedPages({ toc, maxItems = 6 }: RelatedPagesProps) {
       </h2>
       <ul className="grid gap-2 sm:grid-cols-2">
         {h2Items.map((item) => (
-          <li key={item.id}>
+          <li key={item.anchor}>
             <Link
-              href={`#${item.id}`}
+              href={`#${item.anchor}`}
               className="group flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-4 py-3 text-sm font-medium text-[var(--color-neutral-700)] hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)] transition-colors"
             >
               <ArrowRight
