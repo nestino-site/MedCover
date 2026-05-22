@@ -28,6 +28,10 @@ function slugVariants(slugPath: string): string[] {
   return [...new Set([canonical, `/${noLead}`, noLead, `${canonical}/`])]
 }
 
+function slugsMatch(a: string, b: string): boolean {
+  return canonicalSlugPath(a) === canonicalSlugPath(b)
+}
+
 function fetchCacheOptions(tags: string[]) {
   return {
     revalidate: revalidateSeconds(),
@@ -43,12 +47,12 @@ export type PageFetchResult =
 
 async function parsePageResponse(
   res: Response,
-  slugPath: string,
+  label: string,
 ): Promise<PageFetchResult> {
   if (res.status === 404) return { status: 'not_found' }
   if (!res.ok) {
     throw new Error(
-      `Traffic Engine: ${res.status} ${res.statusText} — /content/by-slug${slugPath}`,
+      `Traffic Engine: ${res.status} ${res.statusText} — ${label}`,
     )
   }
 
@@ -56,7 +60,7 @@ async function parsePageResponse(
   const parsed = ContentPageSchema.safeParse(json)
   if (!parsed.success) {
     console.error(
-      `[Traffic Engine] invalid page payload for ${slugPath}:`,
+      `[Traffic Engine] invalid page payload for ${label}:`,
       parsed.error.flatten(),
     )
     return { status: 'invalid', error: parsed.error.message }
@@ -83,7 +87,32 @@ async function fetchPageByPath(
         : { cache: 'no-store' }),
     })
 
-    return parsePageResponse(res, canonical)
+    return parsePageResponse(res, `/content/by-slug${canonical}`)
+  } catch (error) {
+    if (isTrafficEngineUnreachable(error)) {
+      return { status: 'unavailable' }
+    }
+    throw error
+  }
+}
+
+async function fetchPageById(
+  pageId: number,
+  mode: 'cached' | 'no-store',
+): Promise<PageFetchResult> {
+  try {
+    const res = await trafficEngineFetch(`/content/${pageId}`, {
+      ...(mode === 'cached'
+        ? {
+            next: fetchCacheOptions([
+              cacheTags.pageById(pageId),
+              cacheTags.site(SITE_ID),
+            ]),
+          }
+        : { cache: 'no-store' }),
+    })
+
+    return parsePageResponse(res, `/content/${pageId}`)
   } catch (error) {
     if (isTrafficEngineUnreachable(error)) {
       return { status: 'unavailable' }
@@ -117,6 +146,17 @@ export async function loadPublishedPage(slug: string): Promise<PageFetchResult> 
     if (fresh.status === 'invalid') return fresh
     if (fresh.status === 'unavailable') return fresh
     lastResult = fresh
+  }
+
+  if (lastResult.status === 'not_found') {
+    const target = canonicalSlugPath(slug)
+    const pages = await listPublishedPagesSafe()
+    const item = pages.find((p) => slugsMatch(p.slug, target))
+    if (item) {
+      const byId = await fetchPageById(item.id, 'no-store')
+      if (byId.status === 'ok' || byId.status === 'invalid') return byId
+      lastResult = byId
+    }
   }
 
   if (lastResult.status === 'unavailable' && process.env.NODE_ENV === 'development') {
