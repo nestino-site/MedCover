@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
-import { ComingSoonHub } from '@/components/hubs/ComingSoonHub'
+import { Suspense } from 'react'
+import { PublishedHubList, PublishedHubListSkeleton } from '@/components/hubs/PublishedHubList'
+import { HubPageLayout } from '@/components/hubs/HubPageLayout'
 import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 
@@ -8,20 +10,24 @@ const locale = activeLocale
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(locale)
   return {
-    title: t.meta.clinics.title,
-    description: t.meta.clinics.description,
-    robots: { index: false, follow: true },
+    title: t.hubs.clinicsHub.title,
+    description: t.hubs.clinicsHub.description,
   }
 }
 
-export default function ClinicsPage() {
+export default function ClinicsHubPage() {
   const t = getDictionary(locale)
 
   return (
-    <ComingSoonHub
+    <HubPageLayout
       locale={locale}
-      title={t.hubs.comingSoon.clinics.title}
-      description={t.hubs.comingSoon.clinics.description}
-    />
+      hubId="clinics"
+      title={t.hubs.clinicsHub.title}
+      description={t.hubs.clinicsHub.description}
+    >
+      <Suspense fallback={<PublishedHubListSkeleton />}>
+        <PublishedHubList locale={locale} hubSegment="clinics" />
+      </Suspense>
+    </HubPageLayout>
   )
 }

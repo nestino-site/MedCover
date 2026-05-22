@@ -59,6 +59,11 @@ export async function POST(req: Request): Promise<Response> {
   revalidateTag(cacheTags.publishedPages, 'max')
   revalidateTag(cacheTags.site(payload.siteId), 'max')
 
+  const hubSegment = slugPath.split('/').filter(Boolean)[0]
+  if (hubSegment) {
+    revalidatePath(`/${hubSegment}`)
+  }
+
   return Response.json({
     ok: true,
     slug: slugPath,
