@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
-import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { Suspense } from 'react'
 import { loadPublishedPage, type PageFetchResult } from '@/lib/api/content'
 import { JsonLd } from '@/components/shared/JsonLd'
@@ -10,7 +10,7 @@ import { RelatedPages } from '@/components/shared/RelatedPages'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { pageTitleFromSlug } from '@/lib/content/hubs'
-import { getDictionary } from '@/lib/i18n'
+import { getDictionary, localizedPath } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 
 type Params = Promise<{ slug: string[] }>
@@ -48,25 +48,35 @@ function metadataFromPage(
   }
 }
 
-function UnavailableDevPanel({ slugPath }: { slugPath: string }) {
+function ContentIssuePanel({
+  slugPath,
+  title,
+  message,
+  hubSegment,
+}: {
+  slugPath: string
+  title: string
+  message: string
+  hubSegment?: string
+}) {
+  const locale = activeLocale
+  const hub = hubSegment ?? slugPath.split('/').filter(Boolean)[0]
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
-      <h1 className="text-2xl font-bold text-[var(--color-primary-950)]">
-        Waiting for cached content
-      </h1>
-      <p className="mt-4 text-[var(--color-neutral-600)]">
-        This page is not in the Next.js cache yet and Traffic Engine did not respond. In
-        production, the first successful publish fills the cache; later visits do not call the
-        API.
-      </p>
-      <ul className="mt-4 list-inside list-disc text-sm text-[var(--color-neutral-600)]">
-        <li>Ensure the page is published in Nestino for site id {process.env.SITE_ID ?? '2'}</li>
-        <li>Trigger the publish webhook once (or wait for auto-publish)</li>
-        <li>Reload this URL — it should be served from cache</li>
-      </ul>
-      <p className="mt-4 text-sm text-[var(--color-neutral-500)]">
+      <h1 className="text-2xl font-bold text-[var(--color-primary-950)]">{title}</h1>
+      <p className="mt-4 text-[var(--color-neutral-600)]">{message}</p>
+      <p className="mt-2 text-sm text-[var(--color-neutral-500)]">
         Slug: <code>{slugPath}</code>
       </p>
+      {hub && (
+        <Link
+          href={localizedPath(`/${hub}/`, locale)}
+          className="mt-6 inline-flex text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
+        >
+          ← Back to {hub} hub
+        </Link>
+      )}
     </div>
   )
 }
@@ -81,11 +91,7 @@ export function createPublishedPageHandlers(prefixSegments: string[] = []) {
       return metadataFromPage(result, slugPath)
     }
 
-    if (result.status === 'unavailable') {
-      return { title: pageTitleFromSlug(slugPath) }
-    }
-
-    return {}
+    return { title: pageTitleFromSlug(slugPath) }
   }
 
   async function ContentPageBody({
@@ -99,17 +105,40 @@ export function createPublishedPageHandlers(prefixSegments: string[] = []) {
     const slugPath = buildSlugPath(slug, prefix)
     const locale = activeLocale
     const t = getDictionary(locale)
+    const hubSegment = prefix[0] ?? slugPath.split('/').filter(Boolean)[0]
     const result = await loadPublishedPage(slugPath)
 
     if (result.status === 'unavailable') {
-      if (process.env.NODE_ENV === 'development') {
-        return <UnavailableDevPanel slugPath={slugPath} />
-      }
-      notFound()
+      return (
+        <ContentIssuePanel
+          slugPath={slugPath}
+          hubSegment={hubSegment}
+          title="Content temporarily unavailable"
+          message="This article is listed but could not be loaded from Traffic Engine. Retry in a moment, or republish from Nestino to refresh the cache."
+        />
+      )
+    }
+
+    if (result.status === 'invalid') {
+      return (
+        <ContentIssuePanel
+          slugPath={slugPath}
+          hubSegment={hubSegment}
+          title="Content format error"
+          message="The API returned data that does not match the expected page contract. Check server logs for Zod validation details."
+        />
+      )
     }
 
     if (result.status === 'not_found') {
-      notFound()
+      return (
+        <ContentIssuePanel
+          slugPath={slugPath}
+          hubSegment={hubSegment}
+          title="Article not found in API"
+          message="This URL is not returned by GET /content/by-slug. Confirm the slug in Nestino matches exactly, then republish."
+        />
+      )
     }
 
     const page = result.page

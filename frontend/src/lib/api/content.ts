@@ -3,8 +3,7 @@ import {
   apiFetch,
   isTrafficEngineUnreachable,
   revalidateSeconds,
-  siteHeaders,
-  trafficEngineUrl,
+  trafficEngineFetch,
 } from './client'
 import {
   ContentPageSchema,
@@ -16,8 +15,17 @@ import { cacheTags } from '../cache/tags'
 
 const SITE_ID = process.env.SITE_ID ?? ''
 
-function normalizePath(slug: string): string {
-  return slug.startsWith('/') ? slug : `/${slug}`
+/** Canonical API slug: leading slash, no trailing slash. */
+export function canonicalSlugPath(slug: string): string {
+  const trimmed = slug.trim()
+  const withLead = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+  return withLead.replace(/\/+$/, '') || '/'
+}
+
+function slugVariants(slugPath: string): string[] {
+  const canonical = canonicalSlugPath(slugPath)
+  const noLead = canonical.replace(/^\//, '')
+  return [...new Set([canonical, `/${noLead}`, noLead, `${canonical}/`])]
 }
 
 function fetchCacheOptions(tags: string[]) {
@@ -31,52 +39,95 @@ export type PageFetchResult =
   | { status: 'ok'; page: ContentPage }
   | { status: 'not_found' }
   | { status: 'unavailable' }
+  | { status: 'invalid'; error: string }
 
-/**
- * Load a published page through the Next.js Data Cache.
- *
- * Flow:
- * 1. Backend publishes → webhook calls revalidateTag / revalidatePath
- * 2. First visit after publish → fetch Traffic Engine → response stored in cache
- * 3. Later visits → served from cache (no API call) until the next webhook
- *
- * Network failures are NOT cached and do not throw — callers handle `unavailable`.
- */
-export async function loadPublishedPage(slug: string): Promise<PageFetchResult> {
-  const slugPath = normalizePath(slug)
+async function parsePageResponse(
+  res: Response,
+  slugPath: string,
+): Promise<PageFetchResult> {
+  if (res.status === 404) return { status: 'not_found' }
+  if (!res.ok) {
+    throw new Error(
+      `Traffic Engine: ${res.status} ${res.statusText} — /content/by-slug${slugPath}`,
+    )
+  }
+
+  const json = await res.json()
+  const parsed = ContentPageSchema.safeParse(json)
+  if (!parsed.success) {
+    console.error(
+      `[Traffic Engine] invalid page payload for ${slugPath}:`,
+      parsed.error.flatten(),
+    )
+    return { status: 'invalid', error: parsed.error.message }
+  }
+
+  return { status: 'ok', page: parsed.data }
+}
+
+async function fetchPageByPath(
+  slugPath: string,
+  mode: 'cached' | 'no-store',
+): Promise<PageFetchResult> {
+  const canonical = canonicalSlugPath(slugPath)
 
   try {
-    const res = await fetch(`${trafficEngineUrl()}/content/by-slug${slugPath}`, {
-      headers: siteHeaders(),
-      next: fetchCacheOptions([
-        cacheTags.pageBySlug(slugPath),
-        cacheTags.site(SITE_ID),
-      ]),
+    const res = await trafficEngineFetch(`/content/by-slug${canonical}`, {
+      ...(mode === 'cached'
+        ? {
+            next: fetchCacheOptions([
+              cacheTags.pageBySlug(canonical),
+              cacheTags.site(SITE_ID),
+            ]),
+          }
+        : { cache: 'no-store' }),
     })
 
-    if (res.status === 404) return { status: 'not_found' }
-    if (!res.ok) {
-      throw new Error(
-        `Traffic Engine: ${res.status} ${res.statusText} — /content/by-slug${slugPath}`,
-      )
-    }
-
-    const json = await res.json()
-    return { status: 'ok', page: ContentPageSchema.parse(json) }
+    return parsePageResponse(res, canonical)
   } catch (error) {
     if (isTrafficEngineUnreachable(error)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(
-          `[Traffic Engine] unreachable for ${slugPath} — no cache entry. Publish webhook or retry when API is up.`,
-        )
-      }
       return { status: 'unavailable' }
     }
     throw error
   }
 }
 
-/** @deprecated Use loadPublishedPage — returns page or null (404 and API-down both become null). */
+/**
+ * Load a published page through the Next.js Data Cache.
+ * Tries cached fetch first, then fresh no-store retries with slug variants.
+ */
+export async function loadPublishedPage(slug: string): Promise<PageFetchResult> {
+  const variants = slugVariants(slug)
+  let lastResult: PageFetchResult = { status: 'not_found' }
+
+  for (const variant of variants) {
+    const cached = await fetchPageByPath(variant, 'cached')
+    if (cached.status === 'ok') return cached
+    if (cached.status === 'invalid') return cached
+    if (cached.status === 'unavailable') {
+      lastResult = cached
+      break
+    }
+    lastResult = cached
+  }
+
+  for (const variant of variants) {
+    const fresh = await fetchPageByPath(variant, 'no-store')
+    if (fresh.status === 'ok') return fresh
+    if (fresh.status === 'invalid') return fresh
+    if (fresh.status === 'unavailable') return fresh
+    lastResult = fresh
+  }
+
+  if (lastResult.status === 'unavailable' && process.env.NODE_ENV === 'development') {
+    console.warn(
+      `[Traffic Engine] unreachable for ${canonicalSlugPath(slug)} — check API or env on Vercel.`,
+    )
+  }
+
+  return lastResult
+}
+
 export async function getPageBySlug(slug: string): Promise<ContentPage | null> {
   const result = await loadPublishedPage(slug)
   return result.status === 'ok' ? result.page : null

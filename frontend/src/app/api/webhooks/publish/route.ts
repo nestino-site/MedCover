@@ -1,6 +1,8 @@
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { canonicalSlugPath } from '@/lib/api/content'
 import { cacheTags } from '@/lib/cache/tags'
+import { normalizePath } from '@/lib/i18n/paths'
 
 const REPLAY_WINDOW_MS = 5 * 60 * 1000
 
@@ -51,8 +53,10 @@ export async function POST(req: Request): Promise<Response> {
     return new Response('Invalid JSON', { status: 400 })
   }
 
-  const slugPath = payload.slug.startsWith('/') ? payload.slug : `/${payload.slug}`
+  const slugPath = canonicalSlugPath(payload.slug)
+  const publicPath = normalizePath(slugPath)
 
+  revalidatePath(publicPath)
   revalidatePath(slugPath)
   revalidateTag(cacheTags.pageById(payload.pageId), 'max')
   revalidateTag(cacheTags.pageBySlug(slugPath), 'max')
@@ -61,12 +65,13 @@ export async function POST(req: Request): Promise<Response> {
 
   const hubSegment = slugPath.split('/').filter(Boolean)[0]
   if (hubSegment) {
-    revalidatePath(`/${hubSegment}`)
+    revalidatePath(normalizePath(`/${hubSegment}`))
   }
 
   return Response.json({
     ok: true,
     slug: slugPath,
+    path: publicPath,
     event: payload.event,
   })
 }

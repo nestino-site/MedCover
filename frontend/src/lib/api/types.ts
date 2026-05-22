@@ -64,7 +64,7 @@ export const ContentPageSchema = z.object({
   htmlContent: z.string().nullable().default(null),
   language: z.string().default('en'),
   publishedAt: z.string().nullable().default(null),
-  updatedAt: z.string(),
+  updatedAt: z.string().optional().default(() => new Date().toISOString()),
   seo: SeoSchema.optional().transform((v) => v ?? {
     title: null, metaTitle: null, metaDescription: null,
     canonical: '', robotsMeta: 'index, follow', language: 'en',
