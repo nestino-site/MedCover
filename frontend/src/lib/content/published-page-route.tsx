@@ -5,6 +5,7 @@ import { cacheLife, cacheTag } from 'next/cache'
 import { Suspense } from 'react'
 import {
   canonicalSlugPath,
+  listPublishedPagesSafe,
   loadPublishedPage,
   type PageFetchResult,
 } from '@/lib/api/content'
@@ -24,6 +25,23 @@ type Params = Promise<{ slug: string[] }>
 
 export function buildSlugPath(segments: string[], prefixSegments: string[] = []): string {
   return '/' + [...prefixSegments, ...segments].join('/')
+}
+
+function slugToRouteParams(
+  slug: string,
+  prefixSegments: string[],
+): { slug: string[] } | null {
+  const parts = canonicalSlugPath(slug).split('/').filter(Boolean)
+  if (prefixSegments.length === 0) {
+    return parts.length > 0 ? { slug: parts } : null
+  }
+
+  for (let i = 0; i < prefixSegments.length; i++) {
+    if (parts[i] !== prefixSegments[i]) return null
+  }
+
+  const tail = parts.slice(prefixSegments.length)
+  return tail.length > 0 ? { slug: tail } : null
 }
 
 function metadataFromPage(
@@ -203,7 +221,24 @@ async function CachedArticleBody({
   )
 }
 
-export function createPublishedPageHandlers(prefixSegments: string[] = []) {
+export function createPublishedPageHandlers(
+  prefixSegments: string[] = [],
+  { deferParamsWithSuspense = false } = {},
+) {
+  async function generateStaticParams(): Promise<{ slug: string[] }[]> {
+    const pages = await listPublishedPagesSafe()
+    const params = pages
+      .map((page) => slugToRouteParams(page.slug, prefixSegments))
+      .filter((entry): entry is { slug: string[] } => entry !== null)
+
+    // Cache Components requires at least one param set for build-time validation.
+    if (params.length === 0) {
+      return [{ slug: ['sample-article'] }]
+    }
+
+    return params
+  }
+
   async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
     const { slug } = await params
     const slugPath = buildSlugPath(slug, prefixSegments)
@@ -216,39 +251,42 @@ export function createPublishedPageHandlers(prefixSegments: string[] = []) {
     return { title: pageTitleFromSlug(slugPath) }
   }
 
-  function PageSkeleton() {
-    return (
-      <div className="mx-auto max-w-4xl animate-pulse px-4 py-16 sm:px-6">
-        <div className="h-4 w-48 rounded bg-[var(--color-neutral-100)]" />
-        <div className="mt-6 aspect-video w-full rounded-2xl bg-[var(--color-neutral-100)]" />
-        <div className="mt-8 h-12 w-full rounded bg-[var(--color-neutral-100)]" />
-        <div className="mt-4 h-64 rounded bg-[var(--color-neutral-100)]" />
-      </div>
-    )
-  }
+  async function PublishedPage({ params }: { params: Params }) {
+    if (deferParamsWithSuspense) {
+      return (
+        <Suspense fallback={null}>
+          {params.then(({ slug }) => {
+            const slugPath = buildSlugPath(slug, prefixSegments)
+            const hubSegment =
+              prefixSegments[0] ?? slugPath.split('/').filter(Boolean)[0]
+            return (
+              <CachedArticleBody
+                slugPath={slugPath}
+                hubSegment={hubSegment}
+                locale={activeLocale}
+              />
+            )
+          })}
+        </Suspense>
+      )
+    }
 
-  function PublishedPage({ params }: { params: Params }) {
-    const locale = activeLocale
-    const prefix = prefixSegments
+    const { slug } = await params
+    const slugPath = buildSlugPath(slug, prefixSegments)
+    const hubSegment =
+      prefixSegments[0] ?? slugPath.split('/').filter(Boolean)[0]
 
     return (
-      <Suspense fallback={<PageSkeleton />}>
-        {params.then(({ slug }) => {
-          const slugPath = buildSlugPath(slug, prefix)
-          const hubSegment = prefix[0] ?? slugPath.split('/').filter(Boolean)[0]
-          return (
-            <CachedArticleBody
-              slugPath={slugPath}
-              hubSegment={hubSegment}
-              locale={locale}
-            />
-          )
-        })}
-      </Suspense>
+      <CachedArticleBody
+        slugPath={slugPath}
+        hubSegment={hubSegment}
+        locale={activeLocale}
+      />
     )
   }
 
   return {
+    generateStaticParams,
     generateMetadata,
     default: PublishedPage,
   }
