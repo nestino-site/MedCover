@@ -1,4 +1,4 @@
-import { revalidatePath, revalidateTag } from 'next/cache'
+import { revalidateTag } from 'next/cache'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { canonicalSlugPath } from '@/lib/api/content'
 import { cacheTags } from '@/lib/cache/tags'
@@ -56,16 +56,14 @@ export async function POST(req: Request): Promise<Response> {
   const slugPath = canonicalSlugPath(payload.slug)
   const publicPath = normalizePath(slugPath)
 
-  revalidatePath(publicPath)
-  revalidatePath(slugPath)
-  revalidateTag(cacheTags.pageById(payload.pageId), 'max')
   revalidateTag(cacheTags.pageBySlug(slugPath), 'max')
+  revalidateTag(cacheTags.pageById(payload.pageId), 'max')
   revalidateTag(cacheTags.publishedPages, 'max')
   revalidateTag(cacheTags.site(payload.siteId), 'max')
 
   const hubSegment = slugPath.split('/').filter(Boolean)[0]
   if (hubSegment) {
-    revalidatePath(normalizePath(`/${hubSegment}`))
+    revalidateTag(cacheTags.hub(hubSegment), 'max')
   }
 
   return Response.json({

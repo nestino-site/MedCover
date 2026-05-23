@@ -1,8 +1,14 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
+import { cacheLife, cacheTag } from 'next/cache'
 import { Suspense } from 'react'
-import { loadPublishedPage, type PageFetchResult } from '@/lib/api/content'
+import {
+  canonicalSlugPath,
+  loadPublishedPage,
+  type PageFetchResult,
+} from '@/lib/api/content'
+import { cacheTags } from '@/lib/cache/tags'
 import { JsonLd } from '@/components/shared/JsonLd'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import { ContentHtml } from '@/components/shared/ContentHtml'
@@ -11,7 +17,7 @@ import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { pageTitleFromSlug } from '@/lib/content/hubs'
 import { isNextImageOptimizable, resolveHeroImage } from '@/lib/content/hero-image'
-import { getDictionary, localizedPath } from '@/lib/i18n'
+import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 
 type Params = Promise<{ slug: string[] }>
@@ -54,13 +60,14 @@ function ContentIssuePanel({
   title,
   message,
   hubSegment,
+  locale,
 }: {
   slugPath: string
   title: string
   message: string
   hubSegment?: string
+  locale: Locale
 }) {
-  const locale = activeLocale
   const hub = hubSegment ?? slugPath.split('/').filter(Boolean)[0]
 
   return (
@@ -82,6 +89,120 @@ function ContentIssuePanel({
   )
 }
 
+async function CachedArticleBody({
+  slugPath,
+  hubSegment,
+  locale,
+}: {
+  slugPath: string
+  hubSegment?: string
+  locale: Locale
+}) {
+  'use cache'
+  cacheLife('max')
+  cacheTag(cacheTags.pageBySlug(canonicalSlugPath(slugPath)))
+
+  const result = await loadPublishedPage(slugPath)
+  const t = getDictionary(locale)
+
+  if (result.status === 'unavailable') {
+    return (
+      <ContentIssuePanel
+        slugPath={slugPath}
+        hubSegment={hubSegment}
+        locale={locale}
+        title="Content temporarily unavailable"
+        message="This article is listed but could not be loaded from Traffic Engine. Retry in a moment, or republish from Nestino to refresh the cache."
+      />
+    )
+  }
+
+  if (result.status === 'invalid') {
+    return (
+      <ContentIssuePanel
+        slugPath={slugPath}
+        hubSegment={hubSegment}
+        locale={locale}
+        title="Content format error"
+        message="The API returned data that does not match the expected page contract. Check server logs for Zod validation details."
+      />
+    )
+  }
+
+  if (result.status === 'not_found') {
+    return (
+      <ContentIssuePanel
+        slugPath={slugPath}
+        hubSegment={hubSegment}
+        locale={locale}
+        title="Article not found in API"
+        message="This URL is not returned by GET /content/by-slug. Confirm the slug in Nestino matches exactly, then republish."
+      />
+    )
+  }
+
+  const page = result.page
+  const hero = resolveHeroImage(page)
+
+  return (
+    <>
+      <JsonLd schema={page.schemaMarkup} />
+      <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
+        {page.breadcrumbs.length > 0 && <Breadcrumb items={page.breadcrumbs} />}
+
+        {hero && (
+          <div className="mt-4 overflow-hidden rounded-2xl">
+            {isNextImageOptimizable(hero.url) ? (
+              <Image
+                src={hero.url}
+                alt={hero.alt}
+                width={hero.width}
+                height={hero.height}
+                priority
+                className="w-full object-cover"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={hero.url}
+                alt={hero.alt}
+                width={hero.width}
+                height={hero.height}
+                className="w-full object-cover"
+                fetchPriority="high"
+              />
+            )}
+          </div>
+        )}
+
+        {page.htmlContent && <ContentHtml html={page.htmlContent} className="mt-8" />}
+
+        {page.tableOfContents.length > 0 && <RelatedPages toc={page.tableOfContents} />}
+
+        {page.faq.length > 0 && <FaqAccordion faqs={page.faq} />}
+
+        <CtaBlock
+          headline="Get Your Personalized IVF Report"
+          description="Based on verified patient interviews — not clinic marketing materials."
+        />
+
+        {page.updatedAt && (
+          <p className="mt-8 text-center text-xs text-[var(--color-neutral-400)]">
+            {t.page.lastUpdated}:{' '}
+            <time dateTime={page.updatedAt}>
+              {new Date(page.updatedAt).toLocaleDateString(locale, {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </time>
+          </p>
+        )}
+      </div>
+    </>
+  )
+}
+
 export function createPublishedPageHandlers(prefixSegments: string[] = []) {
   async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
     const { slug } = await params
@@ -93,115 +214,6 @@ export function createPublishedPageHandlers(prefixSegments: string[] = []) {
     }
 
     return { title: pageTitleFromSlug(slugPath) }
-  }
-
-  async function ContentPageBody({
-    params,
-    prefix,
-  }: {
-    params: Params
-    prefix: string[]
-  }) {
-    const { slug } = await params
-    const slugPath = buildSlugPath(slug, prefix)
-    const locale = activeLocale
-    const t = getDictionary(locale)
-    const hubSegment = prefix[0] ?? slugPath.split('/').filter(Boolean)[0]
-    const result = await loadPublishedPage(slugPath)
-
-    if (result.status === 'unavailable') {
-      return (
-        <ContentIssuePanel
-          slugPath={slugPath}
-          hubSegment={hubSegment}
-          title="Content temporarily unavailable"
-          message="This article is listed but could not be loaded from Traffic Engine. Retry in a moment, or republish from Nestino to refresh the cache."
-        />
-      )
-    }
-
-    if (result.status === 'invalid') {
-      return (
-        <ContentIssuePanel
-          slugPath={slugPath}
-          hubSegment={hubSegment}
-          title="Content format error"
-          message="The API returned data that does not match the expected page contract. Check server logs for Zod validation details."
-        />
-      )
-    }
-
-    if (result.status === 'not_found') {
-      return (
-        <ContentIssuePanel
-          slugPath={slugPath}
-          hubSegment={hubSegment}
-          title="Article not found in API"
-          message="This URL is not returned by GET /content/by-slug. Confirm the slug in Nestino matches exactly, then republish."
-        />
-      )
-    }
-
-    const page = result.page
-    const hero = resolveHeroImage(page)
-
-    return (
-      <>
-        <JsonLd schema={page.schemaMarkup} />
-        <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
-          {page.breadcrumbs.length > 0 && <Breadcrumb items={page.breadcrumbs} />}
-
-          {hero && (
-            <div className="mt-4 overflow-hidden rounded-2xl">
-              {isNextImageOptimizable(hero.url) ? (
-                <Image
-                  src={hero.url}
-                  alt={hero.alt}
-                  width={hero.width}
-                  height={hero.height}
-                  priority
-                  className="w-full object-cover"
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={hero.url}
-                  alt={hero.alt}
-                  width={hero.width}
-                  height={hero.height}
-                  className="w-full object-cover"
-                  fetchPriority="high"
-                />
-              )}
-            </div>
-          )}
-
-          {page.htmlContent && <ContentHtml html={page.htmlContent} className="mt-8" />}
-
-          {page.tableOfContents.length > 0 && <RelatedPages toc={page.tableOfContents} />}
-
-          {page.faq.length > 0 && <FaqAccordion faqs={page.faq} />}
-
-          <CtaBlock
-            headline="Get Your Personalized IVF Report"
-            description="Based on verified patient interviews — not clinic marketing materials."
-          />
-
-          {page.updatedAt && (
-            <p className="mt-8 text-center text-xs text-[var(--color-neutral-400)]">
-              {t.page.lastUpdated}:{' '}
-              <time dateTime={page.updatedAt}>
-                {new Date(page.updatedAt).toLocaleDateString(locale, {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </time>
-            </p>
-          )}
-        </div>
-      </>
-    )
   }
 
   function PageSkeleton() {
@@ -216,9 +228,22 @@ export function createPublishedPageHandlers(prefixSegments: string[] = []) {
   }
 
   function PublishedPage({ params }: { params: Params }) {
+    const locale = activeLocale
+    const prefix = prefixSegments
+
     return (
       <Suspense fallback={<PageSkeleton />}>
-        <ContentPageBody params={params} prefix={prefixSegments} />
+        {params.then(({ slug }) => {
+          const slugPath = buildSlugPath(slug, prefix)
+          const hubSegment = prefix[0] ?? slugPath.split('/').filter(Boolean)[0]
+          return (
+            <CachedArticleBody
+              slugPath={slugPath}
+              hubSegment={hubSegment}
+              locale={locale}
+            />
+          )
+        })}
       </Suspense>
     )
   }

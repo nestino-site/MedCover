@@ -1,6 +1,8 @@
 import Link from 'next/link'
+import { cacheLife, cacheTag } from 'next/cache'
 import { listPublishedPagesSafe } from '@/lib/api/content'
 import { filterPagesByHub, pageTitleFromSlug } from '@/lib/content/hubs'
+import { cacheTags } from '@/lib/cache/tags'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 
 export async function PublishedHubList({
@@ -10,6 +12,10 @@ export async function PublishedHubList({
   locale: Locale
   hubSegment: string
 }) {
+  'use cache'
+  cacheLife('max')
+  cacheTag(cacheTags.publishedPages, cacheTags.hub(hubSegment))
+
   const t = getDictionary(locale)
   const pages = await listPublishedPagesSafe()
   const items = filterPagesByHub(pages, hubSegment, locale)

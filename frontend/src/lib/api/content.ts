@@ -1,11 +1,6 @@
 import 'server-only'
-import { cache } from 'react'
-import {
-  apiFetch,
-  isTrafficEngineUnreachable,
-  revalidateSeconds,
-  trafficEngineFetch,
-} from './client'
+import { cacheLife, cacheTag } from 'next/cache'
+import { isTrafficEngineUnreachable, trafficEngineFetch } from './client'
 import {
   ContentPageSchema,
   ContentListResponseSchema,
@@ -25,13 +20,6 @@ export function canonicalSlugPath(slug: string): string {
 
 function slugsMatch(a: string, b: string): boolean {
   return canonicalSlugPath(a) === canonicalSlugPath(b)
-}
-
-function fetchCacheOptions(tags: string[]) {
-  return {
-    revalidate: revalidateSeconds(),
-    tags,
-  }
 }
 
 export type PageFetchResult =
@@ -64,126 +52,77 @@ async function parsePageResponse(
   return { status: 'ok', page: parsed.data }
 }
 
-async function fetchPageByPath(
-  slugPath: string,
-  mode: 'cached' | 'no-store',
-): Promise<PageFetchResult> {
-  const canonical = canonicalSlugPath(slugPath)
-
+async function fetchPageRaw(path: string): Promise<PageFetchResult> {
   try {
-    const res = await trafficEngineFetch(`/content/by-slug${canonical}`, {
-      ...(mode === 'cached'
-        ? {
-            next: fetchCacheOptions([
-              cacheTags.pageBySlug(canonical),
-              cacheTags.site(SITE_ID),
-            ]),
-          }
-        : { cache: 'no-store' }),
-    })
-
-    return parsePageResponse(res, `/content/by-slug${canonical}`)
+    const res = await trafficEngineFetch(path)
+    return parsePageResponse(res, path)
   } catch (error) {
     if (isTrafficEngineUnreachable(error)) {
       return { status: 'unavailable' }
     }
     throw error
   }
-}
-
-async function fetchPageById(
-  pageId: number,
-  mode: 'cached' | 'no-store',
-): Promise<PageFetchResult> {
-  try {
-    const res = await trafficEngineFetch(`/content/${pageId}`, {
-      ...(mode === 'cached'
-        ? {
-            next: fetchCacheOptions([
-              cacheTags.pageById(pageId),
-              cacheTags.site(SITE_ID),
-            ]),
-          }
-        : { cache: 'no-store' }),
-    })
-
-    return parsePageResponse(res, `/content/${pageId}`)
-  } catch (error) {
-    if (isTrafficEngineUnreachable(error)) {
-      return { status: 'unavailable' }
-    }
-    throw error
-  }
-}
-
-async function loadPublishedPageByIdFromList(
-  slug: string,
-  mode: 'cached' | 'no-store',
-): Promise<PageFetchResult | null> {
-  const target = canonicalSlugPath(slug)
-  const pages = await listPublishedPagesSafe()
-  const item = pages.find((p) => slugsMatch(p.slug, target))
-  if (!item) return null
-
-  const byId = await fetchPageById(item.id, mode)
-  if (byId.status === 'ok' || byId.status === 'invalid') return byId
-  return byId.status === 'unavailable' ? byId : null
 }
 
 /**
- * Load a published page through the Next.js Data Cache.
- * One cached by-slug attempt, then cached by-id from the published list.
- * No-store is only used after API unreachable on a cache miss.
+ * Published page list — cached via Cache Components; invalidated by publish webhook.
  */
-async function loadPublishedPageImpl(slug: string): Promise<PageFetchResult> {
-  const canonical = canonicalSlugPath(slug)
+export async function listPublishedPages(): Promise<ContentListItem[]> {
+  'use cache'
+  cacheLife('max')
+  cacheTag(cacheTags.publishedPages, cacheTags.site(SITE_ID))
 
-  const bySlug = await fetchPageByPath(canonical, 'cached')
-  if (bySlug.status === 'ok' || bySlug.status === 'invalid') return bySlug
-  if (bySlug.status === 'unavailable') return bySlug
-
-  const byIdCached = await loadPublishedPageByIdFromList(slug, 'cached')
-  if (byIdCached) return byIdCached
-
-  // Cold cache or webhook not yet run: one fresh fetch (not 4+ round trips).
-  const freshSlug = await fetchPageByPath(canonical, 'no-store')
-  if (freshSlug.status === 'ok' || freshSlug.status === 'invalid') return freshSlug
-
-  const byIdFresh = await loadPublishedPageByIdFromList(slug, 'no-store')
-  if (byIdFresh) return byIdFresh
-
-  if (freshSlug.status === 'unavailable') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(
-        `[Traffic Engine] unreachable for ${canonical} — check API or env on Vercel.`,
+  try {
+    const res = await trafficEngineFetch('/content/pages')
+    if (!res.ok) {
+      throw new Error(
+        `Traffic Engine: ${res.status} ${res.statusText} — /content/pages`,
       )
     }
-    return freshSlug
-  }
-
-  return { status: 'not_found' }
-}
-
-/** Dedupes metadata + page body fetches within the same request. */
-export const loadPublishedPage = cache(loadPublishedPageImpl)
-
-export async function getPageBySlug(slug: string): Promise<ContentPage | null> {
-  const result = await loadPublishedPage(slug)
-  return result.status === 'ok' ? result.page : null
-}
-
-export async function listPublishedPages(): Promise<ContentListItem[]> {
-  try {
-    const data = await apiFetch('/content/pages', ContentListResponseSchema, {
-      next: fetchCacheOptions([cacheTags.publishedPages, cacheTags.site(SITE_ID)]),
-    } as RequestInit)
-    return data.items ?? []
+    const json = await res.json()
+    const parsed = ContentListResponseSchema.safeParse(json)
+    if (!parsed.success) {
+      console.error('[Traffic Engine] invalid list payload:', parsed.error.flatten())
+      return []
+    }
+    return parsed.data.items ?? []
   } catch (error) {
     if (isTrafficEngineUnreachable(error)) {
       return []
     }
     throw error
   }
+}
+
+/**
+ * Load a published page — cached via Cache Components; invalidated by publish webhook.
+ * Falls back to by-id when by-slug returns 404 (Nestino slug lookup quirk).
+ */
+export async function loadPublishedPage(slug: string): Promise<PageFetchResult> {
+  'use cache'
+  cacheLife('max')
+  const canonical = canonicalSlugPath(slug)
+  cacheTag(cacheTags.pageBySlug(canonical), cacheTags.site(SITE_ID))
+
+  const bySlug = await fetchPageRaw(`/content/by-slug${canonical}`)
+  if (bySlug.status === 'ok' || bySlug.status === 'invalid') return bySlug
+  if (bySlug.status === 'unavailable') return bySlug
+
+  const pages = await listPublishedPages()
+  const item = pages.find((p) => slugsMatch(p.slug, canonical))
+  if (item) {
+    cacheTag(cacheTags.pageById(item.id))
+    const byId = await fetchPageRaw(`/content/${item.id}`)
+    if (byId.status === 'ok' || byId.status === 'invalid') return byId
+    if (byId.status === 'unavailable') return byId
+  }
+
+  return bySlug
+}
+
+export async function getPageBySlug(slug: string): Promise<ContentPage | null> {
+  const result = await loadPublishedPage(slug)
+  return result.status === 'ok' ? result.page : null
 }
 
 export async function listPublishedPagesSafe(): Promise<ContentListItem[]> {
