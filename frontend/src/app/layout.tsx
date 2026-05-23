@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { GoogleTagManager } from '@next/third-parties/google'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Header } from '@/components/layout/Header'
@@ -19,6 +20,7 @@ const geistMono = Geist_Mono({
 })
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.com'
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -68,6 +70,9 @@ export default function RootLayout({
       className={`${geist.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
+      {process.env.NODE_ENV === 'production' && GTM_ID ? (
+        <GoogleTagManager gtmId={GTM_ID} />
+      ) : null}
       <body className="flex min-h-dvh flex-col bg-[var(--color-surface)] font-sans antialiased">
         <Header locale={locale} />
         <main className="flex-1">{children}</main>
