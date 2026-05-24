@@ -98,14 +98,14 @@ async function CountryLandingContent({ countrySlug }: { countrySlug: string }) {
   })
 
   const breadcrumbs = [
-    { name: t.breadcrumb.home, path: '/' },
-    { name: t.nav.countries, path: '/countries' },
-    { name: meta.name, path: `/countries/${countrySlug}` },
+    { name: t.breadcrumb.home, slug: '/', position: 1 },
+    { name: t.nav.countries, slug: '/countries', position: 2 },
+    { name: meta.name, slug: `/countries/${countrySlug}`, position: 3 },
   ]
 
   return (
     <>
-      <JsonLd schemas={schemas} />
+      <JsonLd schema={schemas} />
       <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
         <Breadcrumb items={breadcrumbs} homeHref={localizedPath('/', locale)} />
 

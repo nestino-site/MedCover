@@ -10,13 +10,13 @@ const TREATMENT_NAMES: Record<string, string> = {
   cosmetic: 'Cosmetic Surgery',
 }
 
-export function buildCostGuideSchemas(page: ContentPage): object[] {
-  const canonicalUrl = page.seo.canonicalUrl || `${SITE_URL}/${page.slug}/`
+export function buildCostGuideSchemas(page: ContentPage, slug?: string): object[] {
+  const canonicalUrl = page.seo.canonical || (slug ? `${SITE_URL}/${slug}/` : SITE_URL)
 
   const medicalWebPage = buildMedicalWebPage({
     url: canonicalUrl,
-    name: page.metaTitle,
-    description: page.metaDescription,
+    name: page.seo.metaTitle ?? '',
+    description: page.seo.metaDescription ?? '',
     language: page.language,
     publishedAt: page.publishedAt,
     updatedAt: page.updatedAt,
@@ -28,7 +28,7 @@ export function buildCostGuideSchemas(page: ContentPage): object[] {
   }
 
   // Parse country + treatment from slug e.g. costs/spain-ivf-financing-2026
-  const path = page.slug.replace(/^costs\//, '')
+  const path = (slug ?? '').replace(/^costs\//, '')
   const treatmentIds = ['ivf', 'dental', 'hair', 'cosmetic']
   let countryKey: string | null = null
   let treatmentId: string | null = null
@@ -69,17 +69,5 @@ export function buildCostGuideSchemas(page: ContentPage): object[] {
   if (page.breadcrumbs.length > 0) {
     schemas.push({ '@context': 'https://schema.org', ...buildBreadcrumbList(page.breadcrumbs) })
   }
-  if (page.scores.seo != null) {
-    schemas.push({
-      '@context': 'https://schema.org',
-      '@type': 'AggregateRating',
-      ratingValue: Math.round(page.scores.seo),
-      bestRating: 100,
-      worstRating: 0,
-      ratingCount: 1,
-      reviewAspect: 'Verified Patient Data Quality',
-    })
-  }
-
   return schemas
 }

@@ -93,7 +93,7 @@ const schemas = [
 export default function CostsPage() {
   return (
     <>
-      <JsonLd schemas={schemas} />
+      <JsonLd schema={schemas} />
       <HubHero
         eyebrow="Cost Transparency"
         title="IVF Treatment Costs Abroad"

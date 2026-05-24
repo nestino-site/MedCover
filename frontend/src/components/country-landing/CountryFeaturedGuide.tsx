@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, ShieldCheck, BookOpen } from 'lucide-react'
+import { ArrowRight, BookOpen } from 'lucide-react'
 import type { ContentPage } from '@/lib/api/types'
 import { en } from '@/lib/i18n/en'
 
@@ -9,25 +9,6 @@ interface CountryFeaturedGuideProps {
   countryName: string
 }
 
-function TruthScoreBadge({ score }: { score: number }) {
-  const rounded = Math.round(score)
-  const letter =
-    rounded >= 85 ? 'A' :
-    rounded >= 70 ? 'B' :
-    rounded >= 55 ? 'C' :
-    rounded >= 40 ? 'D' : 'F'
-  const colorClass =
-    letter === 'A' ? 'text-[var(--color-accent-600)] bg-[var(--color-accent-50)]' :
-    letter === 'B' ? 'text-[var(--color-primary-600)] bg-[var(--color-primary-50)]' :
-    'text-orange-600 bg-orange-50'
-
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${colorClass}`}>
-      <ShieldCheck size={12} aria-hidden="true" />
-      Truth Score {letter} ({rounded}/100)
-    </span>
-  )
-}
 
 export function CountryFeaturedGuide({ guide, countryKey, countryName }: CountryFeaturedGuideProps) {
   const t = en.countryLanding.featuredGuide
@@ -52,17 +33,10 @@ export function CountryFeaturedGuide({ guide, countryKey, countryName }: Country
           {guide ? (
             <>
               {/* Guide meta description as answer */}
-              {guide.metaDescription && (
+              {guide.seo.metaDescription && (
                 <p className="text-base leading-relaxed text-[var(--color-neutral-700)]">
-                  {guide.metaDescription}
+                  {guide.seo.metaDescription}
                 </p>
-              )}
-
-              {/* Truth Score badge */}
-              {guide.scores.seo != null && (
-                <div className="mt-4">
-                  <TruthScoreBadge score={guide.scores.seo} />
-                </div>
               )}
 
               {/* FAQ preview — up to 2 questions (AEO anchor) */}

@@ -27,7 +27,7 @@ export interface CountryLandingSchemaParams {
 
 export function buildCountryLandingSchemas(params: CountryLandingSchemaParams): object[] {
   const { countryKey, countryName, metaTitle, metaDescription, canonicalUrl, faqs, cities, updatedAt } = params
-  const now = updatedAt ?? new Date().toISOString()
+  const now = updatedAt ?? '2025-01-01T00:00:00.000Z'
 
   const countryEntity = {
     '@type': 'Country',
@@ -72,9 +72,9 @@ export function buildCountryLandingSchemas(params: CountryLandingSchemaParams): 
   }
 
   const breadcrumbs = [
-    { name: 'Home', path: '/' },
-    { name: 'Countries', path: '/countries' },
-    { name: countryName, path: `/countries/${countryKey}` },
+    { name: 'Home', slug: '/', position: 1 },
+    { name: 'Countries', slug: '/countries', position: 2 },
+    { name: countryName, slug: `/countries/${countryKey}`, position: 3 },
   ]
 
   const schemas: object[] = [
