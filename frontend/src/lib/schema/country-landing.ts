@@ -2,7 +2,7 @@ import type { FaqItem } from '../api/types'
 import type { CityDisplay } from '../content/hubs'
 import { buildBreadcrumbList, buildFAQPage, buildOrganization } from './base'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 // Wikidata sameAs identifiers for supported countries
 const COUNTRY_WIKIDATA: Record<string, string> = {

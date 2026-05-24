@@ -48,7 +48,7 @@ function metadataFromPage(
   page: PageFetchResult & { status: 'ok' },
   slugPath: string,
 ): Metadata {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.io'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
   const canonical = page.page.seo.canonical || `${siteUrl}${slugPath}/`
 
   return {

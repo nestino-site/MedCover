@@ -14,7 +14,7 @@ import type { FaqItem } from '@/lib/api/types'
 import type { LucideIcon } from 'lucide-react'
 
 const locale = activeLocale
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(locale)

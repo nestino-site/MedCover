@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
   display: 'swap',
 })
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
 
 export const viewport: Viewport = {

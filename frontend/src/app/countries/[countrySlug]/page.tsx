@@ -21,7 +21,7 @@ import { CountryTreatmentsSection } from '@/components/country-landing/CountryTr
 import { getDictionary, localizedPath } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 type Params = Promise<{ countrySlug: string }>
 

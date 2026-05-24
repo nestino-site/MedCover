@@ -1,7 +1,7 @@
 import type { ContentPage } from '../api/types'
 import { buildBreadcrumbList, buildFAQPage, buildMedicalWebPage } from './base'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 const TREATMENT_NAMES: Record<string, string> = {
   ivf: 'IVF (In Vitro Fertilization)',

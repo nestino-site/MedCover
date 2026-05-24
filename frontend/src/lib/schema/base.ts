@@ -1,6 +1,6 @@
 import type { BreadcrumbItem, FaqItem } from '../api/types'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 const ORG_NAME = 'MedCover'
 
 export function buildOrganization() {

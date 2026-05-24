@@ -6,7 +6,7 @@ import { staticCitiesPerCountry } from '@/lib/content/hubs'
 import { LOCALES } from '@/lib/i18n/locales'
 import { absoluteUrl, localizedPath } from '@/lib/i18n/paths'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.io'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let pages: Awaited<ReturnType<typeof listPublishedPages>> = []
