@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { getContentListSafe } from '@/lib/api/content'
+import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import {
   getFeaturedCountries,
@@ -96,7 +96,7 @@ function CountryCard({ data, t }: { data: CountryCardData; t: ReturnType<typeof 
 
 export async function CountriesList({ locale }: { locale: Locale }) {
   const t = getDictionary(locale)
-  const pages = await getContentListSafe()
+  const pages = await listPublishedPagesSafe()
   const { countries: countryPages, cities: cityPages } = partitionGuides(pages, locale)
 
   const activeTreatment = treatmentCategories.find((c) => c.status === 'active')
@@ -104,7 +104,7 @@ export async function CountriesList({ locale }: { locale: Locale }) {
 
   const baseCountries =
     countryPages.length > 0
-      ? countryPages.map((p) => getCountryDisplay(p.slug, locale))
+      ? countryPages.map((p) => getCountryDisplay(p.slug.replace(/^\//, ''), locale))
       : getFeaturedCountries(locale)
 
   if (baseCountries.length === 0) {

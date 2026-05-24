@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getContentListSafe } from '@/lib/api/content'
+import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 import { getCountryDisplay, partitionGuides, parseCitySlug, getStaticGuidePages } from '@/lib/content/hubs'
 
@@ -14,21 +14,22 @@ interface GuideItem {
 
 export async function GuidesList({ locale }: { locale: Locale }) {
   const t = getDictionary(locale)
-  const pages = await getContentListSafe()
-  const apiSlugs = new Set(pages.map((p) => p.slug))
+  const pages = await listPublishedPagesSafe()
+  const apiSlugs = new Set(pages.map((p) => p.slug.replace(/^\//, '')))
   const merged = [
     ...pages,
-    ...getStaticGuidePages(locale).filter((p) => !apiSlugs.has(p.slug)),
+    ...getStaticGuidePages(locale).filter((p) => !apiSlugs.has(p.slug.replace(/^\//, ''))),
   ]
   const { countries, cities } = partitionGuides(merged, locale)
 
   const guides: GuideItem[] = []
 
   for (const page of countries) {
-    const display = getCountryDisplay(page.slug, locale)
+    const slug = page.slug.replace(/^\//, '')
+    const display = getCountryDisplay(slug, locale)
     guides.push({
-      slug: page.slug,
-      href: localizedPath(`/${page.slug}`, locale),
+      slug,
+      href: localizedPath(`/${slug}`, locale),
       flag: display.flag,
       title: display.name,
       subtitle: display.tagline,
@@ -37,14 +38,15 @@ export async function GuidesList({ locale }: { locale: Locale }) {
   }
 
   for (const page of cities) {
-    const parsed = parseCitySlug(page.slug)
-    const countrySlug = parsed ? `guides/${parsed.countryKey}-ivf-guide` : page.slug
+    const slug = page.slug.replace(/^\//, '')
+    const parsed = parseCitySlug(slug)
+    const countrySlug = parsed ? `guides/${parsed.countryKey}-ivf-guide` : slug
     const country = getCountryDisplay(countrySlug, locale)
     guides.push({
-      slug: page.slug,
-      href: localizedPath(`/${page.slug}`, locale),
+      slug,
+      href: localizedPath(`/${slug}`, locale),
       flag: country.flag,
-      title: parsed?.cityName ?? page.slug,
+      title: parsed?.cityName ?? slug,
       subtitle: country.name,
       type: 'city',
     })

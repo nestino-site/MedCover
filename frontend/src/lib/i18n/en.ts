@@ -217,6 +217,23 @@ export const en = {
       viewGuide: 'View guide',
       empty: 'Guides coming soon.',
     },
+    published: {
+      empty: 'No published articles yet. New pages appear here after the backend publishes them.',
+      viewArticle: 'Read article',
+      updated: 'Updated',
+    },
+    costsHub: {
+      title: 'Costs & financing',
+      description: 'Published guides on IVF and treatment costs abroad from verified patient data.',
+    },
+    clinicsHub: {
+      title: 'Clinics',
+      description: 'Published clinic and destination articles from MedCover.',
+    },
+    compareHub: {
+      title: 'Compare',
+      description: 'Published comparison guides across destinations and treatments.',
+    },
     comingSoon: {
       clinics: {
         title: 'Find your clinic — coming soon',

@@ -88,14 +88,41 @@ export function isCityGuideSlug(slug: string): boolean {
   return CITY_SLUG_RE.test(slug)
 }
 
+/** Pages published under a hub segment, e.g. hub `costs` → `/costs/spain-ivf-financing-202`. */
+export function filterPagesByHub(
+  pages: ContentListItem[],
+  hubSegment: string,
+  locale?: Locale,
+): ContentListItem[] {
+  const filtered = locale ? filterPagesByLocale(pages, locale) : pages
+  const prefix = hubSegment.replace(/^\//, '').replace(/\/$/, '')
+
+  return filtered
+    .filter((page) => {
+      const slug = page.slug.replace(/^\//, '')
+      return slug.startsWith(`${prefix}/`) && slug.length > prefix.length + 1
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )
+}
+
+export function pageTitleFromSlug(slug: string): string {
+  const normalized = slug.replace(/^\//, '')
+  const last = normalized.split('/').pop() ?? normalized
+  return slugToLabel(last)
+}
+
 export function partitionGuides(pages: ContentListItem[], locale?: Locale) {
   const filtered = locale ? filterPagesByLocale(pages, locale) : pages
   const countries: ContentListItem[] = []
   const cities: ContentListItem[] = []
 
   for (const page of filtered) {
-    if (isCountryGuideSlug(page.slug)) countries.push(page)
-    else if (isCityGuideSlug(page.slug)) cities.push(page)
+    const slug = page.slug.replace(/^\//, '')
+    if (isCountryGuideSlug(slug)) countries.push(page)
+    else if (isCityGuideSlug(slug)) cities.push(page)
   }
 
   return { countries, cities }
@@ -110,7 +137,8 @@ export function slugToLabel(segment: string): string {
 }
 
 export function parseCitySlug(slug: string): { countryKey: string; countryName: string; cityName: string } | null {
-  const match = slug.match(/^guides\/([^/]+)\/(.+)-ivf-guide$/)
+  const normalized = slug.replace(/^\//, '')
+  const match = normalized.match(/^guides\/([^/]+)\/(.+)-ivf-guide$/)
   if (!match) return null
 
   const [, countryKey, citySegment] = match

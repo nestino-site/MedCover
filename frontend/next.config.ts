@@ -22,7 +22,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: process.env.API_IMAGE_HOSTNAME || 'localhost',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.cloudinary.com',
       },
     ],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],

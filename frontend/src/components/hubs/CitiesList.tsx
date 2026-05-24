@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getContentListSafe } from '@/lib/api/content'
+import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 import { parseCitySlug, partitionGuides, countryMeta } from '@/lib/content/hubs'
 import { treatmentCategories } from '@/lib/content/treatments'
@@ -23,7 +23,7 @@ interface CountryGroup {
 
 export async function CitiesList({ locale }: { locale: Locale }) {
   const t = getDictionary(locale)
-  const pages = await getContentListSafe()
+  const pages = await listPublishedPagesSafe()
   const { cities: cityPages } = partitionGuides(pages, locale)
 
   const activeTreatment = treatmentCategories.find((c) => c.status === 'active')
@@ -35,13 +35,14 @@ export async function CitiesList({ locale }: { locale: Locale }) {
 
   const parsed: CityCardData[] = cityPages
     .map((page) => {
-      const info = parseCitySlug(page.slug)
+      const slug = page.slug.replace(/^\//, '')
+      const info = parseCitySlug(slug)
       if (!info) return null
       const countrySlug = `guides/${info.countryKey}-ivf-guide`
       const meta = countryMeta[countrySlug]
       return {
-        slug: page.slug,
-        href: localizedPath(`/${page.slug}`, locale),
+        slug,
+        href: localizedPath(`/${slug}`, locale),
         cityName: info.cityName,
         countryName: info.countryName,
         countryFlag: meta?.flag ?? '🌍',
