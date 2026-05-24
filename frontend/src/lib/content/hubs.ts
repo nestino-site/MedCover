@@ -2,6 +2,22 @@ import type { ContentListItem } from '@/lib/api/types'
 import { localizedPath, type Locale } from '@/lib/i18n'
 import { filterPagesByLocale } from './site-graph'
 
+export interface CityDisplay {
+  cityKey: string
+  cityName: string
+  citySlug: string
+  href: string
+}
+
+export const staticCitiesPerCountry: Record<string, string[]> = {
+  'spain':           ['barcelona', 'madrid', 'valencia'],
+  'greece':          ['athens', 'thessaloniki'],
+  'czech-republic':  ['prague', 'brno'],
+  'turkey':          ['istanbul', 'ankara'],
+  'portugal':        ['lisbon', 'porto'],
+  'north-macedonia': ['skopje'],
+}
+
 const COUNTRY_SLUG_RE = /^guides\/[^/]+-ivf-guide$/
 const CITY_SLUG_RE = /^guides\/[^/]+\/.+-ivf-guide$/
 
@@ -106,6 +122,67 @@ export function parseCitySlug(slug: string): { countryKey: string; countryName: 
     countryName,
     cityName: slugToLabel(citySegment),
   }
+}
+
+export function getCountryKeyFromSlug(slug: string): string | null {
+  return slug.match(/^guides\/([^/]+)-ivf-guide$/)?.[1] ?? null
+}
+
+export function getCitiesForCountry(
+  countryKey: string,
+  allCityPages: ContentListItem[],
+  locale: Locale,
+): CityDisplay[] {
+  const fromApi = allCityPages.filter((p) =>
+    p.slug.startsWith(`guides/${countryKey}/`)
+  )
+  if (fromApi.length > 0) {
+    return fromApi
+      .map((p) => {
+        const parsed = parseCitySlug(p.slug)
+        if (!parsed) return null
+        const cityKey = p.slug.match(/^guides\/[^/]+\/(.+)-ivf-guide$/)?.[1] ?? ''
+        return {
+          cityKey,
+          cityName: parsed.cityName,
+          citySlug: p.slug,
+          href: localizedPath(`/${p.slug}`, locale),
+        }
+      })
+      .filter((c): c is CityDisplay => c !== null)
+  }
+  const fallback = staticCitiesPerCountry[countryKey] ?? []
+  return fallback.map((cityKey) => ({
+    cityKey,
+    cityName: slugToLabel(cityKey),
+    citySlug: `guides/${countryKey}/${cityKey}-ivf-guide`,
+    href: localizedPath(`/guides/${countryKey}/${cityKey}-ivf-guide`, locale),
+  }))
+}
+
+export function getStaticGuidePages(locale: Locale): ContentListItem[] {
+  const result: ContentListItem[] = []
+
+  for (const slug of Object.keys(countryMeta)) {
+    result.push({ id: 0, slug, language: locale, updatedAt: '' })
+  }
+
+  for (const [countryKey, cities] of Object.entries(staticCitiesPerCountry)) {
+    for (const cityKey of cities) {
+      result.push({
+        id: 0,
+        slug: `guides/${countryKey}/${cityKey}-ivf-guide`,
+        language: locale,
+        updatedAt: '',
+      })
+    }
+  }
+
+  return result
+}
+
+export function getCountryLandingPath(countryKey: string, locale: Locale = 'en'): string {
+  return localizedPath(`/countries/${countryKey}`, locale)
 }
 
 export function getCountryDisplay(slug: string, locale: Locale = 'en') {

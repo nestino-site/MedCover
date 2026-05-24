@@ -26,10 +26,10 @@ export async function getContentList(): Promise<ContentListItem[]> {
   return data
 }
 
-/** For hub/listing pages — uncached; returns empty array when API is unavailable. */
+/** For hub/listing pages — cached via getContentList; returns empty array when API is unavailable. */
 export async function getContentListSafe(): Promise<ContentListItem[]> {
   try {
-    return await apiFetch('/api/v1/content/pages', ContentListSchema)
+    return await getContentList()
   } catch {
     return []
   }

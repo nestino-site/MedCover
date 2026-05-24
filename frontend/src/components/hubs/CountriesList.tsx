@@ -1,78 +1,136 @@
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { getContentListSafe } from '@/lib/api/content'
 import { getDictionary, type Locale } from '@/lib/i18n'
-import { getFeaturedCountries, getCountryDisplay, partitionGuides } from '@/lib/content/hubs'
+import {
+  getFeaturedCountries,
+  getCountryDisplay,
+  getCountryKeyFromSlug,
+  getCitiesForCountry,
+  getCountryLandingPath,
+  partitionGuides,
+  type CityDisplay,
+} from '@/lib/content/hubs'
+import { treatmentCategories } from '@/lib/content/treatments'
+
+interface CountryCardData {
+  slug: string
+  href: string
+  citiesHref: string
+  name: string
+  flag: string
+  tagline: string
+  cost: string
+  clinics: string
+  cities: CityDisplay[]
+  treatmentName: string
+}
+
+function Pill({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-full bg-[var(--color-primary-50)] px-2.5 py-1 text-xs font-medium text-[var(--color-primary-700)] border border-[var(--color-primary-100)]">
+      {children}
+    </span>
+  )
+}
+
+function CountryCard({ data, t }: { data: CountryCardData; t: ReturnType<typeof getDictionary> }) {
+  return (
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white transition-shadow hover:shadow-lg">
+      {/* Header: flag + name + treatment badge */}
+      <div className="flex items-start justify-between gap-3 bg-[var(--color-primary-50)] px-5 py-6">
+        <div className="flex items-center gap-3">
+          <span className="text-4xl leading-none" role="img" aria-label={data.name}>
+            {data.flag}
+          </span>
+          <div>
+            <h2 className="text-lg font-bold text-[var(--color-primary-950)]">{data.name}</h2>
+            <p className="text-sm text-[var(--color-neutral-500)]">{data.tagline}</p>
+          </div>
+        </div>
+        <span className="shrink-0 rounded-full bg-[var(--color-accent-100)] px-2.5 py-0.5 text-xs font-semibold text-[var(--color-accent-700)]">
+          {data.treatmentName}
+        </span>
+      </div>
+
+      <div className="flex flex-1 flex-col p-5">
+        {/* Cost + clinics pills */}
+        {(data.cost || data.clinics) && (
+          <div className="flex flex-wrap gap-2">
+            {data.cost && <Pill>{data.cost}</Pill>}
+            {data.clinics && <Pill>{data.clinics}</Pill>}
+          </div>
+        )}
+
+        {/* Cities */}
+        {data.cities.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
+              {t.hubs.countries.citiesLabel}
+            </p>
+            <p className="mt-1 text-sm text-[var(--color-neutral-600)]">
+              {data.cities.map((c) => c.cityName).join(' • ')}
+            </p>
+          </div>
+        )}
+
+        {/* CTAs */}
+        <div className="mt-auto flex flex-col gap-2 pt-5 sm:flex-row">
+          <Link
+            href={data.href}
+            className="flex-1 rounded-lg border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-4 py-2 text-center text-sm font-semibold text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-100)]"
+          >
+            {t.hubs.guides.viewGuide} →
+          </Link>
+          <Link
+            href={data.citiesHref}
+            className="flex-1 rounded-lg border border-[var(--color-border)] bg-white px-4 py-2 text-center text-sm font-medium text-[var(--color-neutral-700)] transition-colors hover:border-[var(--color-primary-200)] hover:text-[var(--color-primary-800)]"
+          >
+            {t.hubs.countries.viewCities}
+          </Link>
+        </div>
+      </div>
+    </article>
+  )
+}
 
 export async function CountriesList({ locale }: { locale: Locale }) {
   const t = getDictionary(locale)
-  let items = getFeaturedCountries(locale).map((c) => ({
-    slug: c.slug,
-    href: c.href,
-    name: c.name,
-    flag: c.flag,
-    tagline: c.tagline,
-    cost: c.cost,
-    clinics: c.clinics,
-  }))
-
   const pages = await getContentListSafe()
-  const { countries } = partitionGuides(pages, locale)
-  if (countries.length > 0) {
-    items = countries.map((page) => {
-      const display = getCountryDisplay(page.slug, locale)
-      return {
-        slug: page.slug,
-        href: display.href,
-        name: display.name,
-        flag: display.flag,
-        tagline: display.tagline,
-        cost: display.cost,
-        clinics: display.clinics,
-      }
-    })
-  }
+  const { countries: countryPages, cities: cityPages } = partitionGuides(pages, locale)
 
-  if (items.length === 0) {
+  const activeTreatment = treatmentCategories.find((c) => c.status === 'active')
+  const treatmentName = activeTreatment?.name ?? 'IVF & Fertility'
+
+  const baseCountries =
+    countryPages.length > 0
+      ? countryPages.map((p) => getCountryDisplay(p.slug, locale))
+      : getFeaturedCountries(locale)
+
+  if (baseCountries.length === 0) {
     return <p className="text-[var(--color-neutral-500)]">{t.hubs.countries.empty}</p>
   }
 
+  const cards: CountryCardData[] = baseCountries.map((display) => {
+    const countryKey = getCountryKeyFromSlug(display.slug) ?? ''
+    return {
+      slug: display.slug,
+      href: display.href,
+      citiesHref: getCountryLandingPath(countryKey, locale),
+      name: display.name,
+      flag: display.flag,
+      tagline: display.tagline,
+      cost: display.cost,
+      clinics: display.clinics,
+      cities: getCitiesForCountry(countryKey, cityPages, locale),
+      treatmentName,
+    }
+  })
+
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((dest) => (
-        <Link
-          key={dest.slug}
-          href={dest.href}
-          className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white transition-all hover:-translate-y-1 hover:shadow-lg"
-        >
-          <div className="flex items-center justify-center bg-[var(--color-primary-50)] py-8">
-            <span className="text-6xl" role="img" aria-label={dest.name}>
-              {dest.flag}
-            </span>
-          </div>
-          <div className="flex flex-1 flex-col p-5">
-            <h2 className="font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
-              {t.home.ivfSpotlight.ivfIn} {dest.name}
-            </h2>
-            <p className="mt-1 text-sm text-[var(--color-neutral-500)]">{dest.tagline}</p>
-            {(dest.cost || dest.clinics) && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {dest.cost && (
-                  <span className="rounded-full bg-[var(--color-primary-50)] px-2.5 py-1 text-xs font-medium text-[var(--color-primary-700)]">
-                    {dest.cost}
-                  </span>
-                )}
-                {dest.clinics && (
-                  <span className="rounded-full bg-[var(--color-primary-50)] px-2.5 py-1 text-xs font-medium text-[var(--color-primary-700)]">
-                    {dest.clinics}
-                  </span>
-                )}
-              </div>
-            )}
-            <p className="mt-4 text-sm font-medium text-[var(--color-accent-600)]">
-              {t.hubs.guides.viewGuide} →
-            </p>
-          </div>
-        </Link>
+      {cards.map((card) => (
+        <CountryCard key={card.slug} data={card} t={t} />
       ))}
     </div>
   )
@@ -82,7 +140,7 @@ export function CountriesListSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="h-64 animate-pulse rounded-2xl bg-[var(--color-neutral-100)]" />
+        <div key={i} className="h-80 animate-pulse rounded-2xl bg-[var(--color-neutral-100)]" />
       ))}
     </div>
   )

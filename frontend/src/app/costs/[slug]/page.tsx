@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { getContentBySlugOptional } from '@/lib/api/content'
-import { countryMeta } from '@/lib/content/hubs'
-import { buildCountryGuideSchemas } from '@/lib/schema/country-guide'
+import { buildCostGuideSchemas } from '@/lib/schema/cost-guide'
 import { JsonLd } from '@/components/shared/JsonLd'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import { HeroAnswerBlock } from '@/components/country-guide/HeroAnswerBlock'
@@ -16,76 +15,67 @@ import { CrossHubNav } from '@/components/hubs/CrossHubNav'
 import { getDictionary, localizedPath } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 
-type Params = Promise<{ countrySlug: string }>
+type Params = Promise<{ slug: string }>
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.com'
 
 export function generateStaticParams() {
-  return Object.keys(countryMeta).map((slug) => ({
-    countrySlug: slug.replace(/^guides\//, ''),
-  }))
+  return [{ slug: 'spain-ivf-financing-2026' }]
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const { countrySlug } = await params
-  const slug = `guides/${countrySlug}`
+  const { slug } = await params
+  const page = await getContentBySlugOptional(`costs/${slug}`)
+  if (!page) return { title: 'Cost Guide | MedCover' }
 
-  try {
-    const page = await getContentBySlugOptional(slug)
-    if (!page) throw new Error('unavailable')
-    const canonicalUrl =
-      page.seo.canonicalUrl ||
-      `${process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.com'}/${slug}/`
+  const canonicalUrl = page.seo.canonicalUrl || `${SITE_URL}/costs/${slug}/`
+  const og = page.seo.openGraph
+  const tw = page.seo.twitterCard
+  const ogStr = (k: string) => (typeof og[k] === 'string' ? (og[k] as string) : undefined)
+  const twStr = (k: string) => (typeof tw[k] === 'string' ? (tw[k] as string) : undefined)
 
-    const og = page.seo.openGraph
-    const tw = page.seo.twitterCard
-    const ogStr = (k: string) => (typeof og[k] === 'string' ? (og[k] as string) : undefined)
-    const twStr = (k: string) => (typeof tw[k] === 'string' ? (tw[k] as string) : undefined)
-
-    return {
-      title: page.metaTitle,
-      description: page.metaDescription,
-      robots: page.seo.robots,
-      alternates: {
-        canonical: canonicalUrl,
-        languages: Object.fromEntries(
-          page.seo.hreflang.map((h) => [h.language.toLowerCase(), h.url]),
-        ),
-      },
-      openGraph: {
-        title: ogStr('title') || page.metaTitle,
-        description: ogStr('description') || page.metaDescription,
-        url: canonicalUrl,
-        type: 'website',
-        siteName: 'MedCover',
-        images: page.heroImage ? [{ url: page.heroImage }] : [],
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title: twStr('title') || page.metaTitle,
-        description: twStr('description') || page.metaDescription,
-        images: page.heroImage ? [page.heroImage] : [],
-      },
-    }
-  } catch {
-    return { title: 'IVF Country Guide | MedCover' }
+  return {
+    title: page.metaTitle,
+    description: page.metaDescription,
+    robots: page.seo.robots,
+    alternates: {
+      canonical: canonicalUrl,
+      languages: Object.fromEntries(
+        page.seo.hreflang.map((h) => [h.language.toLowerCase(), h.url]),
+      ),
+    },
+    openGraph: {
+      title: ogStr('title') || page.metaTitle,
+      description: ogStr('description') || page.metaDescription,
+      url: canonicalUrl,
+      type: 'website',
+      siteName: 'MedCover',
+      images: page.heroImage ? [{ url: page.heroImage }] : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: twStr('title') || page.metaTitle,
+      description: twStr('description') || page.metaDescription,
+      images: page.heroImage ? [page.heroImage] : [],
+    },
   }
 }
 
-async function CountryGuideContent({ countrySlug }: { countrySlug: string }) {
+async function CostGuideContent({ slug }: { slug: string }) {
   const locale = activeLocale
   const t = getDictionary(locale)
-  const slug = `guides/${countrySlug}`
+  const page = await getContentBySlugOptional(`costs/${slug}`)
 
-  const page = await getContentBySlugOptional(slug)
   if (!page) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-        <CrossHubNav locale={locale} guideSlug={slug} />
+        <CrossHubNav locale={locale} guideSlug={`costs/${slug}`} />
         <p className="mt-8 text-[var(--color-neutral-600)]">{t.page.noDataYet}</p>
       </div>
     )
   }
 
-  const schemas = buildCountryGuideSchemas(page)
+  const schemas = buildCostGuideSchemas(page)
 
   return (
     <>
@@ -94,13 +84,13 @@ async function CountryGuideContent({ countrySlug }: { countrySlug: string }) {
         {page.breadcrumbs.length > 0 && (
           <Breadcrumb items={page.breadcrumbs} homeHref={localizedPath('/', locale)} />
         )}
-        <CrossHubNav locale={locale} guideSlug={slug} className="mt-2" />
+        <CrossHubNav locale={locale} guideSlug={`costs/${slug}`} className="mt-2" />
         <div className="mt-4">
           <HeroAnswerBlock page={page} />
         </div>
-        <TruthScoreCard scores={page.scores} />
+        {page.scores.seo != null && <TruthScoreCard scores={page.scores} />}
         {page.metaDescription && (
-          <SpeakableSummary label={t.countryGuide.speakableSummaryLabel}>
+          <SpeakableSummary label={t.cityGuide.speakableSummaryLabel}>
             <p>{page.metaDescription}</p>
           </SpeakableSummary>
         )}
@@ -108,8 +98,10 @@ async function CountryGuideContent({ countrySlug }: { countrySlug: string }) {
         {page.toc.length > 0 && <RelatedPages toc={page.toc} />}
         {page.faq.length > 0 && <FaqAccordion faqs={page.faq} />}
         <CtaBlock
-          headline="Get Your Personalized IVF Report"
-          description="Based on verified patient interviews — not clinic marketing materials."
+          headline={t.cityGuide.cta.headline}
+          description={t.cityGuide.cta.description}
+          primaryLabel={t.cityGuide.cta.primaryLabel}
+          secondaryLabel={t.cta.shareStory}
         />
         {page.updatedAt && (
           <p className="mt-8 text-center text-xs text-[var(--color-neutral-400)]">
@@ -138,12 +130,12 @@ function GuideSkeleton() {
   )
 }
 
-export default async function CountryGuidePage({ params }: { params: Params }) {
-  const { countrySlug } = await params
+export default async function CostGuidePage({ params }: { params: Params }) {
+  const { slug } = await params
 
   return (
     <Suspense fallback={<GuideSkeleton />}>
-      <CountryGuideContent countrySlug={countrySlug} />
+      <CostGuideContent slug={slug} />
     </Suspense>
   )
 }

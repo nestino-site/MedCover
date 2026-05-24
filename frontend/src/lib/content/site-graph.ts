@@ -62,6 +62,7 @@ export function filterPagesByLocale(pages: ContentListItem[], locale: Locale): C
 
 export function getHubLinksForGuide(dim: GuideDimensions, locale: Locale): HubLink[] {
   const t = getDictionary(locale)
+  const countryLandingHref = localizedPath(`/countries/${dim.countryKey}`, locale)
 
   const links: HubLink[] = [
     { label: t.crossHub.allCountries, href: hubPath('countries', locale), hubId: 'countries' },
@@ -71,18 +72,24 @@ export function getHubLinksForGuide(dim: GuideDimensions, locale: Locale): HubLi
   ]
 
   if (dim.level === 'country') {
+    // Link to country cities section on the landing page
     links.splice(1, 0, {
       label: `${t.crossHub.citiesIn} ${dim.countryName}`,
-      href: hubPath('cities', locale),
+      href: countryLandingHref,
       hubId: 'cities',
+    })
+    // Link to country landing hub at the front
+    links.unshift({
+      label: `${dim.countryName} ${t.crossHub.countryOverview}`,
+      href: countryLandingHref,
     })
   }
 
   if (dim.level === 'city' && dim.cityName) {
-    const countrySlug = `guides/${dim.countryKey}-ivf-guide`
+    // Link to country landing (hub with cities, treatments, featured guide)
     links.unshift({
-      label: `${t.crossHub.countryGuide}: ${dim.countryName}`,
-      href: localizedPath(`/${countrySlug}`, locale),
+      label: `${dim.countryName} ${t.crossHub.countryOverview}`,
+      href: countryLandingHref,
     })
   }
 

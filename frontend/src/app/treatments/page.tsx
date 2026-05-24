@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
+import { HubHero } from '@/components/hubs/HubHero'
 import { HubPageLayout } from '@/components/hubs/HubPageLayout'
-import { TreatmentsList } from '@/components/hubs/TreatmentsList'
+import { TreatmentsList, TreatmentsListSkeleton } from '@/components/hubs/TreatmentsList'
 import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 
@@ -15,13 +17,23 @@ export default function TreatmentsHubPage() {
   const t = getDictionary(locale)
 
   return (
-    <HubPageLayout
-      locale={locale}
-      hubId="treatments"
-      title={t.hubs.treatments.title}
-      description={t.hubs.treatments.description}
-    >
-      <TreatmentsList locale={locale} />
-    </HubPageLayout>
+    <>
+      <HubHero
+        eyebrow={t.hubs.treatments.hero.eyebrow}
+        title={t.hubs.treatments.hero.title}
+        subtitle={t.hubs.treatments.hero.subtitle}
+      />
+      <HubPageLayout
+        locale={locale}
+        hubId="treatments"
+        title={t.hubs.treatments.title}
+        description={t.hubs.treatments.description}
+        showHeading={false}
+      >
+        <Suspense fallback={<TreatmentsListSkeleton />}>
+          <TreatmentsList locale={locale} />
+        </Suspense>
+      </HubPageLayout>
+    </>
   )
 }

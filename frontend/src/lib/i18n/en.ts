@@ -72,8 +72,9 @@ export const en = {
         'Match with verified clinics by treatment and destination — launching soon.',
     },
     costs: {
-      title: 'Costs — Coming Soon',
-      description: 'Treatment cost transparency across destinations — launching soon.',
+      title: 'IVF Treatment Costs Abroad — What Patients Pay',
+      description:
+        'Verified IVF cost ranges across 6 European countries. Real prices from patient data — North Macedonia from €1,900 to Spain from €3,200.',
     },
     compare: {
       title: 'Compare — Coming Soon',
@@ -96,7 +97,7 @@ export const en = {
       title: 'Find treatment abroad, based on patient truth',
       subtitle: 'Real costs and patient-verified clinic scores — not clinic marketing.',
       ctaPrimary: 'Explore treatments',
-      ctaSecondary: 'Browse IVF countries',
+      ctaSecondary: 'Browse destinations',
     },
     ivfStrip: {
       label: 'Now live',
@@ -148,16 +149,29 @@ export const en = {
     stats: {
       countries: 'Countries',
       clinics: 'Clinics verified',
-      interviews: 'Patient interviews',
+      interviews: 'Patient reviews',
     },
   },
   hubs: {
     countries: {
-      title: 'IVF Countries',
+      title: 'Medical Tourism Countries',
       description:
         'Verified destination guides — costs, clinics, and what patients actually experienced.',
       cardDescription: 'destination guides with costs, clinics, and patient data',
       empty: 'Country guides coming soon.',
+      hero: {
+        eyebrow: 'Medical Tourism Destinations',
+        title: 'Medical Destinations Worldwide',
+        subtitle:
+          'Verified destination guides for every treatment you\'re considering abroad — real costs, honest clinic scores, and patient experiences.',
+        statCountries: 'Countries',
+        statTreatments: 'Treatments covered',
+        statClinics: 'Clinics verified',
+        statInterviews: 'Patient reviews',
+      },
+      citiesLabel: 'Cities',
+      viewCities: 'Browse cities',
+      treatmentsLabel: 'Treatment',
     },
     cities: {
       title: 'IVF Cities',
@@ -165,6 +179,16 @@ export const en = {
       cardDescription: 'city guides with local clinics and travel tips',
       cardDescriptionEmpty: 'City-level guides with local clinics and travel tips',
       empty: 'City guides coming soon.',
+      hero: {
+        eyebrow: 'City Guides',
+        title: 'Find Your City for Treatment Abroad',
+        subtitle:
+          'City-level guides built from verified patient interviews — local clinics, real costs, and travel logistics.',
+        statCities: 'Cities',
+        statCountries: 'Countries',
+        statData: 'Verified patient data',
+      },
+      viewCountryGuide: 'Country guide',
     },
     treatments: {
       title: 'Treatments',
@@ -174,6 +198,16 @@ export const en = {
       soonBadge: 'Coming soon',
       ivfDescription: 'Fertility treatment abroad — countries, cities, and verified guides.',
       exploreIvf: 'Explore IVF',
+      hero: {
+        eyebrow: 'Clinical Specialties',
+        title: 'Medical Treatments Abroad',
+        subtitle:
+          'Start with verified patient data — explore treatment categories and find the right destination.',
+      },
+      availableCountries: 'Destinations',
+      availableCities: 'Cities',
+      comingSoonPreview: "We're building destination guides for",
+      comingSoonNotify: "Explore what's live now",
     },
     guides: {
       title: 'Guides',
@@ -268,6 +302,7 @@ export const en = {
     ivfTreatments: 'IVF treatments',
     citiesIn: 'Cities in',
     countryGuide: 'Country guide',
+    countryOverview: 'overview',
     relatedHubs: 'Related',
   },
   breadcrumb: {
@@ -303,6 +338,47 @@ export const en = {
     travelLogistics: 'Travel & Logistics',
     comparison: 'vs Nearby Destinations',
     speakableSummaryLabel: 'City Summary',
+    relatedCities: 'Other cities in',
+    cta: {
+      headline: 'Find the Right Clinic in This City',
+      description: 'Verified by real patients — not clinic advertisements.',
+      primaryLabel: 'Get Matched',
+    },
+    stats: {
+      treatment: 'Treatment',
+      country: 'Country',
+      estimatedCost: 'Est. cost',
+      clinics: 'Clinics',
+    },
+  },
+  countryLanding: {
+    h1Prefix: 'IVF in',
+    heroSubtitle: 'Clinics, costs & patient insights',
+    stats: {
+      cost: 'Starting from',
+      clinics: 'Verified clinics',
+      cities: 'City guides',
+    },
+    featuredGuide: {
+      eyebrow: 'IVF Guide',
+      readFull: 'Read the full guide',
+      comingSoon: 'Guide coming soon',
+      comingSoonBody: 'Our detailed IVF guide for this country is being compiled from verified patient interviews.',
+      faqPreviewHeading: 'Common questions',
+    },
+    citiesSection: {
+      eyebrow: 'City guides',
+      heading: 'IVF by City',
+      empty: 'City guides coming soon',
+      viewGuide: 'View guide',
+    },
+    treatmentsSection: {
+      eyebrow: 'Available treatments',
+      heading: 'Treatments',
+      active: 'Active',
+      comingSoon: 'Coming soon',
+    },
+    speakableSummaryLabel: 'Country Summary',
   },
   truthScore: {
     label: 'Truth Score',

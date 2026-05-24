@@ -1,5 +1,8 @@
-import { Building2, Users, Globe, Clock } from 'lucide-react'
+import { Stethoscope, Globe, CircleDollarSign, Building2 } from 'lucide-react'
 import type { ContentPage } from '@/lib/api/types'
+import { parseCitySlug, countryMeta } from '@/lib/content/hubs'
+import { treatmentCategories } from '@/lib/content/treatments'
+import { en } from '@/lib/i18n/en'
 
 interface StatItem {
   icon: React.ReactNode
@@ -12,31 +15,31 @@ interface CityQuickStatsProps {
 }
 
 export function CityQuickStats({ page }: CityQuickStatsProps) {
+  const parsed = parseCitySlug(page.slug)
+  const countrySlug = parsed ? `guides/${parsed.countryKey}-ivf-guide` : null
+  const meta = countrySlug ? countryMeta[countrySlug] : null
+  const activeTreatment = treatmentCategories.find((c) => c.status === 'active')
+
   const stats: StatItem[] = [
     {
+      icon: <Stethoscope size={16} aria-hidden="true" />,
+      label: en.cityGuide.stats.treatment,
+      value: activeTreatment?.name ?? '—',
+    },
+    {
       icon: <Globe size={16} aria-hidden="true" />,
-      label: 'Content Quality',
-      value: page.scores.seo != null ? `${Math.round(page.scores.seo)}/100` : '—',
+      label: en.cityGuide.stats.country,
+      value: meta ? `${meta.flag} ${parsed?.countryName ?? '—'}` : '—',
+    },
+    {
+      icon: <CircleDollarSign size={16} aria-hidden="true" />,
+      label: en.cityGuide.stats.estimatedCost,
+      value: meta?.cost || '—',
     },
     {
       icon: <Building2 size={16} aria-hidden="true" />,
-      label: 'Language',
-      value: page.language,
-    },
-    {
-      icon: <Users size={16} aria-hidden="true" />,
-      label: 'Word Count',
-      value: page.content.wordCount > 0 ? `${page.content.wordCount.toLocaleString()} words` : '—',
-    },
-    {
-      icon: <Clock size={16} aria-hidden="true" />,
-      label: 'Last Updated',
-      value: page.updatedAt
-        ? new Date(page.updatedAt).toLocaleDateString('en-US', {
-            month: 'short',
-            year: 'numeric',
-          })
-        : '—',
+      label: en.cityGuide.stats.clinics,
+      value: meta?.clinics || '—',
     },
   ]
 

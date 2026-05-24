@@ -1,0 +1,102 @@
+import { Globe, ShieldCheck } from 'lucide-react'
+import { en } from '@/lib/i18n/en'
+
+interface CountryHeroProps {
+  name: string
+  flag: string
+  tagline: string
+  cost: string
+  clinics: string
+  citiesCount: number
+}
+
+const trustChips = ['Verified Data', 'Patient Interviews', 'Independent']
+
+export function CountryHero({ name, flag, tagline, cost, clinics, citiesCount }: CountryHeroProps) {
+  const t = en.countryLanding
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--color-primary-950)] via-[var(--color-primary-900)] to-[var(--color-accent-900)] px-6 py-10 text-white sm:px-10 sm:py-14">
+      {/* Subtle glow */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-10"
+        aria-hidden="true"
+        style={{
+          backgroundImage: `radial-gradient(circle at 70% 30%, var(--color-accent-400) 0%, transparent 50%)`,
+        }}
+      />
+
+      <div className="relative mx-auto max-w-3xl">
+        {/* Eyebrow */}
+        <div className="mb-4 flex items-center gap-2">
+          <Globe size={14} className="text-[var(--color-accent-400)]" aria-hidden="true" />
+          <span className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-400)]">
+            {flag} {name} · {tagline}
+          </span>
+        </div>
+
+        {/* H1 */}
+        <h1 className="text-5xl font-bold leading-tight tracking-tight text-white">
+          {t.h1Prefix} {name}
+        </h1>
+
+        {/* Subtitle */}
+        <p className="mt-2 text-lg text-[var(--color-primary-300)]">{t.heroSubtitle}</p>
+
+        {/* Trust chips */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {trustChips.map((chip) => (
+            <span
+              key={chip}
+              className="rounded-full border border-[var(--color-accent-400)]/30 bg-white/5 px-3 py-1 text-xs font-medium text-[var(--color-accent-400)]"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+
+        {/* Quick stats — speakable */}
+        <div
+          data-speakable="true"
+          className="mt-8 grid grid-cols-3 gap-4 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm sm:gap-6 sm:p-6"
+        >
+          {cost && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary-400)]">
+                {t.stats.cost}
+              </p>
+              <p className="mt-1 text-xl font-bold text-white">{cost}</p>
+            </div>
+          )}
+          {clinics && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary-400)]">
+                {t.stats.clinics}
+              </p>
+              <p className="mt-1 text-xl font-bold text-white">{clinics}</p>
+            </div>
+          )}
+          {citiesCount > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary-400)]">
+                {t.stats.cities}
+              </p>
+              <p className="mt-1 text-xl font-bold text-white">{citiesCount}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Verified badge */}
+        <div className="mt-6 inline-flex items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3 backdrop-blur-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-500)]/20">
+            <ShieldCheck size={20} className="text-[var(--color-accent-400)]" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">MedCover verified</p>
+            <p className="text-xs text-[var(--color-primary-300)]">Independent patient data</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

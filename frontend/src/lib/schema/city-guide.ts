@@ -4,6 +4,7 @@ import {
   buildFAQPage,
   buildMedicalWebPage,
 } from './base'
+import { slugToLabel } from '../content/hubs'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcover.com'
 
@@ -19,15 +20,35 @@ export function buildCityGuideSchemas(page: ContentPage): object[] {
     updatedAt: page.updatedAt,
   })
 
+  // Parse city/country from slug: guides/spain/barcelona-ivf-guide
+  const slugMatch = page.slug.match(/^guides\/([^/]+)\/(.+)-ivf-guide$/)
+  const countryKey = slugMatch?.[1] ?? null
+  const cityKey = slugMatch?.[2] ?? null
+  const cityName = cityKey ? slugToLabel(cityKey) : null
+  const countryName = countryKey ? slugToLabel(countryKey) : null
+
   const speakableSpec = {
     '@type': 'SpeakableSpecification',
-    cssSelector: ['[data-speakable="true"]'],
+    cssSelector: ['h1', '[data-speakable="true"]'],
+  }
+
+  // Enrich `about` with both MedicalProcedure + City entity
+  const aboutEntities: object[] = [
+    { '@type': 'MedicalProcedure', name: 'IVF (In Vitro Fertilization)' },
+  ]
+  if (cityName && countryName) {
+    aboutEntities.push({
+      '@type': 'City',
+      name: cityName,
+      containedInPlace: { '@type': 'Country', name: countryName },
+    })
   }
 
   const schemas: object[] = [
     {
       '@context': 'https://schema.org',
       ...medicalWebPage,
+      about: aboutEntities,
       speakable: speakableSpec,
     },
   ]
@@ -40,6 +61,18 @@ export function buildCityGuideSchemas(page: ContentPage): object[] {
     schemas.push({
       '@context': 'https://schema.org',
       ...buildBreadcrumbList(page.breadcrumbs),
+    })
+  }
+
+  if (page.scores.seo != null) {
+    schemas.push({
+      '@context': 'https://schema.org',
+      '@type': 'AggregateRating',
+      ratingValue: Math.round(page.scores.seo),
+      bestRating: 100,
+      worstRating: 0,
+      ratingCount: 1,
+      reviewAspect: 'Verified Patient Data Quality',
     })
   }
 

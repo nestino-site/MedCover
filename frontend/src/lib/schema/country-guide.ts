@@ -40,7 +40,7 @@ export function buildCountryGuideSchemas(page: ContentPage): object[] {
 
   const speakableSpec = {
     '@type': 'SpeakableSpecification',
-    cssSelector: ['[data-speakable="true"]'],
+    cssSelector: ['h1', '[data-speakable="true"]'],
   }
 
   const schemas: object[] = [
