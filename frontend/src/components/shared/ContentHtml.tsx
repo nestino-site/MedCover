@@ -22,6 +22,7 @@ export function ContentHtml({ html, className }: ContentHtmlProps) {
         'prose-td:align-top',
         'prose-blockquote:border-[var(--color-accent-300)] prose-blockquote:text-[var(--color-neutral-600)]',
         'prose-li:text-[var(--color-neutral-700)]',
+        'prose-img:rounded-xl prose-img:shadow-sm',
         className,
       )}
       // Backend delivers sanitized HTML

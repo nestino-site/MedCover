@@ -1,6 +1,7 @@
 import 'server-only'
 import { cacheLife, cacheTag } from 'next/cache'
 import { isTrafficEngineUnreachable, trafficEngineFetch } from './client'
+import { normalizePagePayload } from './normalize-page-payload'
 import {
   ContentPageSchema,
   ContentListResponseSchema,
@@ -40,7 +41,7 @@ async function parsePageResponse(
   }
 
   const json = await res.json()
-  const parsed = ContentPageSchema.safeParse(json)
+  const parsed = ContentPageSchema.safeParse(normalizePagePayload(json))
   if (!parsed.success) {
     console.error(
       `[Traffic Engine] invalid page payload for ${label}:`,
@@ -105,7 +106,10 @@ export async function loadPublishedPage(slug: string): Promise<PageFetchResult> 
   cacheTag(cacheTags.pageBySlug(canonical), cacheTags.site(SITE_ID))
 
   const bySlug = await fetchPageRaw(`/content/by-slug${canonical}`)
-  if (bySlug.status === 'ok' || bySlug.status === 'invalid') return bySlug
+  if (bySlug.status === 'ok') {
+    return enrichPageWithListMetadata(bySlug, canonical)
+  }
+  if (bySlug.status === 'invalid') return bySlug
   if (bySlug.status === 'unavailable') return bySlug
 
   const pages = await listPublishedPages()
@@ -113,11 +117,33 @@ export async function loadPublishedPage(slug: string): Promise<PageFetchResult> 
   if (item) {
     cacheTag(cacheTags.pageById(item.id))
     const byId = await fetchPageRaw(`/content/${item.id}`)
-    if (byId.status === 'ok' || byId.status === 'invalid') return byId
+    if (byId.status === 'ok') {
+      return enrichPageWithListMetadata(byId, canonical, item.id)
+    }
+    if (byId.status === 'invalid') return byId
     if (byId.status === 'unavailable') return byId
   }
 
   return bySlug
+}
+
+function enrichPageWithListMetadata(
+  result: Extract<PageFetchResult, { status: 'ok' }>,
+  _slug: string,
+  knownPageId?: number,
+): PageFetchResult {
+  const pageId = result.page.pageId ?? knownPageId ?? null
+  if (pageId == null || pageId === result.page.pageId) {
+    return result
+  }
+
+  return {
+    status: 'ok',
+    page: {
+      ...result.page,
+      pageId,
+    },
+  }
 }
 
 export async function getPageBySlug(slug: string): Promise<ContentPage | null> {

@@ -60,6 +60,8 @@ const FaqItemSchema = z.object({
 export const ContentPageSchema = z.object({
   version: z.string().default('2.1'),
   status: z.string().default('ready'),
+  pageId: z.number().nullable().default(null),
+  hasHeroImage: z.boolean().default(false),
   finalContent: z.string().nullable().default(null),
   htmlContent: z.string().nullable().default(null),
   language: z.string().default('en'),

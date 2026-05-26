@@ -17,7 +17,8 @@ import { RelatedPages } from '@/components/shared/RelatedPages'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { pageTitleFromSlug } from '@/lib/content/hubs'
-import { isNextImageOptimizable, resolveHeroImage } from '@/lib/content/hero-image'
+import { isNextImageOptimizable, resolveHeroImage, resolveHeroImageForMetadata } from '@/lib/content/hero-image'
+import { normalizeContentHtmlImages } from '@/lib/content/html-content-images'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 
@@ -50,6 +51,7 @@ function metadataFromPage(
 ): Metadata {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
   const canonical = page.page.seo.canonical || `${siteUrl}${slugPath}/`
+  const hero = resolveHeroImageForMetadata(page.page, siteUrl)
 
   return {
     title: page.page.seo.metaTitle ?? page.page.seo.title ?? undefined,
@@ -62,13 +64,13 @@ function metadataFromPage(
       url: page.page.seo.og.url || canonical,
       type: 'article',
       siteName: 'MedCover',
-      images: page.page.seo.og.image ? [{ url: page.page.seo.og.image }] : [],
+      images: hero ? [{ url: hero.url, alt: hero.alt }] : [],
     },
     twitter: {
       card: page.page.seo.twitter.card,
       title: page.page.seo.twitter.title ?? page.page.seo.metaTitle ?? undefined,
       description: page.page.seo.twitter.description ?? page.page.seo.metaDescription ?? undefined,
-      images: page.page.seo.twitter.image ? [page.page.seo.twitter.image] : [],
+      images: hero ? [hero.url] : [],
     },
   }
 }
@@ -161,6 +163,10 @@ async function CachedArticleBody({
 
   const page = result.page
   const hero = resolveHeroImage(page)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
+  const htmlContent = page.htmlContent
+    ? normalizeContentHtmlImages(page.htmlContent, siteUrl)
+    : null
 
   return (
     <>
@@ -193,7 +199,7 @@ async function CachedArticleBody({
           </div>
         )}
 
-        {page.htmlContent && <ContentHtml html={page.htmlContent} className="mt-8" />}
+        {htmlContent && <ContentHtml html={htmlContent} className="mt-8" />}
 
         {page.tableOfContents.length > 0 && <RelatedPages toc={page.tableOfContents} />}
 
