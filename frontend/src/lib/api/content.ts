@@ -107,7 +107,8 @@ export async function loadPublishedPage(slug: string): Promise<PageFetchResult> 
 
   const bySlug = await fetchPageRaw(`/content/by-slug${canonical}`)
   if (bySlug.status === 'ok') {
-    return enrichPageWithListMetadata(bySlug, canonical)
+    const listPageId = bySlug.page.pageId ?? (await resolveListPageId(canonical))
+    return enrichPageWithListMetadata(bySlug, canonical, listPageId)
   }
   if (bySlug.status === 'invalid') return bySlug
   if (bySlug.status === 'unavailable') return bySlug
@@ -127,13 +128,41 @@ export async function loadPublishedPage(slug: string): Promise<PageFetchResult> 
   return bySlug
 }
 
-function enrichPageWithListMetadata(
+async function probeHeroImageExists(pageId: number): Promise<boolean> {
+  try {
+    const res = await trafficEngineFetch(`/content/${pageId}/hero-image`, {
+      method: 'GET',
+      headers: { Accept: 'image/*' },
+      redirect: 'manual',
+    })
+
+    return res.ok || res.status === 301 || res.status === 302
+  } catch {
+    return false
+  }
+}
+
+async function enrichPageWithListMetadata(
   result: Extract<PageFetchResult, { status: 'ok' }>,
-  _slug: string,
+  slug: string,
   knownPageId?: number,
-): PageFetchResult {
+): Promise<PageFetchResult> {
   const pageId = result.page.pageId ?? knownPageId ?? null
-  if (pageId == null || pageId === result.page.pageId) {
+  const hasDirectUrl = Boolean(
+    result.page.heroImage?.url?.trim() ||
+      result.page.seo.og.image?.trim() ||
+      result.page.seo.twitter.image?.trim(),
+  )
+
+  let hasHeroImage = result.page.hasHeroImage
+  if (pageId && !hasDirectUrl && !hasHeroImage) {
+    hasHeroImage = await probeHeroImageExists(pageId)
+  }
+
+  if (
+    (pageId == null || pageId === result.page.pageId) &&
+    hasHeroImage === result.page.hasHeroImage
+  ) {
     return result
   }
 
@@ -141,9 +170,15 @@ function enrichPageWithListMetadata(
     status: 'ok',
     page: {
       ...result.page,
-      pageId,
+      ...(pageId != null ? { pageId } : {}),
+      hasHeroImage,
     },
   }
+}
+
+async function resolveListPageId(slug: string): Promise<number | undefined> {
+  const pages = await listPublishedPages()
+  return pages.find((page) => slugsMatch(page.slug, slug))?.id
 }
 
 export async function getPageBySlug(slug: string): Promise<ContentPage | null> {

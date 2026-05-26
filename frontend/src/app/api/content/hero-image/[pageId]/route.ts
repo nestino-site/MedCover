@@ -19,6 +19,13 @@ export async function GET(_req: Request, { params }: RouteParams): Promise<Respo
       return new Response('Hero image not found', { status: 404 })
     }
 
+    if (upstream.status === 301 || upstream.status === 302) {
+      const location = upstream.headers.get('location')
+      if (location) {
+        return Response.redirect(location, upstream.status as 301 | 302)
+      }
+    }
+
     if (!upstream.ok) {
       return new Response('Failed to load hero image', { status: upstream.status })
     }
