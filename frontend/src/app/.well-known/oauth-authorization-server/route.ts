@@ -5,14 +5,21 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 // RFC 8414 — OAuth 2.0 Authorization Server Metadata
 // MedCover's public APIs require no OAuth authentication.
 // Agents may verify HTTP Message Signature keys via jwks_uri.
+//
+// Per auth.md spec the AS metadata document also mirrors the resource and
+// authorization_servers fields from the PRM so agents can read everything
+// in one round-trip after discovery.
 export function GET() {
   const metadata = {
     issuer: SITE_URL,
+    resource: SITE_URL,
+    authorization_servers: [SITE_URL],
     jwks_uri: `${SITE_URL}/.well-known/http-message-signatures-directory`,
     grant_types_supported: [],
     response_types_supported: [],
     token_endpoint_auth_methods_supported: [],
     scopes_supported: [],
+    bearer_methods_supported: [],
     service_documentation: `${SITE_URL}/.well-known/api-catalog`,
     // auth.md agent registration block (https://github.com/workos/auth.md)
     agent_auth: {
@@ -26,7 +33,7 @@ export function GET() {
 
   return NextResponse.json(metadata, {
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/oauth-authorization-server+json',
       'Cache-Control': 'public, max-age=86400',
       'Access-Control-Allow-Origin': '*',
     },

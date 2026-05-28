@@ -7,13 +7,14 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 // and what scopes are available. Public APIs here require no token; agents
 // can call them directly. The AS metadata at oauth-authorization-server
 // confirms no token endpoint exists.
+//
+// authorization_servers must be the AS base URL — agents append
+// /.well-known/oauth-authorization-server to discover the AS metadata.
 export function GET() {
   const metadata = {
     resource: SITE_URL,
     resource_name: 'MedCover',
-    authorization_servers: [
-      `${SITE_URL}/.well-known/oauth-authorization-server`,
-    ],
+    authorization_servers: [SITE_URL],
     jwks_uri: `${SITE_URL}/.well-known/http-message-signatures-directory`,
     scopes_supported: [],
     bearer_methods_supported: [],
@@ -24,7 +25,7 @@ export function GET() {
 
   return NextResponse.json(metadata, {
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/oauth-protected-resource+json',
       'Cache-Control': 'public, max-age=86400',
       'Access-Control-Allow-Origin': '*',
     },

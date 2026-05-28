@@ -22,14 +22,14 @@ Response shape:
 {
   "resource": "${SITE_URL}",
   "resource_name": "MedCover",
-  "authorization_servers": ["${SITE_URL}/.well-known/oauth-authorization-server"],
+  "authorization_servers": ["${SITE_URL}"],
   "scopes_supported": [],
   "bearer_methods_supported": []
 }
 \`\`\`
 
 - \`resource\` — canonical URL of the API.
-- \`authorization_servers\` — points to the AS metadata in Step 1b.
+- \`authorization_servers\` — base URL(s) of the authorization server. Append \`/.well-known/oauth-authorization-server\` to each to fetch the AS metadata in Step 1b.
 - \`scopes_supported\` / \`bearer_methods_supported\` — both empty: no token is required.
 
 ### 1b. Fetch Authorization Server Metadata
@@ -100,6 +100,7 @@ export function GET() {
       'Content-Type': 'text/markdown; charset=utf-8',
       'Cache-Control': 'public, max-age=86400',
       'Access-Control-Allow-Origin': '*',
+      'Link': `<${SITE_URL}/.well-known/oauth-protected-resource>; rel="oauth-protected-resource"`,
     },
   })
 }
