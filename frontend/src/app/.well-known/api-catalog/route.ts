@@ -14,6 +14,26 @@ export function GET() {
             type: 'application/json',
             title: 'Hero image content API',
           },
+          {
+            href: `${SITE_URL}/.well-known/oauth-authorization-server`,
+            type: 'application/json',
+            title: 'OAuth 2.0 Authorization Server Metadata (RFC 8414)',
+          },
+          {
+            href: `${SITE_URL}/.well-known/openid-configuration`,
+            type: 'application/json',
+            title: 'OpenID Connect Discovery Metadata',
+          },
+          {
+            href: `${SITE_URL}/.well-known/oauth-protected-resource`,
+            type: 'application/json',
+            title: 'OAuth 2.0 Protected Resource Metadata (RFC 9728)',
+          },
+          {
+            href: `${SITE_URL}/.well-known/mcp/server-card.json`,
+            type: 'application/json',
+            title: 'MCP Server Card (SEP-1649)',
+          },
         ],
         'service-doc': [
           {

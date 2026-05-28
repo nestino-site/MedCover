@@ -6,7 +6,10 @@ export function middleware(request: NextRequest): NextResponse {
   const { pathname, search } = request.nextUrl
   const accept = request.headers.get('accept') ?? ''
   const isInternal = request.headers.get('x-md-internal') === '1'
-  const isApiOrStatic = pathname.startsWith('/api/') || pathname.startsWith('/_next/')
+  const isApiOrStatic =
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname === '/auth.md'
 
   if (accept.includes('text/markdown') && !isInternal && !isApiOrStatic) {
     const rewriteUrl = request.nextUrl.clone()

@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
+import { WebMCPProvider } from '@/components/WebMCPProvider'
 import { DEFAULT_LOCALE, getLocaleDir } from '@/lib/i18n/locales'
 import { en } from '@/lib/i18n/en'
 
@@ -90,6 +91,7 @@ export default function RootLayout({
         <GoogleTagManager gtmId={GTM_ID} />
       ) : null}
       <body className="flex min-h-dvh flex-col bg-[var(--color-surface)] font-sans antialiased">
+        <WebMCPProvider />
         <Header locale={locale} />
         <main className="flex-1">{children}</main>
         <Footer locale={locale} />
