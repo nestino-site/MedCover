@@ -3,6 +3,18 @@ import { NextResponse } from 'next/server'
 import { DEFAULT_LOCALE, getContentLanguage } from './src/lib/i18n/locales'
 
 export function middleware(request: NextRequest): NextResponse {
+  const { pathname, search } = request.nextUrl
+  const accept = request.headers.get('accept') ?? ''
+  const isInternal = request.headers.get('x-md-internal') === '1'
+  const isApiOrStatic = pathname.startsWith('/api/') || pathname.startsWith('/_next/')
+
+  if (accept.includes('text/markdown') && !isInternal && !isApiOrStatic) {
+    const rewriteUrl = request.nextUrl.clone()
+    rewriteUrl.pathname = '/api/md'
+    rewriteUrl.search = `?path=${encodeURIComponent(pathname + search)}`
+    return NextResponse.rewrite(rewriteUrl)
+  }
+
   const response = NextResponse.next()
 
   response.headers.set('x-medcover-locale', DEFAULT_LOCALE)
@@ -14,6 +26,7 @@ export function middleware(request: NextRequest): NextResponse {
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=()',
   )
+  response.headers.set('Vary', 'Accept')
 
   return response
 }

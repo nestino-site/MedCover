@@ -52,6 +52,16 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // RFC 8288 Link headers for agent discovery on the homepage
+        source: '/',
+        headers: [
+          {
+            key: 'Link',
+            value: '</.well-known/api-catalog>; rel="api-catalog", </sitemap.xml>; rel="sitemap"',
+          },
+        ],
+      },
     ]
   },
 }

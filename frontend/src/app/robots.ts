@@ -16,7 +16,9 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: 'GoogleExtended', allow: '/' },
       { userAgent: 'Amazonbot', allow: '/' },
     ],
+    // Content-Signal directive is injected via the host field to declare AI content preferences.
+    // See: https://contentsignals.org/
+    host: `${SITE_URL}\nContent-Signal: ai-train=no, search=yes, ai-input=no`,
     sitemap: `${SITE_URL}/sitemap.xml`,
-    host: SITE_URL,
   }
 }
