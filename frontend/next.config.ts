@@ -58,7 +58,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Link',
-            value: '</.well-known/api-catalog>; rel="api-catalog", </sitemap.xml>; rel="sitemap"',
+            value: '</.well-known/api-catalog>; rel="api-catalog", </sitemap.xml>; rel="sitemap", </.well-known/oauth-protected-resource>; rel="oauth-protected-resource"',
           },
         ],
       },

@@ -17,8 +17,10 @@ export function GET() {
     // auth.md agent registration block (https://github.com/workos/auth.md)
     agent_auth: {
       skill: `${SITE_URL}/auth.md`,
-      // No register_uri / claim_uri / revocation_uri — APIs are public, no credentials issued
-      identity_types_supported: [],
+      identity_types_supported: ['anonymous'],
+      anonymous: {
+        credential_types_supported: [], // public — no credentials issued
+      },
     },
   }
 

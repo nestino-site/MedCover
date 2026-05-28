@@ -44,12 +44,15 @@ The response contains an \`agent_auth\` block:
 {
   "agent_auth": {
     "skill": "${SITE_URL}/auth.md",
-    "identity_types_supported": []
+    "identity_types_supported": ["anonymous"],
+    "anonymous": {
+      "credential_types_supported": []
+    }
   }
 }
 \`\`\`
 
-\`identity_types_supported\` is empty — this service issues no credentials. Skip to Step 3.
+\`identity_types_supported\` is \`["anonymous"]\` — agents may call APIs without any credentials. No \`register_uri\`, \`claim_uri\`, or \`revocation_uri\` exists because no credentials are issued. Skip to Step 3.
 
 ## Step 2 — Pick a method
 
