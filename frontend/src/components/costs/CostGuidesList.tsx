@@ -26,13 +26,23 @@ function parseCostSlug(fullSlug: string): ParsedCostSlug | null {
   return null
 }
 
-interface CostGuidesListProps {
+export interface CostGuidesListProps {
   locale: Locale
+  treatment?: string
+  country?: string
 }
 
-export async function CostGuidesList({ locale }: CostGuidesListProps) {
+export async function CostGuidesList({ locale, treatment, country }: CostGuidesListProps) {
   const pages = await getContentListSafe()
-  const costGuides = pages.filter((p) => p.slug.startsWith('costs/'))
+  let costGuides = pages.filter((p) => p.slug.startsWith('costs/'))
+
+  // Filter by country
+  if (country) {
+    costGuides = costGuides.filter((p) => {
+      const parsed = parseCostSlug(p.slug)
+      return parsed?.countryKey === country
+    })
+  }
 
   const guidesByTreatment: Record<string, typeof costGuides> = {}
   for (const guide of costGuides) {
@@ -40,6 +50,11 @@ export async function CostGuidesList({ locale }: CostGuidesListProps) {
     const tid = parsed?.treatmentId ?? 'other'
     guidesByTreatment[tid] = [...(guidesByTreatment[tid] ?? []), guide]
   }
+
+  // Filter visible treatments
+  const visibleTreatments = treatment
+    ? treatmentCategories.filter((t) => t.id === treatment)
+    : treatmentCategories
 
   return (
     <section aria-labelledby="cost-guides-heading">
@@ -55,15 +70,15 @@ export async function CostGuidesList({ locale }: CostGuidesListProps) {
         </p>
       </div>
 
-      {treatmentCategories.map((treatment) => {
-        const guides = guidesByTreatment[treatment.id] ?? []
-        const isActive = treatment.status === 'active'
+      {visibleTreatments.map((t) => {
+        const guides = guidesByTreatment[t.id] ?? []
+        const isActive = t.status === 'active'
 
         return (
-          <div key={treatment.id} className="mb-12">
+          <div key={t.id} className="mb-12">
             <div className="mb-4 flex items-center gap-3">
               <h3 className="text-lg font-semibold text-[var(--color-primary-950)]">
-                {treatment.name}
+                {t.name}
               </h3>
               {!isActive && (
                 <span className="rounded-full bg-[var(--color-neutral-100)] px-2 py-0.5 text-xs font-medium text-[var(--color-neutral-500)]">
@@ -115,7 +130,7 @@ export async function CostGuidesList({ locale }: CostGuidesListProps) {
               </div>
             ) : isActive ? (
               <p className="text-sm text-[var(--color-neutral-400)]">
-                Cost guides for {treatment.name} are being published — check back soon.
+                Cost guides for {t.name} are being published — check back soon.
               </p>
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

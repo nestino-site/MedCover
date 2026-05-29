@@ -3,6 +3,7 @@ import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 import { hubPath } from './site-nav'
 import { countryMeta, parseCitySlug, slugToLabel } from './hubs'
 import type { HubId } from './site-nav'
+import { appendFiltersToUrl, buildContextualHubUrl, type ActiveFilters } from './filter-utils'
 
 export type GuideLevel = 'country' | 'city'
 
@@ -60,25 +61,30 @@ export function filterPagesByLocale(pages: ContentListItem[], locale: Locale): C
   })
 }
 
-export function getHubLinksForGuide(dim: GuideDimensions, locale: Locale): HubLink[] {
+export function getHubLinksForGuide(
+  dim: GuideDimensions,
+  locale: Locale,
+  fromFilters?: ActiveFilters,
+): HubLink[] {
   const t = getDictionary(locale)
   const countryLandingHref = localizedPath(`/countries/${dim.countryKey}`, locale)
 
+  const ff = fromFilters ?? {}
+
   const links: HubLink[] = [
-    { label: t.crossHub.allCountries, href: hubPath('countries', locale), hubId: 'countries' },
-    { label: t.crossHub.allCities, href: hubPath('cities', locale), hubId: 'cities' },
+    { label: t.crossHub.allCountries, href: buildContextualHubUrl('countries', ff, locale), hubId: 'countries' },
+    { label: t.crossHub.allCities, href: buildContextualHubUrl('cities', ff, locale), hubId: 'cities' },
     { label: t.crossHub.ivfTreatments, href: hubPath('treatments', locale), hubId: 'treatments' },
-    { label: t.crossHub.allGuides, href: hubPath('guides', locale), hubId: 'guides' },
+    { label: t.crossHub.allGuides, href: buildContextualHubUrl('guides', ff, locale), hubId: 'guides' },
   ]
 
   if (dim.level === 'country') {
-    // Link to country cities section on the landing page
+    // Link to country-specific cities sub-page
     links.splice(1, 0, {
       label: `${t.crossHub.citiesIn} ${dim.countryName}`,
-      href: countryLandingHref,
+      href: localizedPath(`/countries/${dim.countryKey}/cities`, locale),
       hubId: 'cities',
     })
-    // Link to country landing hub at the front
     links.unshift({
       label: `${dim.countryName} ${t.crossHub.countryOverview}`,
       href: countryLandingHref,
@@ -86,7 +92,6 @@ export function getHubLinksForGuide(dim: GuideDimensions, locale: Locale): HubLi
   }
 
   if (dim.level === 'city' && dim.cityName) {
-    // Link to country landing (hub with cities, treatments, featured guide)
     links.unshift({
       label: `${dim.countryName} ${t.crossHub.countryOverview}`,
       href: countryLandingHref,
@@ -99,36 +104,45 @@ export function getHubLinksForGuide(dim: GuideDimensions, locale: Locale): HubLi
 export function getHubLinksForHubPage(
   hubId: HubId,
   locale: Locale,
+  fromFilters?: ActiveFilters,
 ): HubLink[] {
   const t = getDictionary(locale)
+  const ff = fromFilters ?? {}
   const links: HubLink[] = []
 
   switch (hubId) {
     case 'countries':
       links.push(
-        { label: t.crossHub.allCities, href: hubPath('cities', locale), hubId: 'cities' },
+        { label: t.crossHub.allCities, href: buildContextualHubUrl('cities', ff, locale), hubId: 'cities' },
         { label: t.crossHub.ivfTreatments, href: hubPath('treatments', locale), hubId: 'treatments' },
-        { label: t.crossHub.allGuides, href: hubPath('guides', locale), hubId: 'guides' },
+        { label: t.crossHub.allGuides, href: buildContextualHubUrl('guides', ff, locale), hubId: 'guides' },
       )
       break
     case 'cities':
       links.push(
-        { label: t.crossHub.allCountries, href: hubPath('countries', locale), hubId: 'countries' },
+        { label: t.crossHub.allCountries, href: buildContextualHubUrl('countries', ff, locale), hubId: 'countries' },
         { label: t.crossHub.ivfTreatments, href: hubPath('treatments', locale), hubId: 'treatments' },
-        { label: t.crossHub.allGuides, href: hubPath('guides', locale), hubId: 'guides' },
+        { label: t.crossHub.allGuides, href: buildContextualHubUrl('guides', ff, locale), hubId: 'guides' },
       )
       break
     case 'treatments':
       links.push(
-        { label: t.crossHub.allCountries, href: hubPath('countries', locale), hubId: 'countries' },
-        { label: t.crossHub.allCities, href: hubPath('cities', locale), hubId: 'cities' },
-        { label: t.crossHub.allGuides, href: hubPath('guides', locale), hubId: 'guides' },
+        { label: t.crossHub.allCountries, href: buildContextualHubUrl('countries', ff, locale), hubId: 'countries' },
+        { label: t.crossHub.allCities, href: buildContextualHubUrl('cities', ff, locale), hubId: 'cities' },
+        { label: t.crossHub.allGuides, href: buildContextualHubUrl('guides', ff, locale), hubId: 'guides' },
       )
       break
     case 'guides':
       links.push(
-        { label: t.crossHub.allCountries, href: hubPath('countries', locale), hubId: 'countries' },
-        { label: t.crossHub.allCities, href: hubPath('cities', locale), hubId: 'cities' },
+        { label: t.crossHub.allCountries, href: buildContextualHubUrl('countries', ff, locale), hubId: 'countries' },
+        { label: t.crossHub.allCities, href: buildContextualHubUrl('cities', ff, locale), hubId: 'cities' },
+        { label: t.crossHub.ivfTreatments, href: hubPath('treatments', locale), hubId: 'treatments' },
+      )
+      break
+    case 'costs':
+      links.push(
+        { label: t.crossHub.allCountries, href: buildContextualHubUrl('countries', ff, locale), hubId: 'countries' },
+        { label: t.crossHub.allCities, href: buildContextualHubUrl('cities', ff, locale), hubId: 'cities' },
         { label: t.crossHub.ivfTreatments, href: hubPath('treatments', locale), hubId: 'treatments' },
       )
       break

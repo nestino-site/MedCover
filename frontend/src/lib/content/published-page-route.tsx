@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
-import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { cacheLife, cacheTag } from 'next/cache'
 import { Suspense } from 'react'
 import {
@@ -19,7 +19,7 @@ import { CtaBlock } from '@/components/shared/CtaBlock'
 import { pageTitleFromSlug } from '@/lib/content/hubs'
 import { isNextImageOptimizable, resolveHeroImage, resolveHeroImageForMetadata } from '@/lib/content/hero-image'
 import { normalizeContentHtmlImages } from '@/lib/content/html-content-images'
-import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
+import { getDictionary, type Locale } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 
 type Params = Promise<{ slug: string[] }>
@@ -75,47 +75,11 @@ function metadataFromPage(
   }
 }
 
-function ContentIssuePanel({
-  slugPath,
-  title,
-  message,
-  hubSegment,
-  locale,
-}: {
-  slugPath: string
-  title: string
-  message: string
-  hubSegment?: string
-  locale: Locale
-}) {
-  const hub = hubSegment ?? slugPath.split('/').filter(Boolean)[0]
-
-  return (
-    <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
-      <h1 className="text-2xl font-bold text-[var(--color-primary-950)]">{title}</h1>
-      <p className="mt-4 text-[var(--color-neutral-600)]">{message}</p>
-      <p className="mt-2 text-sm text-[var(--color-neutral-500)]">
-        Slug: <code>{slugPath}</code>
-      </p>
-      {hub && (
-        <Link
-          href={localizedPath(`/${hub}/`, locale)}
-          className="mt-6 inline-flex text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
-        >
-          ← Back to {hub} hub
-        </Link>
-      )}
-    </div>
-  )
-}
-
 async function CachedArticleBody({
   slugPath,
-  hubSegment,
   locale,
 }: {
   slugPath: string
-  hubSegment?: string
   locale: Locale
 }) {
   'use cache'
@@ -125,40 +89,8 @@ async function CachedArticleBody({
   const result = await loadPublishedPage(slugPath)
   const t = getDictionary(locale)
 
-  if (result.status === 'unavailable') {
-    return (
-      <ContentIssuePanel
-        slugPath={slugPath}
-        hubSegment={hubSegment}
-        locale={locale}
-        title="Content temporarily unavailable"
-        message="This article is listed but could not be loaded from Traffic Engine. Retry in a moment, or republish from Nestino to refresh the cache."
-      />
-    )
-  }
-
-  if (result.status === 'invalid') {
-    return (
-      <ContentIssuePanel
-        slugPath={slugPath}
-        hubSegment={hubSegment}
-        locale={locale}
-        title="Content format error"
-        message="The API returned data that does not match the expected page contract. Check server logs for Zod validation details."
-      />
-    )
-  }
-
-  if (result.status === 'not_found') {
-    return (
-      <ContentIssuePanel
-        slugPath={slugPath}
-        hubSegment={hubSegment}
-        locale={locale}
-        title="Article not found in API"
-        message="This URL is not returned by GET /content/by-slug. Confirm the slug in Nestino matches exactly, then republish."
-      />
-    )
+  if (result.status !== 'ok') {
+    notFound()
   }
 
   const page = result.page
@@ -263,12 +195,9 @@ export function createPublishedPageHandlers(
         <Suspense fallback={null}>
           {params.then(({ slug }) => {
             const slugPath = buildSlugPath(slug, prefixSegments)
-            const hubSegment =
-              prefixSegments[0] ?? slugPath.split('/').filter(Boolean)[0]
             return (
               <CachedArticleBody
                 slugPath={slugPath}
-                hubSegment={hubSegment}
                 locale={activeLocale}
               />
             )
@@ -279,13 +208,10 @@ export function createPublishedPageHandlers(
 
     const { slug } = await params
     const slugPath = buildSlugPath(slug, prefixSegments)
-    const hubSegment =
-      prefixSegments[0] ?? slugPath.split('/').filter(Boolean)[0]
 
     return (
       <CachedArticleBody
         slugPath={slugPath}
-        hubSegment={hubSegment}
         locale={activeLocale}
       />
     )

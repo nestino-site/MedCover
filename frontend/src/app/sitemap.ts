@@ -3,6 +3,7 @@ import { listPublishedPages } from '@/lib/api/content'
 import { filterPagesByLocale } from '@/lib/content/site-graph'
 import { getSitemapHubs, hubPath } from '@/lib/content/site-nav'
 import { staticCitiesPerCountry } from '@/lib/content/hubs'
+import { treatmentCategories } from '@/lib/content/treatments'
 import { LOCALES } from '@/lib/i18n/locales'
 import { absoluteUrl, localizedPath } from '@/lib/i18n/paths'
 
@@ -47,11 +48,34 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     })
 
+    // Country landing pages + country/cities sub-pages
     for (const countryKey of Object.keys(staticCitiesPerCountry)) {
       entries.push({
         url: absoluteUrl(localizedPath(`/countries/${countryKey}`, locale), SITE_URL),
         lastModified: new Date(),
         changeFrequency: 'weekly',
+        priority: 0.85,
+      })
+      entries.push({
+        url: absoluteUrl(localizedPath(`/countries/${countryKey}/cities`, locale), SITE_URL),
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.75,
+      })
+    }
+
+    // Treatment sub-pages
+    for (const cat of treatmentCategories.filter((c) => c.status === 'active')) {
+      entries.push({
+        url: absoluteUrl(localizedPath(`/treatments/${cat.id}`, locale), SITE_URL),
+        lastModified: new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.9,
+      })
+      entries.push({
+        url: absoluteUrl(localizedPath(`/treatments/${cat.id}/costs`, locale), SITE_URL),
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
         priority: 0.85,
       })
     }

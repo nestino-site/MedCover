@@ -114,6 +114,28 @@ export function pageTitleFromSlug(slug: string): string {
   return slugToLabel(last)
 }
 
+export interface GuideArticleItem {
+  slug: string
+  href: string
+  title: string
+  updatedAt: string
+}
+
+export function getGuideArticles(
+  pages: ContentListItem[],
+  locale: Locale,
+): GuideArticleItem[] {
+  return filterPagesByHub(pages, 'guides', locale).map((page) => {
+    const slug = page.slug.replace(/^\//, '')
+    return {
+      slug,
+      href: localizedPath(`/${slug}`, locale),
+      title: pageTitleFromSlug(slug),
+      updatedAt: page.updatedAt,
+    }
+  })
+}
+
 export function partitionGuides(pages: ContentListItem[], locale?: Locale) {
   const filtered = locale ? filterPagesByLocale(pages, locale) : pages
   const countries: ContentListItem[] = []

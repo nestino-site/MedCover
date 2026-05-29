@@ -3,6 +3,10 @@ import { Suspense } from 'react'
 import { CircleDollarSign, Pill, MapPin, Stethoscope } from 'lucide-react'
 import { HubHero } from '@/components/hubs/HubHero'
 import { CostGuidesList, CostGuidesListSkeleton } from '@/components/costs/CostGuidesList'
+import { CostComparisonGrid } from '@/components/costs/CostComparisonGrid'
+import { FilterBar } from '@/components/filters/FilterBar'
+import { FilterChips } from '@/components/filters/FilterChips'
+import { SortSelect } from '@/components/filters/SortSelect'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { JsonLd } from '@/components/shared/JsonLd'
@@ -10,6 +14,8 @@ import { CrossHubNav } from '@/components/hubs/CrossHubNav'
 import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 import { buildFAQPage } from '@/lib/schema/base'
+import { countryMeta } from '@/lib/content/hubs'
+import { treatmentCategories } from '@/lib/content/treatments'
 import type { FaqItem } from '@/lib/api/types'
 import type { LucideIcon } from 'lucide-react'
 
@@ -21,6 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t.meta.costs.title,
     description: t.meta.costs.description,
+    alternates: { canonical: `${SITE_URL}/costs/` },
   }
 }
 
@@ -90,7 +97,31 @@ const schemas = [
   { '@context': 'https://schema.org', ...buildFAQPage(costFaqs) },
 ]
 
-export default function CostsPage() {
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
+
+export default async function CostsPage({ searchParams }: { searchParams: SearchParams }) {
+  const { treatment, country, sort } = await searchParams
+
+  const treatmentFilter = typeof treatment === 'string' ? treatment : undefined
+  const countryFilter = typeof country === 'string' ? country : undefined
+  const sortFilter = typeof sort === 'string' ? sort : undefined
+
+  const treatmentOptions = treatmentCategories.map((c) => ({
+    value: c.id,
+    label: c.name,
+  }))
+
+  const countryOptions = Object.entries(countryMeta).map(([slug, meta]) => ({
+    value: slug.replace(/^guides\//, '').replace(/-ivf-guide$/, ''),
+    label: meta.name,
+    icon: meta.flag,
+  }))
+
+  const sortOptions = [
+    { value: 'cost-asc', label: 'Cost: low → high' },
+    { value: 'alpha', label: 'A – Z' },
+  ]
+
   return (
     <>
       <JsonLd schema={schemas} />
@@ -101,9 +132,43 @@ export default function CostsPage() {
       />
 
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        {/* Filter bar */}
+        <FilterBar>
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+            <FilterChips
+              options={treatmentOptions}
+              paramKey="treatment"
+              label="Treatment"
+              allLabel="All treatments"
+            />
+            <FilterChips
+              options={countryOptions}
+              paramKey="country"
+              label="Country"
+              allLabel="All countries"
+            />
+          </div>
+          <SortSelect options={sortOptions} defaultValue="cost-asc" label="Sort costs" />
+        </FilterBar>
+
+        {/* Cost comparison grid */}
+        <section aria-labelledby="cost-comparison-heading" className="mb-16">
+          <h2
+            id="cost-comparison-heading"
+            className="mb-6 text-2xl font-bold tracking-tight text-[var(--color-primary-950)]"
+          >
+            Cost comparison
+          </h2>
+          <CostComparisonGrid
+            locale={locale}
+            sort={sortFilter}
+            country={countryFilter}
+          />
+        </section>
+
         {/* Cost guides by treatment */}
         <Suspense fallback={<CostGuidesListSkeleton />}>
-          <CostGuidesList locale={locale} />
+          <CostGuidesList locale={locale} treatment={treatmentFilter} country={countryFilter} />
         </Suspense>
 
         {/* Cost factors */}
@@ -160,7 +225,12 @@ export default function CostsPage() {
           </div>
         </section>
 
-        <CrossHubNav locale={locale} hubId="costs" className="mt-12" />
+        <CrossHubNav
+          locale={locale}
+          hubId="costs"
+          className="mt-12"
+          fromFilters={{ treatment: treatmentFilter, country: countryFilter }}
+        />
       </div>
 
       <CtaBlock

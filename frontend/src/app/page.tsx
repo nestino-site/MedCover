@@ -1,235 +1,317 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Suspense } from 'react'
-import { ArrowRight, ShieldCheck, Globe, Users } from 'lucide-react'
-import { HubExploreGrid, HubExploreGridSkeleton } from '@/components/hubs/HubExploreGrid'
-import { getFeaturedCountries } from '@/lib/content/hubs'
-import { getDictionary, localizedPath } from '@/lib/i18n'
+import { ArrowRight, CheckCircle2, BarChart3, HeartHandshake } from 'lucide-react'
+import { buildHomeLinkGraph } from '@/lib/content/home-links'
+import { treatmentCategories } from '@/lib/content/treatments'
+import { localizedPath } from '@/lib/i18n'
+import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
-import { hubPath } from '@/lib/content/site-nav'
+import { CtaBlock } from '@/components/shared/CtaBlock'
+import { JsonLd } from '@/components/shared/JsonLd'
+
+const locale = activeLocale
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = getDictionary(activeLocale)
+  const t = getDictionary(locale)
   return {
     title: t.meta.home.title,
     description: t.meta.home.description,
+    alternates: { canonical: `${SITE_URL}/` },
     openGraph: {
       title: t.meta.home.title,
       description: t.meta.home.description,
-      url: localizedPath('/', activeLocale),
+      url: `${SITE_URL}/`,
       type: 'website',
+      siteName: 'MedCover',
     },
+    twitter: { card: 'summary_large_image', title: t.meta.home.title, description: t.meta.home.description },
   }
 }
 
+const homeSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': `${SITE_URL}/#website`,
+  name: 'MedCover',
+  url: SITE_URL,
+  description: 'Verified patient data for IVF treatment abroad — real costs, clinic scores, and city guides across 6 European countries.',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/guides/?q={search_term_string}` },
+    'query-input': 'required name=search_term_string',
+  },
+}
+
 export default function HomePage() {
-  const locale = activeLocale
   const t = getDictionary(locale)
-  const featured = getFeaturedCountries(locale)
+  const graph = buildHomeLinkGraph(locale)
+  const { countries, treatment } = graph
+  const activeTreatment = treatmentCategories.find((c) => c.status === 'active')
+  const countriesHubHref = localizedPath('/countries', locale)
 
-  const statTiles = [
-    { value: String(featured.length), label: t.home.stats.countries },
-    { value: '80+', label: t.home.stats.clinics },
-    { value: '500+', label: t.home.stats.interviews },
-  ]
-
-  const featureIcons = [ShieldCheck, Globe, Users]
-  const featureStyles = [
-    { iconBg: 'bg-[var(--color-accent-100)]', iconColor: 'text-[var(--color-accent-600)]' },
-    { iconBg: 'bg-[var(--color-primary-100)]', iconColor: 'text-[var(--color-primary-600)]' },
-    { iconBg: 'bg-[var(--color-trust-100)]', iconColor: 'text-[var(--color-trust-600)]' },
+  const howItWorksSteps = [
+    {
+      step: '01',
+      icon: BarChart3,
+      ...t.home.howItWorks.steps[0],
+      href: treatment.overview,
+      iconBg: 'bg-[var(--color-primary-100)]',
+      iconColor: 'text-[var(--color-primary-600)]',
+    },
+    {
+      step: '02',
+      icon: CheckCircle2,
+      ...t.home.howItWorks.steps[1],
+      href: treatment.costs,
+      iconBg: 'bg-[var(--color-accent-100)]',
+      iconColor: 'text-[var(--color-accent-600)]',
+    },
+    {
+      step: '03',
+      icon: HeartHandshake,
+      ...t.home.howItWorks.steps[2],
+      href: '#',
+      iconBg: 'bg-[var(--color-trust-100)]',
+      iconColor: 'text-[var(--color-trust-600)]',
+    },
   ]
 
   return (
     <div className="flex flex-col">
+      <JsonLd schema={[homeSchema]} />
+
+      {/* ── SECTION 1: HERO ─────────────────────────────────── */}
       <section className="on-dark relative overflow-hidden bg-gradient-to-br from-[var(--color-primary-950)] via-[var(--color-primary-900)] to-[var(--color-primary-800)] py-20 sm:py-28">
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.12]"
+          className="pointer-events-none absolute inset-0 opacity-[0.10]"
           aria-hidden="true"
           style={{
             backgroundImage: `
               linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
               linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px),
-              radial-gradient(circle at 85% 15%, var(--color-accent-400) 0%, transparent 45%),
-              radial-gradient(circle at 10% 90%, var(--color-trust-500) 0%, transparent 40%)
+              radial-gradient(circle at 80% 20%, var(--color-accent-400) 0%, transparent 50%),
+              radial-gradient(circle at 15% 80%, var(--color-trust-500) 0%, transparent 40%)
             `,
             backgroundSize: '48px 48px, 48px 48px, auto, auto',
           }}
         />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="lg:grid lg:grid-cols-2 lg:items-center lg:gap-12">
-            <div className="text-center lg:text-left">
-              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-400)]">
-                {t.home.hero.eyebrow}
-              </p>
-              <h1 className="mt-4 text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
-                {t.home.hero.title}
-              </h1>
-              <p className="mx-auto mt-4 max-w-md text-lg text-[var(--color-primary-200)] lg:mx-0">
-                {t.home.hero.subtitle}
-              </p>
-              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
-                <Link
-                  href={hubPath('treatments', locale)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-trust-500)] px-7 py-3.5 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-[var(--color-trust-400)]"
-                >
-                  {t.home.hero.ctaPrimary}
-                  <ArrowRight size={16} aria-hidden="true" />
-                </Link>
-                <Link
-                  href={hubPath('countries', locale)}
-                  className="inline-flex items-center rounded-xl border border-white/20 px-7 py-3.5 text-sm font-medium text-[var(--color-primary-100)] transition-colors hover:border-white/40 hover:text-white"
-                >
-                  {t.home.hero.ctaSecondary}
-                </Link>
-              </div>
+        <div className="relative mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center lg:text-left">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-400)]">
+              {t.home.hero.eyebrow}
+            </p>
+            <h1 className="mt-4 text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
+              {t.home.hero.title}
+            </h1>
+            <p className="mx-auto mt-5 max-w-lg text-lg text-[var(--color-primary-200)] lg:mx-0">
+              Real costs from verified patient interviews across 6 European countries.
+              No clinic marketing. Starting from{' '}
+              <strong className="text-[var(--color-accent-300)]">€1,900</strong>.
+            </p>
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
+              <Link
+                href={treatment.costs}
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-trust-500)] px-7 py-3.5 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-[var(--color-trust-400)]"
+              >
+                {t.home.hero.ctaPrimary}
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+              <Link
+                href={treatment.overview}
+                className="inline-flex items-center rounded-xl border border-white/20 px-7 py-3.5 text-sm font-medium text-[var(--color-primary-100)] transition-colors hover:border-white/40 hover:text-white"
+              >
+                {t.home.hero.ctaSecondary}
+              </Link>
             </div>
-            <div className="mt-10 grid grid-cols-3 gap-3 lg:mt-0">
-              {statTiles.map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-3 py-5 text-center backdrop-blur-sm sm:px-4"
-                >
-                  <p className="text-2xl font-bold text-white sm:text-3xl">{stat.value}</p>
-                  <p className="mt-1 text-xs text-[var(--color-primary-300)] sm:text-sm">{stat.label}</p>
-                </div>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-[var(--color-primary-400)] lg:justify-start">
+              {t.home.hero.trustItems.map((item) => (
+                <span key={item} className="flex items-center gap-1.5">
+                  <CheckCircle2 size={13} className="text-[var(--color-accent-400)]" aria-hidden="true" />
+                  {item}
+                </span>
               ))}
             </div>
           </div>
         </div>
       </section>
 
+      {/* ── SECTION 2: IVF STRIP ─────────────────────────────── */}
       <section className="border-b border-[var(--color-border)] bg-[var(--color-primary-900)]">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 py-4 text-center text-sm sm:px-6 lg:justify-start lg:px-8 lg:text-left">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 py-3 text-sm sm:px-6 lg:justify-start lg:px-8">
           <span className="font-semibold text-[var(--color-trust-400)]">
             {t.home.ivfStrip.label}: {t.home.ivfStrip.treatment}
           </span>
-          <span className="hidden text-[var(--color-primary-500)] sm:inline">·</span>
-          <Link href={hubPath('countries', locale)} className="text-[var(--color-primary-200)] hover:text-white">
-            {t.home.ivfStrip.links.countries}
+          <span className="hidden text-[var(--color-primary-600)] sm:inline">·</span>
+          <Link href={treatment.overview} className="text-[var(--color-primary-200)] hover:text-white">
+            {t.home.ivfStrip.ivfOverview}
           </Link>
-          <span className="text-[var(--color-primary-500)]">·</span>
-          <Link href={hubPath('cities', locale)} className="text-[var(--color-primary-200)] hover:text-white">
-            {t.home.ivfStrip.links.cities}
+          <span className="text-[var(--color-primary-600)]">·</span>
+          <Link href={treatment.costs} className="text-[var(--color-primary-200)] hover:text-white">
+            {t.home.ivfStrip.costComparison}
           </Link>
-          <span className="text-[var(--color-primary-500)]">·</span>
-          <Link href={hubPath('guides', locale)} className="text-[var(--color-primary-200)] hover:text-white">
-            {t.home.ivfStrip.links.guides}
+          <span className="text-[var(--color-primary-600)]">·</span>
+          <Link href={treatment.compare} className="text-[var(--color-primary-200)] hover:text-white">
+            {t.home.ivfStrip.compare}
           </Link>
           <Link
-            href={hubPath('treatments', locale)}
-            className="ml-0 w-full rounded-lg bg-white/10 px-4 py-2 font-medium text-white hover:bg-white/15 sm:ml-auto sm:w-auto lg:ml-4"
+            href={treatment.overview}
+            className="ml-auto hidden rounded-lg bg-white/10 px-4 py-1.5 font-medium text-white hover:bg-white/15 lg:inline-flex"
           >
             {t.home.ivfStrip.cta} →
           </Link>
         </div>
       </section>
 
-      <section className="border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)]">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <Suspense fallback={<HubExploreGridSkeleton />}>
-            <HubExploreGrid locale={locale} />
-          </Suspense>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="text-center lg:text-left">
+      {/* ── SECTION 3: COUNTRY CARDS ─────────────────────────── */}
+      <section id="countries" className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-600)]">
-              {t.home.ivfSpotlight.breadcrumb}
+              {t.home.countries.eyebrow}
             </p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-[var(--color-primary-950)]">
-              {t.home.ivfSpotlight.title}
+              {t.home.countries.title}
             </h2>
-            <p className="mt-3 text-[var(--color-neutral-600)]">{t.home.ivfSpotlight.subtitle}</p>
+            <p className="mt-2 text-[var(--color-neutral-600)]">
+              {t.home.countries.subtitle}
+            </p>
           </div>
           <Link
-            href={hubPath('countries', locale)}
-            className="text-center text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)] sm:text-right"
+            href={countriesHubHref}
+            className="shrink-0 text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
           >
-            {t.home.ivfSpotlight.viewAllCountries} →
+            {t.home.countries.viewAll} →
           </Link>
         </div>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {featured.map((dest) => (
-            <Link
-              key={dest.href}
-              href={dest.href}
-              className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white transition-all hover:-translate-y-1 hover:shadow-lg"
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {countries.map((dest) => (
+            <article
+              key={dest.key}
+              className="group flex flex-col rounded-xl border border-[var(--color-border)] bg-white p-5 transition-colors hover:border-[var(--color-primary-200)]"
             >
-              <div className="flex items-center justify-center bg-[var(--color-primary-50)] py-8">
-                <span className="text-6xl" role="img" aria-label={dest.name}>
-                  {dest.flag}
-                </span>
+              <div className="flex items-start justify-between gap-3">
+                <Link href={dest.landingHref} className="flex min-w-0 flex-1 items-center gap-3">
+                  <span className="text-2xl leading-none shrink-0" role="img" aria-label={dest.name}>
+                    {dest.flag}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
+                      {dest.name}
+                    </h3>
+                    <p className="truncate text-xs text-[var(--color-neutral-500)]">{dest.tagline}</p>
+                  </div>
+                </Link>
+                {dest.clinics && (
+                  <p className="shrink-0 text-xs text-[var(--color-neutral-500)]">{dest.clinics}</p>
+                )}
               </div>
-              <div className="flex flex-1 flex-col p-5">
-                <h3 className="font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
-                  {t.home.ivfSpotlight.ivfIn} {dest.name}
-                </h3>
-                <p className="mt-1 text-sm text-[var(--color-neutral-500)]">{dest.tagline}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-[var(--color-primary-50)] px-2.5 py-1 text-xs font-medium text-[var(--color-primary-700)]">
-                    {dest.cost}
-                  </span>
-                  <span className="rounded-full bg-[var(--color-primary-50)] px-2.5 py-1 text-xs font-medium text-[var(--color-primary-700)]">
-                    {dest.clinics}
-                  </span>
+
+              {activeTreatment && (
+                <div className="mt-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
+                    {t.home.countries.treatmentsLabel}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    <Link
+                      href={treatment.overview}
+                      className="rounded-full bg-[var(--color-accent-50)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]"
+                    >
+                      {activeTreatment.name}
+                    </Link>
+                  </div>
                 </div>
-                <p className="mt-4 text-sm font-medium text-[var(--color-accent-600)]">
-                  {t.home.ivfSpotlight.viewGuide} →
-                </p>
+              )}
+
+              {dest.cities.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {dest.cities.map((city) => (
+                    <Link
+                      key={city.href}
+                      href={city.href}
+                      className="rounded-md bg-[var(--color-surface-subtle)] px-2 py-0.5 text-xs text-[var(--color-neutral-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]"
+                    >
+                      {city.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-4 flex items-center gap-3 border-t border-[var(--color-border)] pt-3 text-xs">
+                <Link
+                  href={dest.landingHref}
+                  className="font-medium text-[var(--color-primary-700)] hover:text-[var(--color-accent-600)]"
+                >
+                  {t.home.countries.countryOverview}
+                </Link>
+                <span className="text-[var(--color-neutral-300)]" aria-hidden="true">·</span>
+                <Link
+                  href={dest.guideHref}
+                  className="text-[var(--color-neutral-500)] hover:text-[var(--color-primary-800)]"
+                >
+                  {t.home.countries.patientGuide}
+                </Link>
+                {dest.cities.length > 0 && (
+                  <>
+                    <span className="text-[var(--color-neutral-300)]" aria-hidden="true">·</span>
+                    <Link
+                      href={dest.citiesIndexHref}
+                      className="text-[var(--color-neutral-500)] hover:text-[var(--color-primary-800)]"
+                    >
+                      {t.home.countries.citiesLink}
+                    </Link>
+                  </>
+                )}
               </div>
-            </Link>
+            </article>
           ))}
-        </div>
-        <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-medium text-[var(--color-accent-600)]">
-          <Link href={hubPath('countries', locale)} className="hover:text-[var(--color-accent-700)]">
-            {t.home.ivfSpotlight.viewAllCountries} →
-          </Link>
-          <Link href={hubPath('cities', locale)} className="hover:text-[var(--color-accent-700)]">
-            {t.home.ivfSpotlight.viewAllCities} →
-          </Link>
-          <Link href={hubPath('guides', locale)} className="hover:text-[var(--color-accent-700)]">
-            {t.home.ivfSpotlight.viewAllGuides} →
-          </Link>
-          <Link href={hubPath('treatments', locale)} className="hover:text-[var(--color-accent-700)]">
-            {t.home.ivfSpotlight.viewTreatments} →
-          </Link>
         </div>
       </section>
 
-      <section className="border-t border-[var(--color-border)] bg-[var(--color-surface-subtle)]">
-        <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <h2 className="mb-10 text-center text-3xl font-bold tracking-tight text-[var(--color-primary-950)]">
-            {t.home.features.title}
+      {/* ── SECTION 4: HOW IT WORKS ──────────────────────────── */}
+      <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mb-10 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-[var(--color-primary-950)]">
+            {t.home.howItWorks.title}
           </h2>
-          <div className="grid gap-5 sm:grid-cols-3">
-            {t.home.features.items.map((feature, i) => {
-              const Icon = featureIcons[i] ?? ShieldCheck
-              const style = featureStyles[i] ?? featureStyles[0]
-              return (
-                <div
-                  key={feature.title}
-                  className="rounded-2xl border border-[var(--color-border)] bg-white p-6"
+          <p className="mt-3 text-[var(--color-neutral-600)]">
+            {t.home.howItWorks.subtitle}
+          </p>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-3">
+          {howItWorksSteps.map(({ step, icon: Icon, title, body, cta, href, iconBg, iconColor }) => (
+            <div
+              key={step}
+              className="relative flex flex-col rounded-2xl border border-[var(--color-border)] bg-white p-6"
+            >
+              <span className="mb-4 text-xs font-bold tracking-widest text-[var(--color-neutral-300)]">{step}</span>
+              <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-full ${iconBg}`}>
+                <Icon size={20} className={iconColor} aria-hidden="true" />
+              </div>
+              <h3 className="text-base font-bold text-[var(--color-primary-950)]">{title}</h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-[var(--color-neutral-600)]">{body}</p>
+              {href !== '#' ? (
+                <Link
+                  href={href}
+                  className="mt-5 text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
                 >
-                  <div
-                    className={`mb-4 flex h-12 w-12 items-center justify-center rounded-full ${style.iconBg}`}
-                  >
-                    <Icon size={22} className={style.iconColor} aria-hidden="true" />
-                  </div>
-                  <h3 className="text-base font-semibold text-[var(--color-primary-950)]">
-                    {feature.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-[var(--color-neutral-600)]">
-                    {feature.description}
-                  </p>
-                </div>
-              )
-            })}
-          </div>
+                  {cta} →
+                </Link>
+              ) : (
+                <p className="mt-5 text-sm font-medium text-[var(--color-neutral-400)]">{cta}</p>
+              )}
+            </div>
+          ))}
         </div>
       </section>
+
+      {/* ── SECTION 5: CTA ───────────────────────────────────── */}
+      <CtaBlock
+        headline="Ready to plan your IVF abroad?"
+        description="Tell us your situation — we'll match you with verified clinics and realistic cost breakdowns."
+      />
     </div>
   )
 }

@@ -7,16 +7,23 @@ function getRequiredEnv(key: string): string {
   return value
 }
 
+/** Traffic Engine base URL (includes `/api/v1`, no trailing slash). */
+export function trafficEngineUrl(): string {
+  const url = process.env.TRAFFIC_ENGINE_URL ?? process.env.API_BASE_URL
+  if (!url) {
+    throw new Error(
+      'Missing required environment variable: TRAFFIC_ENGINE_URL (or legacy API_BASE_URL)',
+    )
+  }
+  return url
+}
+
 export function siteHeaders(): HeadersInit {
   return {
     'X-Site-Api-Key': getRequiredEnv('SITE_API_KEY'),
     'X-Site-Id': getRequiredEnv('SITE_ID'),
     'Content-Type': 'application/json',
   }
-}
-
-export function trafficEngineUrl(): string {
-  return getRequiredEnv('TRAFFIC_ENGINE_URL')
 }
 
 export function revalidateSeconds(): number {

@@ -1,55 +1,30 @@
 import Link from 'next/link'
 import { listPublishedPagesSafe } from '@/lib/api/content'
-import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
-import { getCountryDisplay, partitionGuides, parseCitySlug, getStaticGuidePages } from '@/lib/content/hubs'
+import { getDictionary, type Locale } from '@/lib/i18n'
+import { getGuideArticles } from '@/lib/content/hubs'
 
-interface GuideItem {
-  slug: string
-  href: string
-  flag: string
-  title: string
-  subtitle: string
-  type: 'country' | 'city'
+export interface GuidesListProps {
+  locale: Locale
+  sort?: string
+  q?: string
 }
 
-export async function GuidesList({ locale }: { locale: Locale }) {
+export async function GuidesList({ locale, sort, q }: GuidesListProps) {
   const t = getDictionary(locale)
   const pages = await listPublishedPagesSafe()
-  const apiSlugs = new Set(pages.map((p) => p.slug.replace(/^\//, '')))
-  const merged = [
-    ...pages,
-    ...getStaticGuidePages(locale).filter((p) => !apiSlugs.has(p.slug.replace(/^\//, ''))),
-  ]
-  const { countries, cities } = partitionGuides(merged, locale)
+  let guides = getGuideArticles(pages, locale)
 
-  const guides: GuideItem[] = []
-
-  for (const page of countries) {
-    const slug = page.slug.replace(/^\//, '')
-    const display = getCountryDisplay(slug, locale)
-    guides.push({
-      slug,
-      href: localizedPath(`/${slug}`, locale),
-      flag: display.flag,
-      title: display.name,
-      subtitle: display.tagline,
-      type: 'country',
-    })
+  if (q) {
+    const lq = q.toLowerCase()
+    guides = guides.filter((g) => g.title.toLowerCase().includes(lq))
   }
 
-  for (const page of cities) {
-    const slug = page.slug.replace(/^\//, '')
-    const parsed = parseCitySlug(slug)
-    const countrySlug = parsed ? `guides/${parsed.countryKey}-ivf-guide` : slug
-    const country = getCountryDisplay(countrySlug, locale)
-    guides.push({
-      slug,
-      href: localizedPath(`/${slug}`, locale),
-      flag: country.flag,
-      title: parsed?.cityName ?? slug,
-      subtitle: country.name,
-      type: 'city',
-    })
+  if (sort === 'updated') {
+    guides = [...guides].sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )
+  } else {
+    guides = [...guides].sort((a, b) => a.title.localeCompare(b.title))
   }
 
   if (guides.length === 0) {
@@ -58,26 +33,35 @@ export async function GuidesList({ locale }: { locale: Locale }) {
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {guides.map((guide) => (
-        <Link
-          key={guide.slug}
-          href={guide.href}
-          className="group flex items-start gap-4 rounded-2xl border border-[var(--color-border)] bg-white p-5 transition-all hover:border-[var(--color-primary-200)] hover:shadow-md"
-        >
-          <span className="mt-0.5 shrink-0 text-3xl leading-none" role="img" aria-hidden="true">
-            {guide.flag}
-          </span>
-          <div className="min-w-0 flex-1">
+      {guides.map((guide) => {
+        const updated = guide.updatedAt
+          ? new Date(guide.updatedAt).toLocaleDateString(locale, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            })
+          : null
+
+        return (
+          <Link
+            key={guide.slug}
+            href={guide.href}
+            className="group flex flex-col rounded-2xl border border-[var(--color-border)] bg-white p-5 transition-all hover:border-[var(--color-primary-200)] hover:shadow-md"
+          >
             <p className="font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
               {guide.title}
             </p>
-            <p className="mt-0.5 text-sm text-[var(--color-neutral-500)]">{guide.subtitle}</p>
-            <p className="mt-3 text-sm font-medium text-[var(--color-accent-600)]">
-              {t.hubs.guides.viewGuide} →
+            {updated && (
+              <p className="mt-2 text-xs text-[var(--color-neutral-400)]">
+                {t.hubs.published.updated} {updated}
+              </p>
+            )}
+            <p className="mt-auto pt-4 text-sm font-medium text-[var(--color-accent-600)]">
+              {t.hubs.published.viewArticle} →
             </p>
-          </div>
-        </Link>
-      ))}
+          </Link>
+        )
+      })}
     </div>
   )
 }

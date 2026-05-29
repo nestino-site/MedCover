@@ -10,11 +10,13 @@ import {
   parseCitySlug,
   staticCitiesPerCountry,
   slugToLabel,
+  getCountryLandingPath,
 } from '@/lib/content/hubs'
 import type { ContentListItem } from '@/lib/api/types'
 
 interface CountryPill {
   slug: string
+  countryKey: string
   name: string
   flag: string
   href: string
@@ -30,12 +32,16 @@ function getCountriesForTreatment(
   allCountryDisplays: ReturnType<typeof getCountryDisplay>[],
 ): CountryPill[] {
   if (cat.status !== 'active') return []
-  return allCountryDisplays.map((d) => ({
-    slug: d.slug,
-    name: d.name,
-    flag: d.flag,
-    href: d.href,
-  }))
+  return allCountryDisplays.map((d) => {
+    const countryKey = d.slug.replace(/^guides\//, '').replace(/-ivf-guide$/, '')
+    return {
+      slug: d.slug,
+      countryKey,
+      name: d.name,
+      flag: d.flag,
+      href: d.href,
+    }
+  })
 }
 
 function getCitiesForTreatment(
@@ -67,7 +73,12 @@ function getCitiesForTreatment(
   return result
 }
 
-export async function TreatmentsList({ locale }: { locale: Locale }) {
+export interface TreatmentsListProps {
+  locale: Locale
+  status?: string
+}
+
+export async function TreatmentsList({ locale, status }: TreatmentsListProps) {
   const t = getDictionary(locale)
   const pages = await getContentListSafe()
   const { countries: countryPages, cities: cityPages } = partitionGuides(pages, locale)
@@ -77,9 +88,14 @@ export async function TreatmentsList({ locale }: { locale: Locale }) {
       ? countryPages.map((p) => getCountryDisplay(p.slug, locale))
       : getFeaturedCountries(locale)
 
+  // Filter by status
+  const visibleCategories = status
+    ? treatmentCategories.filter((c) => c.status === status)
+    : treatmentCategories
+
   return (
     <div className="grid gap-5 sm:grid-cols-2">
-      {treatmentCategories.map((cat) => {
+      {visibleCategories.map((cat) => {
         const isActive = cat.status === 'active'
         const countries = getCountriesForTreatment(cat, allCountryDisplays)
         const cities = getCitiesForTreatment(cat, cityPages, locale)
@@ -101,7 +117,7 @@ export async function TreatmentsList({ locale }: { locale: Locale }) {
                 {t.hubs.treatments.ivfDescription}
               </p>
 
-              {/* Country pills */}
+              {/* Country pills — clicking navigates to country landing */}
               {countries.length > 0 && (
                 <div className="mt-4">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
@@ -111,8 +127,9 @@ export async function TreatmentsList({ locale }: { locale: Locale }) {
                     {countries.slice(0, 6).map((c) => (
                       <Link
                         key={c.slug}
-                        href={c.href}
+                        href={getCountryLandingPath(c.countryKey, locale)}
                         className="flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-sm transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]"
+                        title={`IVF in ${c.name}`}
                       >
                         <span role="img" aria-label={c.name} className="leading-none">
                           {c.flag}
@@ -142,21 +159,27 @@ export async function TreatmentsList({ locale }: { locale: Locale }) {
                 </div>
               )}
 
-              {/* Hub navigation links */}
-              {cat.hubLinks.length > 0 && (
-                <ul className="mt-5 flex flex-wrap gap-2">
-                  {cat.hubLinks.map((link) => (
-                    <li key={link.hubId}>
-                      <Link
-                        href={hubPath(link.hubId, locale)}
-                        className="inline-flex rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm font-medium text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-50)]"
-                      >
-                        {t.nav[link.labelKey]} →
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {/* Hub navigation links + treatment deep-dive */}
+              <ul className="mt-5 flex flex-wrap gap-2">
+                {cat.hubLinks.map((link) => (
+                  <li key={link.hubId}>
+                    <Link
+                      href={hubPath(link.hubId, locale)}
+                      className="inline-flex rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm font-medium text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-50)]"
+                    >
+                      {t.nav[link.labelKey]} →
+                    </Link>
+                  </li>
+                ))}
+                <li>
+                  <Link
+                    href={`/treatments/${cat.id}`}
+                    className="inline-flex rounded-lg border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3 py-2 text-sm font-semibold text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]"
+                  >
+                    Explore {cat.name} →
+                  </Link>
+                </li>
+              </ul>
             </article>
           )
         }

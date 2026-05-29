@@ -9,6 +9,7 @@ import {
 } from '@/lib/content/site-graph'
 import type { HubId } from '@/lib/content/site-nav'
 import type { Locale } from '@/lib/i18n'
+import type { ActiveFilters } from '@/lib/content/filter-utils'
 import { cn } from '@/lib/utils/cn'
 
 type CrossHubNavProps = {
@@ -17,16 +18,17 @@ type CrossHubNavProps = {
   guideSlug?: string
   guideDim?: GuideDimensions
   className?: string
+  fromFilters?: ActiveFilters
 }
 
-export function CrossHubNav({ locale, hubId, guideSlug, guideDim, className }: CrossHubNavProps) {
+export function CrossHubNav({ locale, hubId, guideSlug, guideDim, className, fromFilters }: CrossHubNavProps) {
   const t = getDictionary(locale)
   const dim = guideDim ?? (guideSlug ? parseGuideSlug(guideSlug) : null)
 
   const links = dim
-    ? getHubLinksForGuide(dim, locale)
+    ? getHubLinksForGuide(dim, locale, fromFilters)
     : hubId
-      ? getHubLinksForHubPage(hubId, locale)
+      ? getHubLinksForHubPage(hubId, locale, fromFilters)
       : getComingSoonHelpLinks(locale)
 
   if (links.length === 0) return null

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { CrossHubNav } from './CrossHubNav'
 import type { HubId } from '@/lib/content/site-nav'
 import type { Locale } from '@/lib/i18n'
+import type { ActiveFilters } from '@/lib/content/filter-utils'
 
 type HubPageLayoutProps = {
   title: string
@@ -11,6 +12,7 @@ type HubPageLayoutProps = {
   hubId?: HubId
   showCrossLinks?: boolean
   showHeading?: boolean
+  fromFilters?: ActiveFilters
 }
 
 export function HubPageLayout({
@@ -21,6 +23,7 @@ export function HubPageLayout({
   hubId,
   showCrossLinks = true,
   showHeading = true,
+  fromFilters,
 }: HubPageLayoutProps) {
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -33,7 +36,14 @@ export function HubPageLayout({
         </div>
       )}
       {children}
-      {showCrossLinks && hubId && <CrossHubNav locale={locale} hubId={hubId} className="mt-12" />}
+      {showCrossLinks && hubId && (
+        <CrossHubNav
+          locale={locale}
+          hubId={hubId}
+          className="mt-12"
+          fromFilters={fromFilters}
+        />
+      )}
     </div>
   )
 }

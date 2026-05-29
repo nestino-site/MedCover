@@ -107,7 +107,7 @@ async function CountryLandingContent({ countrySlug }: { countrySlug: string }) {
     <>
       <JsonLd schema={schemas} />
       <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
-        <Breadcrumb items={breadcrumbs} homeHref={localizedPath('/', locale)} />
+        <Breadcrumb items={breadcrumbs.slice(1)} homeHref={localizedPath('/', locale)} />
 
         <div className="mt-4 space-y-10">
           <CountryHero

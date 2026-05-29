@@ -22,6 +22,23 @@ export type HubId =
 
 type NavLabelKey = 'countries' | 'cities' | 'treatments' | 'guides' | 'clinics' | 'costs' | 'compare'
 
+export type MegaGroupId = 'destinations' | 'treatments' | 'guides'
+
+export interface MegaGroup {
+  id: MegaGroupId
+  primaryHubId: HubId
+  relatedHubIds: HubId[]
+}
+
+export const MEGA_GROUPS: MegaGroup[] = [
+  { id: 'destinations', primaryHubId: 'countries', relatedHubIds: ['cities'] },
+  { id: 'treatments', primaryHubId: 'treatments', relatedHubIds: [] },
+  { id: 'guides', primaryHubId: 'guides', relatedHubIds: [] },
+]
+
+/** Hubs linked directly in the header (no mega-menu dropdown). */
+export const DIRECT_NAV_HUB_IDS: HubId[] = ['costs', 'compare', 'clinics']
+
 export interface SiteHub {
   id: HubId
   /** Path segment without locale, e.g. `countries` */
@@ -88,8 +105,8 @@ export const SITE_HUBS: SiteHub[] = [
     group: 'content',
     icon: Building2,
     sitemap: false,
-    headerPrimary: false,
-    headerMore: true,
+    headerPrimary: true,
+    headerMore: false,
   },
   {
     id: 'costs',
@@ -106,12 +123,12 @@ export const SITE_HUBS: SiteHub[] = [
     id: 'compare',
     segment: 'compare',
     labelKey: 'compare',
-    status: 'coming_soon',
+    status: 'active',
     group: 'tools',
     icon: BarChart3,
-    sitemap: false,
-    headerPrimary: false,
-    headerMore: true,
+    sitemap: true,
+    headerPrimary: true,
+    headerMore: false,
   },
 ]
 

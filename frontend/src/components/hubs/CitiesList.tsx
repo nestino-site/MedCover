@@ -1,27 +1,38 @@
 import Link from 'next/link'
 import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
-import { parseCitySlug, partitionGuides, countryMeta } from '@/lib/content/hubs'
+import { parseCitySlug, partitionGuides, countryMeta, getCountryLandingPath } from '@/lib/content/hubs'
 import { treatmentCategories } from '@/lib/content/treatments'
 
 interface CityCardData {
   slug: string
   href: string
   cityName: string
+  countryKey: string
   countryName: string
   countryFlag: string
   countryGuideHref: string
+  citiesPageHref: string
   treatmentName: string
 }
 
 interface CountryGroup {
+  countryKey: string
   countryName: string
   countryFlag: string
   countryGuideHref: string
+  citiesPageHref: string
   cities: CityCardData[]
 }
 
-export async function CitiesList({ locale }: { locale: Locale }) {
+export interface CitiesListProps {
+  locale: Locale
+  country?: string
+  sort?: string
+  q?: string
+}
+
+export async function CitiesList({ locale, country, sort, q }: CitiesListProps) {
   const t = getDictionary(locale)
   const pages = await listPublishedPagesSafe()
   const { cities: cityPages } = partitionGuides(pages, locale)
@@ -33,7 +44,7 @@ export async function CitiesList({ locale }: { locale: Locale }) {
     return <p className="text-[var(--color-neutral-500)]">{t.hubs.cities.empty}</p>
   }
 
-  const parsed: CityCardData[] = cityPages
+  let parsed: CityCardData[] = cityPages
     .map((page) => {
       const slug = page.slug.replace(/^\//, '')
       const info = parseCitySlug(slug)
@@ -44,23 +55,58 @@ export async function CitiesList({ locale }: { locale: Locale }) {
         slug,
         href: localizedPath(`/${slug}`, locale),
         cityName: info.cityName,
+        countryKey: info.countryKey,
         countryName: info.countryName,
         countryFlag: meta?.flag ?? '🌍',
         countryGuideHref: localizedPath(`/${countrySlug}`, locale),
+        citiesPageHref: getCountryLandingPath(info.countryKey, locale),
         treatmentName,
       }
     })
     .filter((c): c is CityCardData => c !== null)
-    .sort((a, b) => a.countryName.localeCompare(b.countryName) || a.cityName.localeCompare(b.cityName))
 
-  // Group by country
+  // Filter by country
+  if (country) {
+    parsed = parsed.filter((c) => c.countryKey === country)
+  }
+
+  // Filter by search query
+  if (q) {
+    const lq = q.toLowerCase()
+    parsed = parsed.filter(
+      (c) =>
+        c.cityName.toLowerCase().includes(lq) || c.countryName.toLowerCase().includes(lq),
+    )
+  }
+
+  // Sort
+  if (sort === 'alpha') {
+    parsed = [...parsed].sort((a, b) => a.cityName.localeCompare(b.cityName))
+  } else {
+    // Default: sort by country then city
+    parsed = [...parsed].sort(
+      (a, b) => a.countryName.localeCompare(b.countryName) || a.cityName.localeCompare(b.cityName),
+    )
+  }
+
+  if (parsed.length === 0) {
+    return (
+      <p className="py-8 text-center text-[var(--color-neutral-500)]">
+        No cities found for the selected filter.
+      </p>
+    )
+  }
+
+  // Group by country (unless filtered to single country)
   const groupMap = new Map<string, CountryGroup>()
   for (const city of parsed) {
     if (!groupMap.has(city.countryName)) {
       groupMap.set(city.countryName, {
+        countryKey: city.countryKey,
         countryName: city.countryName,
         countryFlag: city.countryFlag,
         countryGuideHref: city.countryGuideHref,
+        citiesPageHref: city.citiesPageHref,
         cities: [],
       })
     }
@@ -82,12 +128,20 @@ export async function CitiesList({ locale }: { locale: Locale }) {
                 {group.countryName}
               </h2>
             </div>
-            <Link
-              href={group.countryGuideHref}
-              className="shrink-0 text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
-            >
-              {t.hubs.cities.viewCountryGuide} →
-            </Link>
+            <div className="flex shrink-0 items-center gap-3">
+              <Link
+                href={group.citiesPageHref}
+                className="text-sm font-medium text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-700)]"
+              >
+                Country page →
+              </Link>
+              <Link
+                href={group.countryGuideHref}
+                className="text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
+              >
+                {t.hubs.cities.viewCountryGuide} →
+              </Link>
+            </div>
           </div>
           <div className="h-px bg-[var(--color-border)]" />
 

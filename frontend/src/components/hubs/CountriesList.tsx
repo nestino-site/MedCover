@@ -1,13 +1,12 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { listPublishedPagesSafe } from '@/lib/api/content'
-import { getDictionary, type Locale } from '@/lib/i18n'
+import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 import {
   getFeaturedCountries,
   getCountryDisplay,
   getCountryKeyFromSlug,
   getCitiesForCountry,
-  getCountryLandingPath,
   partitionGuides,
   type CityDisplay,
 } from '@/lib/content/hubs'
@@ -24,6 +23,18 @@ interface CountryCardData {
   clinics: string
   cities: CityDisplay[]
   treatmentName: string
+  costNumeric: number
+  clinicsNumeric: number
+}
+
+function parseCostNumeric(cost: string): number {
+  const n = parseInt(cost.replace(/[^0-9]/g, ''))
+  return isNaN(n) ? 99999 : n
+}
+
+function parseClinicsNumeric(clinics: string): number {
+  const n = parseInt(clinics.replace(/[^0-9]/g, ''))
+  return isNaN(n) ? 0 : n
 }
 
 function Pill({ children }: { children: ReactNode }) {
@@ -94,7 +105,13 @@ function CountryCard({ data, t }: { data: CountryCardData; t: ReturnType<typeof 
   )
 }
 
-export async function CountriesList({ locale }: { locale: Locale }) {
+export interface CountriesListProps {
+  locale: Locale
+  treatment?: string
+  sort?: string
+}
+
+export async function CountriesList({ locale, treatment, sort }: CountriesListProps) {
   const t = getDictionary(locale)
   const pages = await listPublishedPagesSafe()
   const { countries: countryPages, cities: cityPages } = partitionGuides(pages, locale)
@@ -111,12 +128,12 @@ export async function CountriesList({ locale }: { locale: Locale }) {
     return <p className="text-[var(--color-neutral-500)]">{t.hubs.countries.empty}</p>
   }
 
-  const cards: CountryCardData[] = baseCountries.map((display) => {
+  let cards: CountryCardData[] = baseCountries.map((display) => {
     const countryKey = getCountryKeyFromSlug(display.slug) ?? ''
     return {
       slug: display.slug,
       href: display.href,
-      citiesHref: getCountryLandingPath(countryKey, locale),
+      citiesHref: localizedPath(`/countries/${countryKey}/cities`, locale),
       name: display.name,
       flag: display.flag,
       tagline: display.tagline,
@@ -124,8 +141,34 @@ export async function CountriesList({ locale }: { locale: Locale }) {
       clinics: display.clinics,
       cities: getCitiesForCountry(countryKey, cityPages, locale),
       treatmentName,
+      costNumeric: parseCostNumeric(display.cost),
+      clinicsNumeric: parseClinicsNumeric(display.clinics),
     }
   })
+
+  // Filter by treatment — future-proofing; currently only IVF is active
+  if (treatment && treatment !== activeTreatment?.id) {
+    cards = []
+  }
+
+  // Sort
+  if (sort === 'cost-asc') {
+    cards = [...cards].sort((a, b) => a.costNumeric - b.costNumeric)
+  } else if (sort === 'cost-desc') {
+    cards = [...cards].sort((a, b) => b.costNumeric - a.costNumeric)
+  } else if (sort === 'alpha') {
+    cards = [...cards].sort((a, b) => a.name.localeCompare(b.name))
+  } else if (sort === 'clinics') {
+    cards = [...cards].sort((a, b) => b.clinicsNumeric - a.clinicsNumeric)
+  }
+
+  if (cards.length === 0) {
+    return (
+      <p className="py-8 text-center text-[var(--color-neutral-500)]">
+        No countries found for the selected filter.
+      </p>
+    )
+  }
 
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">

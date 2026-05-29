@@ -96,6 +96,44 @@
   --shadow-card-hover: 0 0 0 1px rgb(0 0 0 / 0.10), 0 8px 24px -6px rgb(0 0 0 / 0.12);
 }
 
+/* ─── Navigation animations ─────────────────────────────────────── */
+@keyframes megaPanelIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+@keyframes drawerSlideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes drawerSlideOut {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes overlayFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.mega-panel-enter {
+  animation: megaPanelIn 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.mobile-drawer[data-state="open"] {
+  animation: drawerSlideIn 320ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+.mobile-drawer[data-state="closed"] {
+  animation: drawerSlideOut 260ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+.mobile-overlay[data-state="open"] {
+  animation: overlayFadeIn 260ms ease forwards;
+}
+.mobile-overlay[data-state="closed"] {
+  animation: overlayFadeOut 220ms ease forwards;
+}
+
 /* ─── Base styles ───────────────────────────────────────────────── */
 @layer base {
   *, *::before, *::after {
@@ -153,4 +191,65 @@
     max-width: 100%;
     height: auto;
   }
+}
+
+/* ─── Comparison tables in CMS HTML ───────────────────────────────────────
+   The CMS emits <table class="compare-table"> for side-by-side comparison
+   data. These styles layer on top of the Tailwind Typography prose defaults.
+   ───────────────────────────────────────────────────────────────────────── */
+.compare-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  font-size: 0.875rem;
+}
+
+.compare-table thead tr th {
+  background-color: var(--color-primary-950);
+  color: #ffffff;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  border-bottom: 2px solid var(--color-primary-800);
+}
+
+/* First column (row headers) */
+.compare-table tbody tr td:first-child {
+  background-color: var(--color-surface-subtle);
+  font-weight: 600;
+  color: var(--color-primary-900);
+  padding: 0.65rem 1rem;
+  border-right: 1px solid var(--color-border);
+  width: 35%;
+}
+
+.compare-table tbody tr td {
+  padding: 0.65rem 1rem;
+  text-align: center;
+  color: var(--color-neutral-700);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.compare-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Zebra striping for data columns */
+.compare-table tbody tr:nth-child(even) td:not(:first-child) {
+  background-color: var(--color-primary-50);
+}
+
+/* Highlight cells marked as "winner" by CMS */
+.compare-table td.winner {
+  color: var(--color-accent-700);
+  font-weight: 600;
+}
+.compare-table td.winner::after {
+  content: ' ✓';
+  font-size: 0.75em;
+  opacity: 0.7;
 }

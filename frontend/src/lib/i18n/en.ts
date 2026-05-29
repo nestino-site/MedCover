@@ -27,6 +27,21 @@ export const en = {
       info: 'Info',
       featuredIvf: 'Featured IVF destinations',
     },
+    triggers: {
+      destinations: 'Destinations',
+      treatments: 'Treatments',
+      guides: 'Guides',
+      costs: 'Costs',
+    },
+    descriptions: {
+      countries: 'Browse treatment destinations by country',
+      cities: 'City-level clinic and travel guides',
+      treatments: 'Clinical care directory',
+      guides: 'Patient-verified destination reports',
+      clinics: 'Match with verified clinics',
+      costs: 'Real treatment costs from patients',
+      compare: 'Side-by-side destination comparison',
+    },
   },
   meta: {
     layout: {
@@ -64,7 +79,7 @@ export const en = {
     guides: {
       title: 'Guides — Patient-Verified Destination Reports',
       description:
-        'All MedCover country and city guides built from verified patient interviews.',
+        'Published MedCover guides from verified patient interviews — each link goes directly to the article.',
     },
     clinics: {
       title: 'Clinic matching — Coming Soon',
@@ -77,8 +92,9 @@ export const en = {
         'Verified IVF cost ranges across 6 European countries. Real prices from patient data — North Macedonia from €1,900 to Spain from €3,200.',
     },
     compare: {
-      title: 'Compare — Coming Soon',
-      description: 'Compare destinations and clinics by verified patient data — launching soon.',
+      title: 'Compare IVF Destinations Abroad — Side-by-Side Patient Data',
+      description:
+        'Compare IVF treatment in Spain, Greece, Czech Republic, and more. Real costs, clinic quality, and patient outcomes side by side — no sponsored results.',
     },
     start: {
       title: 'Get Started — Coming Soon',
@@ -93,21 +109,88 @@ export const en = {
   },
   home: {
     hero: {
-      eyebrow: 'Verified clinical care abroad',
-      title: 'Find treatment abroad, based on patient truth',
-      subtitle: 'Real costs and patient-verified clinic scores — not clinic marketing.',
-      ctaPrimary: 'Explore treatments',
-      ctaSecondary: 'Browse destinations',
+      eyebrow: 'Verified clinical data abroad',
+      title: 'IVF abroad — what patients actually paid',
+      subtitle:
+        'Real costs from verified patient interviews across 6 European countries. No clinic marketing. Starting from €1,900.',
+      ctaPrimary: 'Compare costs',
+      ctaSecondary: 'Explore IVF',
+      costTableLabel: 'Verified cost ranges · 2026',
+      lowestBadge: 'Lowest',
+      trustItems: [
+        'Verified patient data',
+        'No clinic referral fees',
+        '500+ patient interviews',
+      ],
     },
     ivfStrip: {
       label: 'Now live',
       treatment: 'IVF',
-      links: {
-        countries: 'Countries',
-        cities: 'Cities',
-        guides: 'Guides',
-      },
+      ivfOverview: 'IVF overview',
+      costComparison: 'Cost comparison',
+      compare: 'Compare',
       cta: 'Explore IVF',
+    },
+    countries: {
+      eyebrow: 'Destinations',
+      title: '6 countries to explore',
+      subtitle:
+        'Verified guides for each destination — available treatments, clinics, and patient experiences.',
+      treatmentsLabel: 'Treatments',
+      citiesLabel: 'Cities',
+      countryOverview: 'Country overview',
+      patientGuide: 'Patient guide',
+      citiesLink: 'Cities',
+      viewAll: 'Browse all countries',
+    },
+    costs: {
+      eyebrow: 'Verified 2026 data',
+      title: 'How much does IVF cost abroad?',
+      subtitle: 'From patient invoices — not clinic brochures.',
+      seeBreakdown: 'See full breakdown',
+      lowestBadge: 'Lowest',
+      fullComparison: 'Full cost comparison',
+      priceFactors: 'What affects the price?',
+    },
+    howItWorks: {
+      title: 'How MedCover works',
+      subtitle: 'Three steps from research to matched clinic.',
+      steps: [
+        {
+          title: 'Explore IVF by country',
+          body: 'Real cost ranges and clinic scores from people who actually went — not from clinic marketing materials.',
+          cta: 'Explore IVF',
+        },
+        {
+          title: 'Compare without the spin',
+          body: 'Side-by-side data across 6 countries — costs, success rates, and patient experiences. No clinic referral fees, ever.',
+          cta: 'Compare costs',
+        },
+        {
+          title: "Get matched when you're ready",
+          body: "Tell us your situation — we'll connect you with verified clinics that match your needs. Launching soon.",
+          cta: 'Coming soon',
+        },
+      ],
+    },
+    cities: {
+      eyebrow: 'City guides',
+      title: 'IVF by city',
+      subtitle: 'Local clinics, real costs, and travel logistics from verified patients.',
+      allCountryCities: 'All {country} cities',
+    },
+    siteIndex: {
+      title: 'Explore all IVF guides',
+      subtitle: 'Every country, city, and treatment page — direct links to verified patient data.',
+      treatmentHeading: 'Treatment',
+      countriesHeading: 'Countries',
+      citiesHeading: 'Cities',
+      ivfOverview: 'IVF overview',
+      ivfCosts: 'IVF cost comparison',
+      compare: 'Compare',
+      countryOverview: 'Overview',
+      patientGuide: 'Guide',
+      citiesIndex: 'Cities',
     },
     explore: {
       title: 'Explore MedCover',
@@ -160,14 +243,22 @@ export const en = {
       cardDescription: 'destination guides with costs, clinics, and patient data',
       empty: 'Country guides coming soon.',
       hero: {
-        eyebrow: 'Medical Tourism Destinations',
-        title: 'Medical Destinations Worldwide',
+        eyebrow: 'IVF Destinations — Verified Patient Data',
+        title: 'Compare IVF Countries Abroad',
         subtitle:
-          'Verified destination guides for every treatment you\'re considering abroad — real costs, honest clinic scores, and patient experiences.',
+          'Real costs, clinic Truth Scores, and verified patient experiences across 6 European IVF destinations — not clinic marketing.',
         statCountries: 'Countries',
         statTreatments: 'Treatments covered',
         statClinics: 'Clinics verified',
         statInterviews: 'Patient reviews',
+        ctaPrimary: 'Compare IVF costs',
+        ctaSecondary: 'Browse all destinations',
+        trust: 'Independent · No clinic sponsorships · Verified patient data',
+        highlights: [
+          'IVF from €1,900 in North Macedonia to €3,200+ in Spain',
+          'Truth Scores built from real patient interviews — not clinic self-reporting',
+          'Covers success rates, communication, cost transparency, and aftercare',
+        ],
       },
       citiesLabel: 'Cities',
       viewCities: 'Browse cities',
@@ -180,13 +271,21 @@ export const en = {
       cardDescriptionEmpty: 'City-level guides with local clinics and travel tips',
       empty: 'City guides coming soon.',
       hero: {
-        eyebrow: 'City Guides',
-        title: 'Find Your City for Treatment Abroad',
+        eyebrow: 'City-Level IVF Guides',
+        title: 'Find the Right City for IVF Abroad',
         subtitle:
-          'City-level guides built from verified patient interviews — local clinics, real costs, and travel logistics.',
-        statCities: 'Cities',
+          'Local clinic rankings, neighbourhood tips, and verified patient costs for 20+ IVF cities across Europe — so you choose the city, not just the country.',
+        statCities: 'Cities covered',
         statCountries: 'Countries',
         statData: 'Verified patient data',
+        ctaPrimary: 'Browse cities',
+        ctaSecondary: 'Compare by country',
+        trust: 'Independent · No clinic sponsorships · Built from verified interviews',
+        highlights: [
+          'Clinic-level scores per city — not just country averages',
+          'Travel logistics: airports, accommodation, and local transport',
+          'Patient-reported costs including medication and return trips',
+        ],
       },
       viewCountryGuide: 'Country guide',
     },
@@ -199,10 +298,18 @@ export const en = {
       ivfDescription: 'Fertility treatment abroad — countries, cities, and verified guides.',
       exploreIvf: 'Explore IVF',
       hero: {
-        eyebrow: 'Clinical Specialties',
-        title: 'Medical Treatments Abroad',
+        eyebrow: 'Clinical Care Directory',
+        title: 'Medical Treatments Abroad — Choose with Verified Data',
         subtitle:
-          'Start with verified patient data — explore treatment categories and find the right destination.',
+          'MedCover builds independent guides for clinical treatments abroad — starting with IVF. Every guide is sourced from patient interviews, not clinic marketing.',
+        ctaPrimary: 'Explore IVF abroad',
+        ctaSecondary: 'See all destinations',
+        trust: 'Independent · No referral fees · Verified patient interviews only',
+        highlights: [
+          'IVF: fully live — 6 countries, 20+ cities, 80+ verified clinics',
+          'Dental, hair transplant, and oncology guides in development',
+          'All data sourced from direct patient interviews — not clinic submissions',
+        ],
       },
       availableCountries: 'Destinations',
       availableCities: 'Cities',
@@ -211,11 +318,11 @@ export const en = {
     },
     guides: {
       title: 'Guides',
-      description: 'Patient-verified country and city reports — browse by destination.',
+      description: 'Published patient-verified guides — each link goes directly to the article.',
       countryTab: 'Country guides',
       cityTab: 'City guides',
       viewGuide: 'View guide',
-      empty: 'Guides coming soon.',
+      empty: 'No published guides yet. New articles appear here after the backend publishes them.',
     },
     published: {
       empty: 'No published articles yet. New pages appear here after the backend publishes them.',
@@ -231,8 +338,14 @@ export const en = {
       description: 'Published clinic and destination articles from MedCover.',
     },
     compareHub: {
-      title: 'Compare',
-      description: 'Published comparison guides across destinations and treatments.',
+      title: 'Compare IVF Destinations Abroad',
+      description:
+        'Side-by-side comparisons of countries and cities using verified patient costs, clinic counts, and outcomes — no sponsored results.',
+      eyebrow: 'Destination Comparison',
+      emptyStateHeadline: 'Comparison guides are being published now.',
+      emptyStateCta: 'Explore cost guides while you wait',
+      vsLabel: 'vs',
+      readComparison: 'Read comparison',
     },
     comingSoon: {
       clinics: {
