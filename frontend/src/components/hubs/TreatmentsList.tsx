@@ -10,7 +10,7 @@ import {
   parseCitySlug,
   staticCitiesPerCountry,
   slugToLabel,
-  getCityGuideHref,
+  getCityHubPath,
 } from '@/lib/content/hubs'
 import type { ContentListItem } from '@/lib/api/types'
 
@@ -19,13 +19,13 @@ interface CountryPill {
   countryKey: string
   name: string
   flag: string
-  guideHref: string
+  hubHref: string
 }
 
 interface CityInfo {
   cityName: string
   countryName: string
-  guideHref: string
+  hubHref: string
 }
 
 function getCountriesForTreatment(
@@ -40,7 +40,7 @@ function getCountriesForTreatment(
       countryKey,
       name: d.name,
       flag: d.flag,
-      guideHref: d.guideHref,
+      hubHref: d.href,
     }
   })
 }
@@ -61,7 +61,7 @@ function getCitiesForTreatment(
         return {
           cityName: parsed.cityName,
           countryName: parsed.countryName,
-          guideHref: getCityGuideHref(parsed.countryKey, cityKey, locale),
+          hubHref: getCityHubPath(parsed.countryKey, cityKey, locale),
         }
       })
       .filter((c): c is CityInfo => c !== null)
@@ -74,7 +74,7 @@ function getCitiesForTreatment(
       result.push({
         cityName: slugToLabel(citySlug),
         countryName: slugToLabel(countryKey),
-        guideHref: getCityGuideHref(countryKey, citySlug, locale),
+        hubHref: getCityHubPath(countryKey, citySlug, locale),
       })
     }
     if (result.length >= 8) break
@@ -127,7 +127,7 @@ export async function TreatmentsList({ locale }: TreatmentsListProps) {
                   {countries.map((c) => (
                     <li key={c.slug}>
                       <Link
-                        href={c.guideHref}
+                        href={c.hubHref}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary-800)] transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]"
                       >
                         <span role="img" aria-label={c.name}>{c.flag}</span>
@@ -141,9 +141,9 @@ export async function TreatmentsList({ locale }: TreatmentsListProps) {
               {cities.length > 0 && (
                 <ul className="mt-3 flex flex-wrap gap-2">
                   {cities.map((city) => (
-                    <li key={city.guideHref}>
+                    <li key={city.hubHref}>
                       <Link
-                        href={city.guideHref}
+                        href={city.hubHref}
                         className="text-sm text-[var(--color-primary-700)] hover:text-[var(--color-accent-600)] hover:underline"
                       >
                         {city.cityName}

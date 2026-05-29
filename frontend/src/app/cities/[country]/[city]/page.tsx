@@ -59,8 +59,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const meta = getCountryMeta(country)
   const cityName = slugToLabel(city)
   const countryName = meta?.name ?? slugToLabel(country)
-  const title = `Medical Travel in ${cityName}, ${countryName}: IVF & Clinics | MedCover`
-  const description = `Medical travel in ${cityName}, ${countryName} — local clinics, treatment costs, and verified patient guides. IVF guides are live.`
+  const title = `Medical Travel in ${cityName}, ${countryName} | MedCover`
+  const description = `Medical travel in ${cityName}, ${countryName} — local clinics, available treatments, and verified patient guides. IVF is live.`
   const canonicalUrl = `${SITE_URL}/cities/${country}/${city}/`
 
   return {
@@ -145,6 +145,8 @@ async function CityHubContent({
             countryName={meta.name}
             countryFlag={meta.flag}
             countryHubHref={countryHubHref}
+            cost={meta.cost}
+            clinics={meta.clinics}
           />
 
           <PlacePillars placeName={cityName} />
@@ -152,7 +154,8 @@ async function CityHubContent({
           <SpeakableSummary label={tl.speakableSummaryLabel}>
             <p>
               {cityName}, {meta.name} is a medical travel destination with local clinics and verified
-              patient guides. IVF data: {meta.cost} nationally across {meta.clinics}.
+              patient guides. Treatment data: {meta.cost} nationally across {meta.clinics}. IVF guides
+              are live — more treatment categories coming soon.
             </p>
           </SpeakableSummary>
 

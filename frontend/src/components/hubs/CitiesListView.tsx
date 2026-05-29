@@ -3,29 +3,20 @@
 import Link from 'next/link'
 import { useMemo } from 'react'
 import { getDictionary, type Locale } from '@/lib/i18n'
+import { treatmentCategories } from '@/lib/content/treatments'
+import { countryMatchesTreatmentFilter } from '@/lib/content/country-treatments'
 import { useHubFilters } from '@/components/filters/use-hub-filters'
-
-export interface CityCardData {
-  slug: string
-  href: string
-  guideHref: string
-  cityName: string
-  countryKey: string
-  countryName: string
-  countryFlag: string
-  countryHubHref: string
-  countryGuideHref: string
-  treatmentName: string
-}
+import { CityCard, type CityCardData } from '@/components/hubs/CityCard'
 
 interface CountryGroup {
   countryKey: string
   countryName: string
   countryFlag: string
   countryHubHref: string
-  countryGuideHref: string
   cities: CityCardData[]
 }
+
+export type { CityCardData }
 
 export function CitiesListView({
   items,
@@ -35,10 +26,10 @@ export function CitiesListView({
   locale: Locale
 }) {
   const t = getDictionary(locale)
-  const { country, sort, q } = useHubFilters()
+  const { country, sort, q, treatment } = useHubFilters()
 
   const groups = useMemo(() => {
-    let parsed = items
+    let parsed = items.filter((c) => countryMatchesTreatmentFilter(c.countryKey, treatment))
 
     if (country) {
       parsed = parsed.filter((c) => c.countryKey === country)
@@ -69,19 +60,23 @@ export function CitiesListView({
           countryName: city.countryName,
           countryFlag: city.countryFlag,
           countryHubHref: city.countryHubHref,
-          countryGuideHref: city.countryGuideHref,
           cities: [],
         })
       }
       groupMap.get(city.countryName)!.cities.push(city)
     }
     return [...groupMap.values()]
-  }, [items, country, sort, q])
+  }, [items, country, sort, q, treatment])
 
   if (groups.length === 0) {
+    const selectedTreatment = treatmentCategories.find((c) => c.id === treatment)
+    const isComingSoon = selectedTreatment?.status === 'coming_soon'
+
     return (
       <p className="py-8 text-center text-[var(--color-neutral-500)]">
-        No cities found for the selected filter.
+        {isComingSoon
+          ? t.hubs.cities.emptyComingSoon.replace('{treatment}', selectedTreatment?.name ?? treatment ?? '')
+          : t.hubs.cities.emptyFilter}
       </p>
     )
   }
@@ -100,30 +95,17 @@ export function CitiesListView({
               </h2>
             </div>
             <Link
-              href={group.countryGuideHref}
+              href={group.countryHubHref}
               className="text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
             >
-              {t.hubs.guidePosts.readGuide} →
+              {t.hubs.cities.viewCountryHub} →
             </Link>
           </div>
 
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {group.cities.map((city) => (
-              <li key={city.slug}>
-                <Link
-                  href={city.guideHref}
-                  className="group flex items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-white px-4 py-3 transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]/40"
-                >
-                  <span>
-                    <span className="block font-medium text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
-                      {city.cityName}
-                    </span>
-                    <span className="text-xs text-[var(--color-neutral-500)]">{city.treatmentName}</span>
-                  </span>
-                  <span className="shrink-0 text-sm font-medium text-[var(--color-accent-600)]">
-                    →
-                  </span>
-                </Link>
+              <li key={`${city.countryKey}-${city.cityKey}`}>
+                <CityCard data={city} t={t} />
               </li>
             ))}
           </ul>

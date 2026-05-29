@@ -27,7 +27,7 @@ export function CountryCitiesSection({ cities, countryName, countryFlag }: Count
           {cities.map((city) => (
             <li key={city.cityKey}>
               <Link
-                href={city.guideHref}
+                href={city.href}
                 className="group flex items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-white px-4 py-3 transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]/40"
               >
                 <span className="flex items-center gap-2">

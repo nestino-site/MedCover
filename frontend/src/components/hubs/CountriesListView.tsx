@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import { treatmentCategories } from '@/lib/content/treatments'
+import { countryMatchesTreatmentFilter } from '@/lib/content/country-treatments'
 import { useHubFilters } from '@/components/filters/use-hub-filters'
 import { CountryCard, type CountryCardData } from '@/components/hubs/CountryCard'
 
@@ -15,14 +16,9 @@ export function CountriesListView({
 }) {
   const t = getDictionary(locale)
   const { treatment, sort } = useHubFilters()
-  const activeTreatment = treatmentCategories.find((c) => c.status === 'active')
 
   const filtered = useMemo(() => {
-    let result = cards
-
-    if (treatment && treatment !== activeTreatment?.id) {
-      result = []
-    }
+    let result = cards.filter((card) => countryMatchesTreatmentFilter(card.countryKey, treatment))
 
     if (sort === 'cost-asc') {
       result = [...result].sort((a, b) => a.costNumeric - b.costNumeric)
@@ -35,12 +31,17 @@ export function CountriesListView({
     }
 
     return result
-  }, [cards, treatment, sort, activeTreatment?.id])
+  }, [cards, treatment, sort])
 
   if (filtered.length === 0) {
+    const selectedTreatment = treatmentCategories.find((c) => c.id === treatment)
+    const isComingSoon = selectedTreatment?.status === 'coming_soon'
+
     return (
       <p className="py-8 text-center text-[var(--color-neutral-500)]">
-        No countries found for the selected filter.
+        {isComingSoon
+          ? t.hubs.countries.emptyComingSoon.replace('{treatment}', selectedTreatment?.name ?? treatment ?? '')
+          : t.hubs.countries.emptyFilter}
       </p>
     )
   }

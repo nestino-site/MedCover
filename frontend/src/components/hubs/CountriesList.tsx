@@ -8,7 +8,7 @@ import {
   getCitiesForCountry,
   partitionGuides,
 } from '@/lib/content/hubs'
-import { treatmentCategories } from '@/lib/content/treatments'
+import { getTreatmentTagsForCountry } from '@/lib/content/country-treatments'
 import type { CountryCardData } from '@/components/hubs/CountryCard'
 import { CountriesListView } from '@/components/hubs/CountriesListView'
 
@@ -34,9 +34,6 @@ export async function CountriesList({ locale }: CountriesListProps) {
   const pages = await listPublishedPagesSafe()
   const { countries: countryPages, cities: cityPages } = partitionGuides(pages, locale)
 
-  const activeTreatment = treatmentCategories.find((c) => c.status === 'active')
-  const treatmentName = activeTreatment?.name ?? 'IVF & Fertility'
-
   const baseCountries =
     countryPages.length > 0
       ? countryPages.map((p) => getCountryDisplay(p.slug.replace(/^\//, ''), locale))
@@ -50,6 +47,7 @@ export async function CountriesList({ locale }: CountriesListProps) {
     const countryKey = getCountryKeyFromSlug(display.slug) ?? ''
     return {
       slug: display.slug,
+      countryKey,
       href: display.href,
       guideHref: display.guideHref,
       name: display.name,
@@ -58,7 +56,7 @@ export async function CountriesList({ locale }: CountriesListProps) {
       cost: display.cost,
       clinics: display.clinics,
       cities: getCitiesForCountry(countryKey, cityPages, locale),
-      treatmentName,
+      treatments: getTreatmentTagsForCountry(countryKey),
       costNumeric: parseCostNumeric(display.cost),
       clinicsNumeric: parseClinicsNumeric(display.clinics),
     }

@@ -65,7 +65,7 @@ export function CountryHero({ name, flag, tagline, cost, clinics, citiesCount }:
           {cost && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary-400)]">
-                {t.stats.ivfCost}
+                {t.stats.treatmentCost}
               </p>
               <p className="mt-1 text-lg font-bold text-white">{cost}</p>
             </div>
@@ -73,7 +73,7 @@ export function CountryHero({ name, flag, tagline, cost, clinics, citiesCount }:
           {clinics && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary-400)]">
-                {t.stats.ivfClinics}
+                {t.stats.verifiedClinics}
               </p>
               <p className="mt-1 text-lg font-bold text-white">{clinics}</p>
             </div>

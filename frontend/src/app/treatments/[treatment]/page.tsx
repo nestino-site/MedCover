@@ -236,7 +236,7 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
                         {cities.map((city) => (
                           <li key={city.cityKey}>
                             <Link
-                              href={city.guideHref}
+                              href={city.href}
                               className="text-[var(--color-primary-700)] hover:text-[var(--color-accent-600)] hover:underline"
                             >
                               {city.cityName}
