@@ -1,6 +1,6 @@
 # Insurance Plan Comparison
 
-Compare health insurance plans across Iranian providers available on MedCover.
+Compare health insurance plans across providers available on MedCover.
 
 ## Usage
 

@@ -7,7 +7,7 @@ export function GET() {
   const agentCard = {
     name: 'MedCover Insurance Advisor',
     description:
-      'AI agent for discovering, comparing, and explaining health insurance coverage options in Iran',
+      'AI agent for discovering, comparing, and explaining health insurance coverage options',
     url: `${SITE_URL}/.well-known/a2a`,
     version: '1.0',
     provider: {

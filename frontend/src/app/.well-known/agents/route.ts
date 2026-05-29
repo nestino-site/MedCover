@@ -18,7 +18,7 @@ export function GET() {
           '@type': 'SoftwareApplication',
           name: 'MedCover Insurance Advisor',
           applicationCategory: 'HealthApplication',
-          description: 'AI agent for discovering, comparing, and explaining health insurance coverage options in Iran',
+          description: 'AI agent for discovering, comparing, and explaining health insurance coverage options',
           url: `${SITE_URL}/.well-known/a2a`,
           protocol: 'a2a',
           capabilities: [

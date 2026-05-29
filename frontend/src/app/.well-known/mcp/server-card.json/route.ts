@@ -10,7 +10,7 @@ export function GET() {
       name: 'MedCover MCP Server',
       version: '1.0.0',
       description:
-        'MCP server for health insurance discovery, comparison, and plan recommendation in Iran',
+        'MCP server for health insurance discovery, comparison, and plan recommendation',
       vendor: 'MedCover',
       url: SITE_URL,
     },
@@ -37,7 +37,7 @@ export function GET() {
     tools: [
       {
         name: 'compare_insurance_plans',
-        description: 'Compare health insurance plans across providers in Iran',
+        description: 'Compare health insurance plans across providers',
         inputSchema: {
           type: 'object',
           properties: {
@@ -74,7 +74,7 @@ export function GET() {
           properties: {
             budget: {
               type: 'number',
-              description: 'Monthly budget in IRR',
+              description: 'Monthly budget',
             },
             family_size: {
               type: 'number',

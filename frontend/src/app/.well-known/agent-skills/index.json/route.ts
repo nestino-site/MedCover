@@ -10,7 +10,7 @@ export function GET() {
       {
         name: 'insurance-comparison',
         type: 'skill-md',
-        description: 'Compare health insurance plans across Iranian providers available on MedCover.',
+        description: 'Compare health insurance plans across providers available on MedCover.',
         url: `${SITE_URL}/.well-known/agent-skills/insurance-comparison/SKILL.md`,
         digest: 'sha256:6f86c46fcae2a5d4acf93d75dd159773c9a88cc602ec769170eeda7484aa1fd7',
       },
