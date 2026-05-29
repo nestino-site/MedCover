@@ -3,10 +3,14 @@ import { Suspense } from 'react'
 import { CircleDollarSign, Pill, MapPin, Stethoscope } from 'lucide-react'
 import { HubHero } from '@/components/hubs/HubHero'
 import { CostGuidesList, CostGuidesListSkeleton } from '@/components/costs/CostGuidesList'
-import { CostComparisonGrid } from '@/components/costs/CostComparisonGrid'
+import {
+  CostComparisonGrid,
+  CostComparisonGridSkeleton,
+} from '@/components/costs/CostComparisonGrid'
 import { FilterBar } from '@/components/filters/FilterBar'
 import { FilterChips } from '@/components/filters/FilterChips'
 import { SortSelect } from '@/components/filters/SortSelect'
+import { FilterNavigationProvider } from '@/components/filters/filter-navigation'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { JsonLd } from '@/components/shared/JsonLd'
@@ -97,39 +101,7 @@ const schemas = [
   { '@context': 'https://schema.org', ...buildFAQPage(costFaqs) },
 ]
 
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
-
-function CostComparisonGridSkeleton() {
-  return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="h-28 animate-pulse rounded-xl bg-[var(--color-neutral-100)]" />
-      ))}
-    </div>
-  )
-}
-
-async function CostComparisonResults({ searchParams }: { searchParams: SearchParams }) {
-  const { country, sort } = await searchParams
-  const countryFilter = typeof country === 'string' ? country : undefined
-  const sortFilter = typeof sort === 'string' ? sort : undefined
-
-  return (
-    <CostComparisonGrid locale={locale} sort={sortFilter} country={countryFilter} />
-  )
-}
-
-async function CostGuidesResults({ searchParams }: { searchParams: SearchParams }) {
-  const { treatment, country } = await searchParams
-  const treatmentFilter = typeof treatment === 'string' ? treatment : undefined
-  const countryFilter = typeof country === 'string' ? country : undefined
-
-  return (
-    <CostGuidesList locale={locale} treatment={treatmentFilter} country={countryFilter} />
-  )
-}
-
-export default function CostsPage({ searchParams }: { searchParams: SearchParams }) {
+export default function CostsPage() {
   const treatmentOptions = treatmentCategories.map((c) => ({
     value: c.id,
     label: c.name,
@@ -157,40 +129,40 @@ export default function CostsPage({ searchParams }: { searchParams: SearchParams
       />
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <Suspense fallback={<CostGuidesListSkeleton />}>
-          <CostGuidesResults searchParams={searchParams} />
-        </Suspense>
+        <FilterNavigationProvider>
+          <Suspense fallback={<CostGuidesListSkeleton />}>
+            <CostGuidesList locale={locale} />
+          </Suspense>
 
-        <section aria-labelledby="cost-comparison-heading" className="mt-12">
-          <h2
-            id="cost-comparison-heading"
-            className="mb-4 text-lg font-bold text-[var(--color-primary-950)]"
-          >
-            Cost comparison
-          </h2>
-          <Suspense fallback={null}>
-            <FilterBar>
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-                <FilterChips
-                  options={treatmentOptions}
-                  paramKey="treatment"
-                  label="Treatment"
-                  allLabel="All treatments"
-                />
-                <FilterChips
-                  options={countryOptions}
-                  paramKey="country"
-                  label="Country"
-                  allLabel="All countries"
-                />
-              </div>
-              <SortSelect options={sortOptions} defaultValue="cost-asc" label="Sort costs" />
-            </FilterBar>
-          </Suspense>
-          <Suspense fallback={<CostComparisonGridSkeleton />}>
-            <CostComparisonResults searchParams={searchParams} />
-          </Suspense>
-        </section>
+          <section aria-labelledby="cost-comparison-heading" className="mt-12">
+            <h2
+              id="cost-comparison-heading"
+              className="mb-4 text-lg font-bold text-[var(--color-primary-950)]"
+            >
+              Cost comparison
+            </h2>
+            <Suspense fallback={null}>
+              <FilterBar>
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+                  <FilterChips
+                    options={treatmentOptions}
+                    paramKey="treatment"
+                    label="Treatment"
+                    allLabel="All treatments"
+                  />
+                  <FilterChips
+                    options={countryOptions}
+                    paramKey="country"
+                    label="Country"
+                    allLabel="All countries"
+                  />
+                </div>
+                <SortSelect options={sortOptions} defaultValue="cost-asc" label="Sort costs" />
+              </FilterBar>
+            </Suspense>
+            <CostComparisonGrid locale={locale} />
+          </section>
+        </FilterNavigationProvider>
 
         <section aria-labelledby="cost-factors-heading" className="mt-12">
           <h2

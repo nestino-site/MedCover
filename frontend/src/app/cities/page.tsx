@@ -7,6 +7,7 @@ import { HubPageLayout } from '@/components/hubs/HubPageLayout'
 import { FilterBar } from '@/components/filters/FilterBar'
 import { FilterChips } from '@/components/filters/FilterChips'
 import { SortSelect } from '@/components/filters/SortSelect'
+import { FilterNavigationProvider } from '@/components/filters/filter-navigation'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { JsonLd } from '@/components/shared/JsonLd'
 import { getDictionary } from '@/lib/i18n'
@@ -61,25 +62,7 @@ const cityFaqs: FaqItem[] = [
   },
 ]
 
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
-
-async function CitiesResults({ searchParams }: { searchParams: SearchParams }) {
-  const { country, sort, q } = await searchParams
-  const countryFilter = typeof country === 'string' ? country : undefined
-  const sortFilter = typeof sort === 'string' ? sort : undefined
-  const qFilter = typeof q === 'string' ? q : undefined
-
-  return (
-    <CitiesList
-      locale={locale}
-      country={countryFilter}
-      sort={sortFilter}
-      q={qFilter}
-    />
-  )
-}
-
-export default function CitiesHubPage({ searchParams }: { searchParams: SearchParams }) {
+export default function CitiesHubPage() {
   const t = getDictionary(locale)
 
   const countryOptions = Object.entries(countryMeta).map(([slug, meta]) => ({
@@ -131,22 +114,24 @@ export default function CitiesHubPage({ searchParams }: { searchParams: SearchPa
           <GuidePostsList locale={locale} scope="city" className="mb-10" />
         </Suspense>
 
-        <div id="cities">
-          <Suspense fallback={null}>
-            <FilterBar>
-              <FilterChips
-                options={countryOptions}
-                paramKey="country"
-                label="Country"
-                allLabel="All countries"
-              />
-              <SortSelect options={sortOptions} defaultValue="country" label="Sort cities" />
-            </FilterBar>
-          </Suspense>
-          <Suspense fallback={<CitiesListSkeleton />}>
-            <CitiesResults searchParams={searchParams} />
-          </Suspense>
-        </div>
+        <FilterNavigationProvider>
+          <div id="cities">
+            <Suspense fallback={null}>
+              <FilterBar>
+                <FilterChips
+                  options={countryOptions}
+                  paramKey="country"
+                  label="Country"
+                  allLabel="All countries"
+                />
+                <SortSelect options={sortOptions} defaultValue="country" label="Sort cities" />
+              </FilterBar>
+            </Suspense>
+            <Suspense fallback={<CitiesListSkeleton />}>
+              <CitiesList locale={locale} />
+            </Suspense>
+          </div>
+        </FilterNavigationProvider>
 
         <div className="mt-14 border-t border-[var(--color-border)] pt-8">
           <FaqAccordion faqs={cityFaqs} title="IVF city guides — common questions" />

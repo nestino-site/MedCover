@@ -15,8 +15,10 @@ import { JsonLd } from '@/components/shared/JsonLd'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import { ContentHtml } from '@/components/shared/ContentHtml'
 import { RelatedPages } from '@/components/shared/RelatedPages'
+import { RelatedCostArticles } from '@/components/costs/RelatedCostArticles'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
+import { GuideArticleLayout } from '@/components/guides/GuideArticleLayout'
 import { pageTitleFromSlug } from '@/lib/content/hubs'
 import { isNextImageOptimizable, resolveHeroImage, resolveHeroImageForMetadata } from '@/lib/content/hero-image'
 import { normalizeContentHtml } from '@/lib/content/html-content-images'
@@ -105,9 +107,11 @@ export function getPublishedPageMetadata(
 async function CachedArticleBody({
   slugPath,
   locale,
+  hubSegment,
 }: {
   slugPath: string
   locale: Locale
+  hubSegment?: string
 }) {
   'use cache'
   cacheLife('max')
@@ -125,6 +129,23 @@ async function CachedArticleBody({
   const htmlContent = page.htmlContent
     ? normalizeContentHtml(page.htmlContent, siteOrigin())
     : null
+
+  if (hubSegment === 'guides') {
+    return (
+      <>
+        <JsonLd schema={page.schemaMarkup} />
+        <GuideArticleLayout
+          breadcrumbs={page.breadcrumbs}
+          tableOfContents={page.tableOfContents}
+          faqs={page.faq}
+          htmlContent={htmlContent}
+          hero={hero}
+          updatedAt={page.updatedAt}
+          locale={locale}
+        />
+      </>
+    )
+  }
 
   return (
     <>
@@ -163,6 +184,10 @@ async function CachedArticleBody({
 
         {page.faq.length > 0 && <FaqAccordion faqs={page.faq} />}
 
+        {hubSegment === 'costs' && (
+          <RelatedCostArticles slugPath={slugPath} locale={locale} />
+        )}
+
         <CtaBlock
           headline="Get Your Personalized IVF Report"
           description="Based on verified patient interviews — not clinic marketing materials."
@@ -188,11 +213,15 @@ async function CachedArticleBody({
 export function PublishedArticleView({
   slugPath,
   locale = activeLocale,
+  hubSegment,
 }: {
   slugPath: string
   locale?: Locale
+  hubSegment?: string
 }) {
-  return <CachedArticleBody slugPath={slugPath} locale={locale} />
+  return (
+    <CachedArticleBody slugPath={slugPath} locale={locale} hubSegment={hubSegment} />
+  )
 }
 
 async function ensurePublishedOrRedirect(
@@ -260,6 +289,7 @@ export function createPublishedPageHandlers(
               <CachedArticleBody
                 slugPath={slugPath}
                 locale={activeLocale}
+                hubSegment={prefixSegments[0]}
               />
             )
           })}
@@ -275,6 +305,7 @@ export function createPublishedPageHandlers(
       <CachedArticleBody
         slugPath={slugPath}
         locale={activeLocale}
+        hubSegment={prefixSegments[0]}
       />
     )
   }

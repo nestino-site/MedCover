@@ -330,6 +330,12 @@ export const en = {
     guides: {
       title: 'Guides',
       description: 'Published patient-verified guides — each link goes directly to the article.',
+      hero: {
+        eyebrow: 'Patient-verified guides',
+        title: 'IVF destination guides',
+        subtitle:
+          'Country and city reports from verified patient interviews — real costs, clinics, and what patients actually experienced.',
+      },
       countryTab: 'Country guide',
       cityTab: 'City guides',
       cityGuidesLabel: 'City guides',
@@ -470,6 +476,7 @@ export const en = {
     viewAll: 'View all',
     learnMore: 'Learn more',
     relatedPages: 'Related pages',
+    tableOfContents: 'On this page',
     faqTitle: 'Frequently Asked Questions',
     noDataYet: 'Data collection in progress',
   },
@@ -603,6 +610,13 @@ export const en = {
       eyebrow: 'Patient guides',
       heading: 'Related IVF guides',
       empty: 'Guide articles coming soon.',
+    },
+  },
+  costLanding: {
+    relatedArticles: {
+      eyebrow: 'Cost transparency',
+      heading: 'Related cost guides',
+      empty: 'More cost guides are being published — check back soon.',
     },
   },
   truthScore: {

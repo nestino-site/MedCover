@@ -20,6 +20,8 @@ import { RelatedArticles } from '@/components/shared/RelatedArticles'
 import { PlacePillars } from '@/components/shared/PlacePillars'
 import { FilterBar } from '@/components/filters/FilterBar'
 import { FilterChips } from '@/components/filters/FilterChips'
+import { FilterNavigationProvider } from '@/components/filters/filter-navigation'
+import { TreatmentFilterPanel } from '@/components/filters/TreatmentFilterPanel'
 import { CountryHero } from '@/components/country-landing/CountryHero'
 import { CountryFeaturedGuide } from '@/components/country-landing/CountryFeaturedGuide'
 import { CountryCitiesSection } from '@/components/country-landing/CountryCitiesSection'
@@ -30,8 +32,6 @@ import { en } from '@/lib/i18n/en'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 type Params = Promise<{ countrySlug: string }>
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
-
 const treatmentOptions = treatmentCategories.map((c) => ({
   value: c.id,
   label: c.name,
@@ -83,21 +83,13 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   }
 }
 
-async function CountryLandingContent({
-  countrySlug,
-  treatmentFilter,
-}: {
-  countrySlug: string
-  treatmentFilter?: string
-}) {
+async function CountryLandingContent({ countrySlug }: { countrySlug: string }) {
   const locale = activeLocale
   const t = getDictionary(locale)
   const cl = en.countryLanding
 
   const meta = getCountryMetaByKey(countrySlug)
   if (!meta) notFound()
-
-  const isIvfActive = !treatmentFilter || treatmentFilter === activeTreatmentId
 
   const [guide, allPages] = await Promise.all([
     getContentBySlugOptional(`guides/${countrySlug}-ivf-guide`),
@@ -157,55 +149,63 @@ async function CountryLandingContent({
             </p>
           </SpeakableSummary>
 
-          <Suspense fallback={null}>
-            <FilterBar>
-              <FilterChips
-                options={treatmentOptions}
-                paramKey="treatment"
-                label={cl.treatmentFilterLabel}
-                allLabel={cl.treatmentFilterAll}
-              />
-            </FilterBar>
-          </Suspense>
+          <FilterNavigationProvider>
+            <Suspense fallback={null}>
+              <FilterBar>
+                <FilterChips
+                  options={treatmentOptions}
+                  paramKey="treatment"
+                  label={cl.treatmentFilterLabel}
+                  allLabel={cl.treatmentFilterAll}
+                />
+              </FilterBar>
+            </Suspense>
 
-          {isIvfActive ? (
-            <div id="ivf-pillar" className="space-y-8 scroll-mt-8">
-              <div>
-                <h2 className="text-xl font-bold text-[var(--color-primary-950)]">
-                  {cl.ivfPillar.heading}
-                </h2>
-                <p className="mt-1 text-sm text-[var(--color-neutral-600)]">{cl.ivfPillar.subtitle}</p>
-              </div>
+            <TreatmentFilterPanel
+              activeTreatmentId={activeTreatmentId}
+              ivfContent={
+                <div id="ivf-pillar" className="space-y-8 scroll-mt-8">
+                  <div>
+                    <h2 className="text-xl font-bold text-[var(--color-primary-950)]">
+                      {cl.ivfPillar.heading}
+                    </h2>
+                    <p className="mt-1 text-sm text-[var(--color-neutral-600)]">
+                      {cl.ivfPillar.subtitle}
+                    </p>
+                  </div>
 
-              <CountryFeaturedGuide
-                guide={guide ?? null}
-                countryKey={countrySlug}
-                countryName={meta.name}
-              />
+                  <CountryFeaturedGuide
+                    guide={guide ?? null}
+                    countryKey={countrySlug}
+                    countryName={meta.name}
+                  />
 
-              <CountryCitiesSection
-                cities={cities}
-                countryName={meta.name}
-                countryFlag={meta.flag}
-              />
+                  <CountryCitiesSection
+                    cities={cities}
+                    countryName={meta.name}
+                    countryFlag={meta.flag}
+                  />
 
-              <RelatedArticles
-                eyebrow={cl.relatedArticles.eyebrow}
-                heading={cl.relatedArticles.heading}
-                articles={relatedArticles}
-                emptyMessage={cl.relatedArticles.empty}
-              />
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-6 py-10 text-center">
-              <p className="font-semibold text-[var(--color-primary-950)]">
-                {cl.treatmentComingSoon.title}
-              </p>
-              <p className="mt-2 text-sm text-[var(--color-neutral-600)]">
-                {cl.treatmentComingSoon.body}
-              </p>
-            </div>
-          )}
+                  <RelatedArticles
+                    eyebrow={cl.relatedArticles.eyebrow}
+                    heading={cl.relatedArticles.heading}
+                    articles={relatedArticles}
+                    emptyMessage={cl.relatedArticles.empty}
+                  />
+                </div>
+              }
+              comingSoonContent={
+                <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-6 py-10 text-center">
+                  <p className="font-semibold text-[var(--color-primary-950)]">
+                    {cl.treatmentComingSoon.title}
+                  </p>
+                  <p className="mt-2 text-sm text-[var(--color-neutral-600)]">
+                    {cl.treatmentComingSoon.body}
+                  </p>
+                </div>
+              }
+            />
+          </FilterNavigationProvider>
 
           <CtaBlock
             headline={cl.cta.headline.replace('{country}', meta.name)}
@@ -228,35 +228,15 @@ function CountryLandingSkeleton() {
   )
 }
 
-async function CountryLandingPageInner({
-  params,
-  searchParams,
-}: {
-  params: Params
-  searchParams: SearchParams
-}) {
-  const { countrySlug } = await params
-  const { treatment } = await searchParams
-  const treatmentFilter = typeof treatment === 'string' ? treatment : undefined
-
+export default function CountryLandingPage({ params }: { params: Params }) {
   return (
-    <CountryLandingContent
-      countrySlug={countrySlug}
-      treatmentFilter={treatmentFilter}
-    />
+    <Suspense fallback={<CountryLandingSkeleton />}>
+      <CountryLandingPageInner params={params} />
+    </Suspense>
   )
 }
 
-export default function CountryLandingPage({
-  params,
-  searchParams,
-}: {
-  params: Params
-  searchParams: SearchParams
-}) {
-  return (
-    <Suspense fallback={<CountryLandingSkeleton />}>
-      <CountryLandingPageInner params={params} searchParams={searchParams} />
-    </Suspense>
-  )
+async function CountryLandingPageInner({ params }: { params: Params }) {
+  const { countrySlug } = await params
+  return <CountryLandingContent countrySlug={countrySlug} />
 }

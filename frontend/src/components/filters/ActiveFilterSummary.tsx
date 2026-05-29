@@ -1,7 +1,8 @@
 'use client'
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { X } from 'lucide-react'
+import { useFilterNavigationOptional } from '@/components/filters/filter-navigation'
 
 interface FilterDef {
   paramKey: string
@@ -21,9 +22,8 @@ export function ActiveFilterSummary({
   filteredTotal,
   itemLabel = 'results',
 }: ActiveFilterSummaryProps) {
-  const pathname = usePathname()
-  const router = useRouter()
   const searchParams = useSearchParams()
+  const { pushParams } = useFilterNavigationOptional()
 
   const activeFilters = filters
     .map((f) => {
@@ -36,14 +36,17 @@ export function ActiveFilterSummary({
   if (activeFilters.length === 0) return null
 
   function remove(paramKey: string) {
-    const params = new URLSearchParams(searchParams.toString())
-    params.delete(paramKey)
-    const qs = params.toString()
-    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    pushParams((params) => {
+      params.delete(paramKey)
+    })
   }
 
   function clearAll() {
-    router.push(pathname, { scroll: false })
+    pushParams((params) => {
+      for (const key of [...params.keys()]) {
+        params.delete(key)
+      }
+    })
   }
 
   return (

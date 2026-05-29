@@ -1,33 +1,46 @@
+'use client'
+
 import Link from 'next/link'
+import { Suspense, useMemo } from 'react'
 import { countryMeta } from '@/lib/content/hubs'
 import { localizedPath, type Locale } from '@/lib/i18n'
+import { useHubFilters } from '@/components/filters/use-hub-filters'
 
 export interface CostComparisonGridProps {
   locale: Locale
-  sort?: string
-  country?: string
 }
 
-export function CostComparisonGrid({ locale, sort, country }: CostComparisonGridProps) {
-  let countries = Object.entries(countryMeta).map(([slug, meta]) => ({
-    slug,
-    ...meta,
-    href: localizedPath(`/${slug}`, locale),
-    costNumeric: parseInt(meta.cost.replace(/[^0-9]/g, '') || '99999'),
-  }))
+export function CostComparisonGrid({ locale }: CostComparisonGridProps) {
+  return (
+    <Suspense fallback={<CostComparisonGridSkeleton />}>
+      <CostComparisonGridInner locale={locale} />
+    </Suspense>
+  )
+}
 
-  // Filter by country
-  if (country) {
-    countries = countries.filter((c) => c.slug === `guides/${country}-ivf-guide`)
-  }
+function CostComparisonGridInner({ locale }: CostComparisonGridProps) {
+  const { sort, country } = useHubFilters()
 
-  // Sort
-  if (sort === 'alpha') {
-    countries = [...countries].sort((a, b) => a.name.localeCompare(b.name))
-  } else {
-    // Default: sort by cost ascending
-    countries = [...countries].sort((a, b) => a.costNumeric - b.costNumeric)
-  }
+  const countries = useMemo(() => {
+    let items = Object.entries(countryMeta).map(([slug, meta]) => ({
+      slug,
+      ...meta,
+      href: localizedPath(`/${slug}`, locale),
+      costNumeric: parseInt(meta.cost.replace(/[^0-9]/g, '') || '99999'),
+    }))
+
+    if (country) {
+      items = items.filter((c) => c.slug === `guides/${country}-ivf-guide`)
+    }
+
+    if (sort === 'alpha') {
+      items = [...items].sort((a, b) => a.name.localeCompare(b.name))
+    } else {
+      items = [...items].sort((a, b) => a.costNumeric - b.costNumeric)
+    }
+
+    return items
+  }, [locale, country, sort])
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -37,7 +50,6 @@ export function CostComparisonGrid({ locale, sort, country }: CostComparisonGrid
           href={c.href}
           className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
         >
-          {/* Flag header */}
           <div className="flex items-center gap-3 bg-[var(--color-primary-50)] px-5 py-5">
             <span className="text-4xl leading-none" role="img" aria-label={c.name}>
               {c.flag}
@@ -55,7 +67,6 @@ export function CostComparisonGrid({ locale, sort, country }: CostComparisonGrid
             )}
           </div>
 
-          {/* Cost details */}
           <div className="flex flex-1 flex-col p-5">
             <div className="flex items-end justify-between">
               <div>
@@ -69,6 +80,26 @@ export function CostComparisonGrid({ locale, sort, country }: CostComparisonGrid
             </p>
           </div>
         </Link>
+      ))}
+    </div>
+  )
+}
+
+export function CostComparisonGridSkeleton() {
+  return (
+    <div
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+      role="status"
+      aria-label="Loading cost comparison"
+    >
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white">
+          <div className="h-24 animate-pulse bg-[var(--color-neutral-100)]" />
+          <div className="space-y-2 p-5">
+            <div className="h-3 w-20 animate-pulse rounded bg-[var(--color-neutral-100)]" />
+            <div className="h-8 w-28 animate-pulse rounded bg-[var(--color-neutral-100)]" />
+          </div>
+        </div>
       ))}
     </div>
   )

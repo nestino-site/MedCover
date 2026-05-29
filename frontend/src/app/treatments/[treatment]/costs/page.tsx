@@ -138,7 +138,7 @@ export default async function TreatmentCostsPage({ params }: { params: Params })
 
           {/* Cost guides */}
           <Suspense fallback={<CostGuidesListSkeleton />}>
-            <CostGuidesList locale={locale} treatment={treatment} />
+            <CostGuidesList locale={locale} defaultTreatment={treatment} />
           </Suspense>
 
           {/* FAQ */}

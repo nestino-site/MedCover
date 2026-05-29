@@ -21,6 +21,8 @@ import { RelatedArticles } from '@/components/shared/RelatedArticles'
 import { PlacePillars } from '@/components/shared/PlacePillars'
 import { FilterBar } from '@/components/filters/FilterBar'
 import { FilterChips } from '@/components/filters/FilterChips'
+import { FilterNavigationProvider } from '@/components/filters/filter-navigation'
+import { TreatmentFilterPanel } from '@/components/filters/TreatmentFilterPanel'
 import { CityHero } from '@/components/city-landing/CityHero'
 import { CityFeaturedGuide } from '@/components/city-landing/CityFeaturedGuide'
 import { getDictionary, localizedPath } from '@/lib/i18n'
@@ -30,7 +32,6 @@ import { en } from '@/lib/i18n/en'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 type Params = Promise<{ country: string; city: string }>
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
 export function generateStaticParams() {
   const params: { country: string; city: string }[] = []
@@ -87,11 +88,9 @@ const activeTreatmentId = treatmentCategories.find((c) => c.status === 'active')
 async function CityHubContent({
   countryKey,
   cityKey,
-  treatmentFilter,
 }: {
   countryKey: string
   cityKey: string
-  treatmentFilter?: string
 }) {
   const locale = activeLocale
   const t = getDictionary(locale)
@@ -104,8 +103,6 @@ async function CityHubContent({
 
   const cityName = slugToLabel(cityKey)
   const guideSlug = `guides/${countryKey}/${cityKey}-ivf-guide`
-  const isIvfActive = !treatmentFilter || treatmentFilter === activeTreatmentId
-
   const [guide, allPages] = await Promise.all([
     getContentBySlugOptional(guideSlug),
     getContentListSafe(),
@@ -159,50 +156,58 @@ async function CityHubContent({
             </p>
           </SpeakableSummary>
 
-          <Suspense fallback={null}>
-            <FilterBar>
-              <FilterChips
-                options={treatmentOptions}
-                paramKey="treatment"
-                label={tl.treatmentFilterLabel}
-                allLabel={tl.treatmentFilterAll}
-              />
-            </FilterBar>
-          </Suspense>
+          <FilterNavigationProvider>
+            <Suspense fallback={null}>
+              <FilterBar>
+                <FilterChips
+                  options={treatmentOptions}
+                  paramKey="treatment"
+                  label={tl.treatmentFilterLabel}
+                  allLabel={tl.treatmentFilterAll}
+                />
+              </FilterBar>
+            </Suspense>
 
-          {isIvfActive ? (
-            <div id="ivf-pillar" className="space-y-8 scroll-mt-8">
-              <div>
-                <h2 className="text-xl font-bold text-[var(--color-primary-950)]">
-                  {tl.ivfPillar.heading}
-                </h2>
-                <p className="mt-1 text-sm text-[var(--color-neutral-600)]">{tl.ivfPillar.subtitle}</p>
-              </div>
+            <TreatmentFilterPanel
+              activeTreatmentId={activeTreatmentId}
+              ivfContent={
+                <div id="ivf-pillar" className="space-y-8 scroll-mt-8">
+                  <div>
+                    <h2 className="text-xl font-bold text-[var(--color-primary-950)]">
+                      {tl.ivfPillar.heading}
+                    </h2>
+                    <p className="mt-1 text-sm text-[var(--color-neutral-600)]">
+                      {tl.ivfPillar.subtitle}
+                    </p>
+                  </div>
 
-              <CityFeaturedGuide
-                guide={guide ?? null}
-                countryKey={countryKey}
-                cityKey={cityKey}
-                cityName={cityName}
-              />
+                  <CityFeaturedGuide
+                    guide={guide ?? null}
+                    countryKey={countryKey}
+                    cityKey={cityKey}
+                    cityName={cityName}
+                  />
 
-              <RelatedArticles
-                eyebrow={tl.relatedArticles.eyebrow}
-                heading={tl.relatedArticles.heading}
-                articles={relatedArticles}
-                emptyMessage={tl.relatedArticles.empty}
-              />
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-6 py-10 text-center">
-              <p className="font-semibold text-[var(--color-primary-950)]">
-                {tl.treatmentComingSoon.title}
-              </p>
-              <p className="mt-2 text-sm text-[var(--color-neutral-600)]">
-                {tl.treatmentComingSoon.body}
-              </p>
-            </div>
-          )}
+                  <RelatedArticles
+                    eyebrow={tl.relatedArticles.eyebrow}
+                    heading={tl.relatedArticles.heading}
+                    articles={relatedArticles}
+                    emptyMessage={tl.relatedArticles.empty}
+                  />
+                </div>
+              }
+              comingSoonContent={
+                <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-6 py-10 text-center">
+                  <p className="font-semibold text-[var(--color-primary-950)]">
+                    {tl.treatmentComingSoon.title}
+                  </p>
+                  <p className="mt-2 text-sm text-[var(--color-neutral-600)]">
+                    {tl.treatmentComingSoon.body}
+                  </p>
+                </div>
+              }
+            />
+          </FilterNavigationProvider>
 
           <CtaBlock
             headline={tl.cta.headline.replace('{city}', cityName)}
@@ -224,36 +229,15 @@ function CityHubSkeleton() {
   )
 }
 
-async function CityHubPageInner({
-  params,
-  searchParams,
-}: {
-  params: Params
-  searchParams: SearchParams
-}) {
-  const { country, city } = await params
-  const { treatment } = await searchParams
-  const treatmentFilter = typeof treatment === 'string' ? treatment : undefined
-
+export default function CityHubPage({ params }: { params: Params }) {
   return (
-    <CityHubContent
-      countryKey={country}
-      cityKey={city}
-      treatmentFilter={treatmentFilter}
-    />
+    <Suspense fallback={<CityHubSkeleton />}>
+      <CityHubPageInner params={params} />
+    </Suspense>
   )
 }
 
-export default function CityHubPage({
-  params,
-  searchParams,
-}: {
-  params: Params
-  searchParams: SearchParams
-}) {
-  return (
-    <Suspense fallback={<CityHubSkeleton />}>
-      <CityHubPageInner params={params} searchParams={searchParams} />
-    </Suspense>
-  )
+async function CityHubPageInner({ params }: { params: Params }) {
+  const { country, city } = await params
+  return <CityHubContent countryKey={country} cityKey={city} />
 }

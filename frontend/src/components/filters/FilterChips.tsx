@@ -1,7 +1,8 @@
 'use client'
 
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useSearchParams, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
+import { useFilterNavigationOptional } from '@/components/filters/filter-navigation'
 
 export interface FilterOption {
   value: string
@@ -17,21 +18,29 @@ interface FilterChipsProps {
 }
 
 export function FilterChips({ options, paramKey, label, allLabel = 'All' }: FilterChipsProps) {
-  const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { isPending, pushParams } = useFilterNavigationOptional()
   const current = searchParams.get(paramKey)
 
   function select(value: string | null) {
-    const params = new URLSearchParams(searchParams.toString())
-    if (value === null || params.get(paramKey) === value) {
-      params.delete(paramKey)
-    } else {
-      params.set(paramKey, value)
-    }
-    const qs = params.toString()
-    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    pushParams((params) => {
+      if (value === null || params.get(paramKey) === value) {
+        params.delete(paramKey)
+      } else {
+        params.set(paramKey, value)
+      }
+    })
   }
+
+  const chipClass = (active: boolean) =>
+    cn(
+      'rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all',
+      isPending && 'cursor-wait',
+      active
+        ? 'border-[var(--color-primary-400)] bg-[var(--color-primary-600)] text-white'
+        : 'border-[var(--color-border)] bg-white text-[var(--color-neutral-600)] hover:border-[var(--color-primary-300)] hover:text-[var(--color-primary-700)]',
+    )
 
   return (
     <div role="group" aria-label={label} className="flex flex-wrap items-center gap-2">
@@ -44,12 +53,9 @@ export function FilterChips({ options, paramKey, label, allLabel = 'All' }: Filt
         type="button"
         onClick={() => select(null)}
         aria-pressed={current === null}
-        className={cn(
-          'rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all',
-          current === null
-            ? 'border-[var(--color-primary-400)] bg-[var(--color-primary-600)] text-white'
-            : 'border-[var(--color-border)] bg-white text-[var(--color-neutral-600)] hover:border-[var(--color-primary-300)] hover:text-[var(--color-primary-700)]',
-        )}
+        aria-busy={isPending && current === null}
+        disabled={isPending}
+        className={chipClass(current === null)}
       >
         {allLabel}
       </button>
@@ -61,12 +67,9 @@ export function FilterChips({ options, paramKey, label, allLabel = 'All' }: Filt
             type="button"
             onClick={() => select(opt.value)}
             aria-pressed={isActive}
-            className={cn(
-              'flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all',
-              isActive
-                ? 'border-[var(--color-primary-400)] bg-[var(--color-primary-600)] text-white'
-                : 'border-[var(--color-border)] bg-white text-[var(--color-neutral-600)] hover:border-[var(--color-primary-300)] hover:text-[var(--color-primary-700)]',
-            )}
+            aria-busy={isPending && isActive}
+            disabled={isPending}
+            className={cn('flex items-center gap-1.5', chipClass(isActive))}
           >
             {opt.icon && (
               <span className="leading-none" aria-hidden="true">

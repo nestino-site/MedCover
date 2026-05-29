@@ -6,6 +6,7 @@ import { HubHero } from '@/components/hubs/HubHero'
 import { HubPageLayout } from '@/components/hubs/HubPageLayout'
 import { FilterBar } from '@/components/filters/FilterBar'
 import { SortSelect } from '@/components/filters/SortSelect'
+import { FilterNavigationProvider } from '@/components/filters/filter-navigation'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { JsonLd } from '@/components/shared/JsonLd'
 import { getDictionary } from '@/lib/i18n'
@@ -59,16 +60,7 @@ const countryFaqs: FaqItem[] = [
   },
 ]
 
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
-
-async function CountriesResults({ searchParams }: { searchParams: SearchParams }) {
-  const { sort } = await searchParams
-  const sortFilter = typeof sort === 'string' ? sort : undefined
-
-  return <CountriesList locale={locale} sort={sortFilter ?? 'cost-asc'} />
-}
-
-export default function CountriesHubPage({ searchParams }: { searchParams: SearchParams }) {
+export default function CountriesHubPage() {
   const t = getDictionary(locale)
 
   const sortOptions = [
@@ -117,16 +109,18 @@ export default function CountriesHubPage({ searchParams }: { searchParams: Searc
           <GuidePostsList locale={locale} scope="country" className="mb-10" />
         </Suspense>
 
-        <div id="destinations">
-          <Suspense fallback={null}>
-            <FilterBar>
-              <SortSelect options={sortOptions} defaultValue="cost-asc" label="Sort countries" />
-            </FilterBar>
-          </Suspense>
-          <Suspense fallback={<CountriesListSkeleton />}>
-            <CountriesResults searchParams={searchParams} />
-          </Suspense>
-        </div>
+        <FilterNavigationProvider>
+          <div id="destinations">
+            <Suspense fallback={null}>
+              <FilterBar>
+                <SortSelect options={sortOptions} defaultValue="cost-asc" label="Sort countries" />
+              </FilterBar>
+            </Suspense>
+            <Suspense fallback={<CountriesListSkeleton />}>
+              <CountriesList locale={locale} />
+            </Suspense>
+          </div>
+        </FilterNavigationProvider>
 
         <div className="mt-14 border-t border-[var(--color-border)] pt-8">
           <FaqAccordion faqs={countryFaqs} title="IVF abroad — common questions" />

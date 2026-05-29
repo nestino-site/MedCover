@@ -9,18 +9,28 @@ import { en } from '@/lib/i18n/en'
 interface FaqAccordionProps {
   faqs: FaqItem[]
   title?: string
+  variant?: 'default' | 'compact'
 }
 
-export function FaqAccordion({ faqs, title = en.page.faqTitle }: FaqAccordionProps) {
+export function FaqAccordion({
+  faqs,
+  title = en.page.faqTitle,
+  variant = 'default',
+}: FaqAccordionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
 
   if (faqs.length === 0) return null
 
+  const isCompact = variant === 'compact'
+
   return (
-    <section className="py-10" aria-labelledby="faq-heading">
+    <section className={cn(isCompact ? 'py-6' : 'py-10')} aria-labelledby="faq-heading">
       <h2
         id="faq-heading"
-        className="mb-6 text-3xl font-bold tracking-tight text-[var(--color-primary-950)]"
+        className={cn(
+          'font-bold tracking-tight text-[var(--color-primary-950)]',
+          isCompact ? 'mb-4 text-xl' : 'mb-6 text-3xl',
+        )}
       >
         {title}
       </h2>
@@ -39,7 +49,10 @@ export function FaqAccordion({ faqs, title = en.page.faqTitle }: FaqAccordionPro
                   aria-expanded={isOpen}
                   aria-controls={`faq-panel-${index}`}
                   onClick={() => setOpenIndex(isOpen ? null : index)}
-                  className="flex w-full items-start justify-between gap-4 py-5 text-left"
+                  className={cn(
+                    'flex w-full items-start justify-between gap-4 text-left',
+                    isCompact ? 'py-4' : 'py-5',
+                  )}
                 >
                   <span className="text-base font-semibold leading-snug text-[var(--color-primary-950)]">
                     {faq.question}
