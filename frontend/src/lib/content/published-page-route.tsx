@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { cacheLife, cacheTag } from 'next/cache'
 import { Suspense } from 'react'
 import {
@@ -9,6 +9,7 @@ import {
   loadPublishedPage,
   type PageFetchResult,
 } from '@/lib/api/content'
+import type { ContentListItem } from '@/lib/api/types'
 import { cacheTags } from '@/lib/cache/tags'
 import { JsonLd } from '@/components/shared/JsonLd'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
@@ -18,11 +19,16 @@ import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { pageTitleFromSlug } from '@/lib/content/hubs'
 import { isNextImageOptimizable, resolveHeroImage, resolveHeroImageForMetadata } from '@/lib/content/hero-image'
-import { normalizeContentHtmlImages } from '@/lib/content/html-content-images'
+import { normalizeContentHtml } from '@/lib/content/html-content-images'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 
 type Params = Promise<{ slug: string[] }>
+
+export type ResolveCanonicalSlug = (
+  slugPath: string,
+  pages: ContentListItem[],
+) => string | null
 
 export function buildSlugPath(segments: string[], prefixSegments: string[] = []): string {
   return '/' + [...prefixSegments, ...segments].join('/')
@@ -45,13 +51,34 @@ function slugToRouteParams(
   return tail.length > 0 ? { slug: tail } : null
 }
 
-function metadataFromPage(
+function siteOrigin(): string {
+  return (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io').replace(/\/+$/, '')
+}
+
+function resolveSiteCanonical(slugPath: string, apiCanonical?: string | null): string {
+  const canonicalPath = slugPath.endsWith('/') ? slugPath : `${slugPath}/`
+  const defaultCanonical = `${siteOrigin()}${canonicalPath}`
+
+  if (!apiCanonical) return defaultCanonical
+
+  try {
+    const apiUrl = new URL(apiCanonical)
+    if (apiUrl.host === new URL(siteOrigin()).host) {
+      return apiCanonical.endsWith('/') ? apiCanonical : `${apiCanonical}/`
+    }
+  } catch {
+    // Ignore malformed API canonical URLs.
+  }
+
+  return defaultCanonical
+}
+
+export function getPublishedPageMetadata(
   page: PageFetchResult & { status: 'ok' },
   slugPath: string,
 ): Metadata {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
-  const canonical = page.page.seo.canonical || `${siteUrl}${slugPath}/`
-  const hero = resolveHeroImageForMetadata(page.page, siteUrl)
+  const canonical = resolveSiteCanonical(slugPath, page.page.seo.canonical)
+  const hero = resolveHeroImageForMetadata(page.page, siteOrigin())
 
   return {
     title: page.page.seo.metaTitle ?? page.page.seo.title ?? undefined,
@@ -61,7 +88,7 @@ function metadataFromPage(
     openGraph: {
       title: page.page.seo.og.title ?? page.page.seo.metaTitle ?? undefined,
       description: page.page.seo.og.description ?? page.page.seo.metaDescription ?? undefined,
-      url: page.page.seo.og.url || canonical,
+      url: resolveSiteCanonical(slugPath, page.page.seo.og.url ?? page.page.seo.canonical),
       type: 'article',
       siteName: 'MedCover',
       images: hero ? [{ url: hero.url, alt: hero.alt }] : [],
@@ -95,9 +122,8 @@ async function CachedArticleBody({
 
   const page = result.page
   const hero = resolveHeroImage(page)
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
   const htmlContent = page.htmlContent
-    ? normalizeContentHtmlImages(page.htmlContent, siteUrl)
+    ? normalizeContentHtml(page.htmlContent, siteOrigin())
     : null
 
   return (
@@ -159,9 +185,43 @@ async function CachedArticleBody({
   )
 }
 
+export function PublishedArticleView({
+  slugPath,
+  locale = activeLocale,
+}: {
+  slugPath: string
+  locale?: Locale
+}) {
+  return <CachedArticleBody slugPath={slugPath} locale={locale} />
+}
+
+async function ensurePublishedOrRedirect(
+  slugPath: string,
+  resolveCanonicalSlug?: ResolveCanonicalSlug,
+): Promise<void> {
+  if (resolveCanonicalSlug) {
+    const pages = await listPublishedPagesSafe()
+    const canonical = resolveCanonicalSlug(slugPath, pages)
+    if (canonical) {
+      redirect(canonical.endsWith('/') ? canonical : `${canonical}/`)
+    }
+  }
+
+  const result = await loadPublishedPage(slugPath)
+  if (result.status !== 'ok') {
+    notFound()
+  }
+}
+
 export function createPublishedPageHandlers(
   prefixSegments: string[] = [],
-  { deferParamsWithSuspense = false } = {},
+  {
+    deferParamsWithSuspense = false,
+    resolveCanonicalSlug,
+  }: {
+    deferParamsWithSuspense?: boolean
+    resolveCanonicalSlug?: ResolveCanonicalSlug
+  } = {},
 ) {
   async function generateStaticParams(): Promise<{ slug: string[] }[]> {
     const pages = await listPublishedPagesSafe()
@@ -183,7 +243,7 @@ export function createPublishedPageHandlers(
     const result = await loadPublishedPage(slugPath)
 
     if (result.status === 'ok') {
-      return metadataFromPage(result, slugPath)
+      return getPublishedPageMetadata(result, slugPath)
     }
 
     return { title: pageTitleFromSlug(slugPath) }
@@ -193,8 +253,9 @@ export function createPublishedPageHandlers(
     if (deferParamsWithSuspense) {
       return (
         <Suspense fallback={null}>
-          {params.then(({ slug }) => {
+          {params.then(async ({ slug }) => {
             const slugPath = buildSlugPath(slug, prefixSegments)
+            await ensurePublishedOrRedirect(slugPath, resolveCanonicalSlug)
             return (
               <CachedArticleBody
                 slugPath={slugPath}
@@ -208,6 +269,7 @@ export function createPublishedPageHandlers(
 
     const { slug } = await params
     const slugPath = buildSlugPath(slug, prefixSegments)
+    await ensurePublishedOrRedirect(slugPath, resolveCanonicalSlug)
 
     return (
       <CachedArticleBody

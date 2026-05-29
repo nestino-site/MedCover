@@ -10,7 +10,7 @@ import {
   parseCitySlug,
   staticCitiesPerCountry,
   slugToLabel,
-  getCountryLandingPath,
+  getCityGuideHref,
 } from '@/lib/content/hubs'
 import type { ContentListItem } from '@/lib/api/types'
 
@@ -19,12 +19,13 @@ interface CountryPill {
   countryKey: string
   name: string
   flag: string
-  href: string
+  guideHref: string
 }
 
 interface CityInfo {
   cityName: string
   countryName: string
+  guideHref: string
 }
 
 function getCountriesForTreatment(
@@ -39,7 +40,7 @@ function getCountriesForTreatment(
       countryKey,
       name: d.name,
       flag: d.flag,
-      href: d.href,
+      guideHref: d.guideHref,
     }
   })
 }
@@ -53,22 +54,30 @@ function getCitiesForTreatment(
 
   if (cityPages.length > 0) {
     return cityPages
-      .map((p) => parseCitySlug(p.slug))
-      .filter((c): c is NonNullable<ReturnType<typeof parseCitySlug>> => c !== null)
-      .slice(0, 6)
-      .map((c) => ({ cityName: c.cityName, countryName: c.countryName }))
+      .map((p) => {
+        const parsed = parseCitySlug(p.slug)
+        if (!parsed) return null
+        const cityKey = p.slug.match(/^guides\/[^/]+\/(.+)-ivf-guide$/)?.[1] ?? ''
+        return {
+          cityName: parsed.cityName,
+          countryName: parsed.countryName,
+          guideHref: getCityGuideHref(parsed.countryKey, cityKey, locale),
+        }
+      })
+      .filter((c): c is CityInfo => c !== null)
+      .slice(0, 8)
   }
 
-  // Static fallback
   const result: CityInfo[] = []
   for (const [countryKey, citySlugs] of Object.entries(staticCitiesPerCountry)) {
     for (const citySlug of citySlugs.slice(0, 1)) {
       result.push({
         cityName: slugToLabel(citySlug),
         countryName: slugToLabel(countryKey),
+        guideHref: getCityGuideHref(countryKey, citySlug, locale),
       })
     }
-    if (result.length >= 6) break
+    if (result.length >= 8) break
   }
   return result
 }
@@ -78,7 +87,7 @@ export interface TreatmentsListProps {
   status?: string
 }
 
-export async function TreatmentsList({ locale, status }: TreatmentsListProps) {
+export async function TreatmentsList({ locale }: TreatmentsListProps) {
   const t = getDictionary(locale)
   const pages = await getContentListSafe()
   const { countries: countryPages, cities: cityPages } = partitionGuides(pages, locale)
@@ -88,13 +97,10 @@ export async function TreatmentsList({ locale, status }: TreatmentsListProps) {
       ? countryPages.map((p) => getCountryDisplay(p.slug, locale))
       : getFeaturedCountries(locale)
 
-  // Filter by status
-  const visibleCategories = status
-    ? treatmentCategories.filter((c) => c.status === status)
-    : treatmentCategories
+  const visibleCategories = treatmentCategories
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2">
+    <div className="space-y-4">
       {visibleCategories.map((cat) => {
         const isActive = cat.status === 'active'
         const countries = getCountriesForTreatment(cat, allCountryDisplays)
@@ -104,114 +110,84 @@ export async function TreatmentsList({ locale, status }: TreatmentsListProps) {
           return (
             <article
               key={cat.id}
-              className="rounded-2xl border border-[var(--color-accent-200)] bg-[var(--color-accent-50)]/40 p-6"
+              className="rounded-xl border border-[var(--color-border)] bg-white p-5"
             >
-              {/* Header */}
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-xl font-bold text-[var(--color-primary-950)]">{cat.name}</h2>
-                <span className="rounded-full bg-[var(--color-accent-100)] px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-accent-700)]">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-bold text-[var(--color-primary-950)]">{cat.name}</h2>
+                <span className="rounded-full bg-[var(--color-accent-100)] px-2 py-0.5 text-xs font-semibold text-[var(--color-accent-700)]">
                   {t.hubs.treatments.activeBadge}
                 </span>
               </div>
-              <p className="mt-2 text-sm text-[var(--color-neutral-600)]">
+              <p className="mt-1 text-sm text-[var(--color-neutral-600)]">
                 {t.hubs.treatments.ivfDescription}
               </p>
 
-              {/* Country pills — clicking navigates to country landing */}
               {countries.length > 0 && (
-                <div className="mt-4">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
-                    {t.hubs.treatments.availableCountries}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {countries.slice(0, 6).map((c) => (
+                <ul className="mt-4 flex flex-wrap gap-2">
+                  {countries.map((c) => (
+                    <li key={c.slug}>
                       <Link
-                        key={c.slug}
-                        href={getCountryLandingPath(c.countryKey, locale)}
-                        className="flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-sm transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]"
-                        title={`IVF in ${c.name}`}
+                        href={c.guideHref}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-primary-800)] transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]"
                       >
-                        <span role="img" aria-label={c.name} className="leading-none">
-                          {c.flag}
-                        </span>
-                        <span className="font-medium text-[var(--color-primary-800)]">{c.name}</span>
+                        <span role="img" aria-label={c.name}>{c.flag}</span>
+                        {c.name}
                       </Link>
-                    ))}
-                    {countries.length > 6 && (
-                      <span className="flex items-center px-2 text-sm text-[var(--color-neutral-400)]">
-                        +{countries.length - 6} more
-                      </span>
-                    )}
-                  </div>
-                </div>
+                    </li>
+                  ))}
+                </ul>
               )}
 
-              {/* Cities */}
               {cities.length > 0 && (
-                <div className="mt-4">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
-                    {t.hubs.treatments.availableCities}
-                  </p>
-                  <p className="text-sm text-[var(--color-neutral-600)]">
-                    {cities.map((c) => c.cityName).join(' • ')}
-                    {cities.length >= 6 && ' …'}
-                  </p>
-                </div>
+                <ul className="mt-3 flex flex-wrap gap-2">
+                  {cities.map((city) => (
+                    <li key={city.guideHref}>
+                      <Link
+                        href={city.guideHref}
+                        className="text-sm text-[var(--color-primary-700)] hover:text-[var(--color-accent-600)] hover:underline"
+                      >
+                        {city.cityName}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               )}
 
-              {/* Hub navigation links + treatment deep-dive */}
-              <ul className="mt-5 flex flex-wrap gap-2">
-                {cat.hubLinks.map((link) => (
-                  <li key={link.hubId}>
-                    <Link
-                      href={hubPath(link.hubId, locale)}
-                      className="inline-flex rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm font-medium text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-50)]"
-                    >
-                      {t.nav[link.labelKey]} →
-                    </Link>
-                  </li>
-                ))}
-                <li>
-                  <Link
-                    href={`/treatments/${cat.id}`}
-                    className="inline-flex rounded-lg border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3 py-2 text-sm font-semibold text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]"
-                  >
-                    Explore {cat.name} →
-                  </Link>
-                </li>
-              </ul>
+              <div className="mt-4 flex flex-wrap gap-3 text-sm">
+                <Link
+                  href={`/treatments/${cat.id}`}
+                  className="font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
+                >
+                  Explore {cat.name} →
+                </Link>
+                <Link
+                  href={hubPath('guides', locale)}
+                  className="text-[var(--color-neutral-500)] hover:text-[var(--color-primary-800)]"
+                >
+                  All guides →
+                </Link>
+              </div>
             </article>
           )
         }
 
-        // Coming-soon card
         return (
           <article
             key={cat.id}
-            className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-6"
+            className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-5"
           >
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-xl font-bold text-[var(--color-primary-950)]">{cat.name}</h2>
-              <span className="rounded-full bg-[var(--color-neutral-100)] px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-neutral-500)]">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-bold text-[var(--color-primary-950)]">{cat.name}</h2>
+              <span className="rounded-full bg-[var(--color-neutral-100)] px-2 py-0.5 text-xs font-semibold text-[var(--color-neutral-500)]">
                 {t.hubs.treatments.soonBadge}
               </span>
             </div>
-            <p className="mt-2 text-sm text-[var(--color-neutral-500)]">
+            <p className="mt-1 text-sm text-[var(--color-neutral-500)]">
               {t.hubs.treatments.comingSoonPreview} {cat.name}.
             </p>
-            {/* Placeholder country pill slots */}
-            <div className="mt-4 flex flex-wrap gap-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-8 w-24 animate-pulse rounded-lg bg-[var(--color-neutral-100)]"
-                  aria-hidden="true"
-                />
-              ))}
-            </div>
             <Link
               href={hubPath('countries', locale)}
-              className="mt-5 inline-flex text-sm font-medium text-[var(--color-primary-600)] hover:text-[var(--color-primary-800)]"
+              className="mt-3 inline-flex text-sm font-medium text-[var(--color-primary-600)] hover:text-[var(--color-primary-800)]"
             >
               {t.hubs.treatments.comingSoonNotify} →
             </Link>
@@ -224,9 +200,9 @@ export async function TreatmentsList({ locale, status }: TreatmentsListProps) {
 
 export function TreatmentsListSkeleton() {
   return (
-    <div className="grid gap-5 sm:grid-cols-2">
+    <div className="space-y-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="h-56 animate-pulse rounded-2xl bg-[var(--color-neutral-100)]" />
+        <div key={i} className="h-36 animate-pulse rounded-xl bg-[var(--color-neutral-100)]" />
       ))}
     </div>
   )

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { CitiesList, CitiesListSkeleton } from '@/components/hubs/CitiesList'
+import { GuidePostsList, GuidePostsListSkeleton } from '@/components/hubs/GuidePostsList'
 import { HubHero } from '@/components/hubs/HubHero'
 import { HubPageLayout } from '@/components/hubs/HubPageLayout'
 import { FilterBar } from '@/components/filters/FilterBar'
@@ -81,12 +82,6 @@ async function CitiesResults({ searchParams }: { searchParams: SearchParams }) {
 export default function CitiesHubPage({ searchParams }: { searchParams: SearchParams }) {
   const t = getDictionary(locale)
 
-  const heroStats = [
-    { value: '20+', label: t.hubs.cities.hero.statCities },
-    { value: '6', label: t.hubs.cities.hero.statCountries },
-    { value: '500+', label: t.hubs.cities.hero.statData },
-  ]
-
   const countryOptions = Object.entries(countryMeta).map(([slug, meta]) => ({
     value: slug.replace(/^guides\//, '').replace(/-ivf-guide$/, ''),
     label: meta.name,
@@ -120,16 +115,10 @@ export default function CitiesHubPage({ searchParams }: { searchParams: SearchPa
     <>
       <JsonLd schema={schema} />
       <HubHero
+        variant="compact"
         eyebrow={t.hubs.cities.hero.eyebrow}
         title={t.hubs.cities.hero.title}
         subtitle={t.hubs.cities.hero.subtitle}
-        stats={heroStats}
-        highlights={t.hubs.cities.hero.highlights}
-        ctas={[
-          { label: t.hubs.cities.hero.ctaPrimary, href: '#cities', variant: 'primary' },
-          { label: t.hubs.cities.hero.ctaSecondary, href: '/countries/', variant: 'outline' },
-        ]}
-        trust={t.hubs.cities.hero.trust}
       />
       <HubPageLayout
         locale={locale}
@@ -138,6 +127,10 @@ export default function CitiesHubPage({ searchParams }: { searchParams: SearchPa
         description={t.hubs.cities.description}
         showHeading={false}
       >
+        <Suspense fallback={<GuidePostsListSkeleton count={9} />}>
+          <GuidePostsList locale={locale} scope="city" className="mb-10" />
+        </Suspense>
+
         <div id="cities">
           <Suspense fallback={null}>
             <FilterBar>
@@ -155,7 +148,7 @@ export default function CitiesHubPage({ searchParams }: { searchParams: SearchPa
           </Suspense>
         </div>
 
-        <div className="mt-14 border-t border-[var(--color-border)] pt-2">
+        <div className="mt-14 border-t border-[var(--color-border)] pt-8">
           <FaqAccordion faqs={cityFaqs} title="IVF city guides — common questions" />
         </div>
       </HubPageLayout>

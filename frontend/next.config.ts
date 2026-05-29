@@ -14,6 +14,21 @@ const nextConfig: NextConfig = {
         destination: '/start/',
         permanent: false,
       },
+      {
+        source: '/for-clinics/pricing/',
+        destination: '/start/',
+        permanent: false,
+      },
+      {
+        source: '/truth-score/',
+        destination: '/about/',
+        permanent: false,
+      },
+      {
+        source: '/ai-interviewer/',
+        destination: '/about/',
+        permanent: false,
+      },
     ]
   },
 

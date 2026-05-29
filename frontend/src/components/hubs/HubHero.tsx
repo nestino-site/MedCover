@@ -20,12 +20,54 @@ interface HubHeroProps {
   ctas?: HubHeroCta[]
   trust?: string
   highlights?: readonly string[]
+  variant?: 'full' | 'compact'
 }
 
-export function HubHero({ eyebrow, title, subtitle, stats, ctas, trust, highlights }: HubHeroProps) {
-  const hasCtas = ctas && ctas.length > 0
-  const hasStats = stats && stats.length > 0
-  const hasHighlights = highlights && highlights.length > 0
+export function HubHero({
+  eyebrow,
+  title,
+  subtitle,
+  stats,
+  ctas,
+  trust,
+  highlights,
+  variant = 'full',
+}: HubHeroProps) {
+  const isCompact = variant === 'compact'
+  const hasCtas = !isCompact && ctas && ctas.length > 0
+  const hasStats = !isCompact && stats && stats.length > 0
+  const hasHighlights = !isCompact && highlights && highlights.length > 0
+
+  if (isCompact) {
+    return (
+      <section
+        className="border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)]"
+        aria-labelledby="hub-hero-heading"
+      >
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="max-w-3xl">
+            {eyebrow && (
+              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-600)]">
+                {eyebrow}
+              </p>
+            )}
+            <h1
+              id="hub-hero-heading"
+              className="mt-2 text-3xl font-bold tracking-tight text-[var(--color-primary-950)] sm:text-4xl"
+            >
+              {title}
+            </h1>
+            <p
+              className="mt-3 max-w-2xl text-base text-[var(--color-neutral-600)]"
+              data-speakable="true"
+            >
+              {subtitle}
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section

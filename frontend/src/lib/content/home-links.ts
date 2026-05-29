@@ -26,7 +26,14 @@ export interface HomeCountryLink {
 }
 
 export interface HomeLinkGraph {
-  treatment: { overview: string; costs: string; compare: string }
+  hubs: {
+    treatments: string
+    countries: string
+    costs: string
+    compare: string
+    guides: string
+    start: string
+  }
   countries: HomeCountryLink[]
 }
 
@@ -59,10 +66,13 @@ export function buildHomeLinkGraph(locale: Locale): HomeLinkGraph {
     .sort((a, b) => a.name.localeCompare(b.name))
 
   return {
-    treatment: {
-      overview: localizedPath('/treatments/ivf', locale),
-      costs: localizedPath('/treatments/ivf/costs', locale),
+    hubs: {
+      treatments: localizedPath('/treatments', locale),
+      countries: localizedPath('/countries', locale),
+      costs: localizedPath('/costs', locale),
       compare: localizedPath('/compare', locale),
+      guides: localizedPath('/guides', locale),
+      start: localizedPath('/start', locale),
     },
     countries,
   }

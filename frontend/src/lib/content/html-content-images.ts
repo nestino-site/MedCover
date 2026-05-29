@@ -1,9 +1,40 @@
 import { trafficEngineUrl } from '@/lib/api/client'
 
 const IMG_SRC_RE = /<img\b([^>]*?\bsrc=["'])([^"']+)(["'][^>]*)>/gi
+const A_HREF_RE = /<a\b([^>]*?\bhref=["'])([^"']+)(["'][^>]*)>/gi
 
 function isAbsoluteHttpUrl(value: string): boolean {
   return /^https?:\/\//i.test(value)
+}
+
+function normalizeInternalLinkHref(href: string): string {
+  const trimmed = href.trim()
+  if (!trimmed.startsWith('/') || trimmed.startsWith('//') || trimmed === '/') {
+    return href
+  }
+
+  const hashIndex = trimmed.indexOf('#')
+  const queryIndex = trimmed.indexOf('?')
+  const endIndex = Math.min(
+    hashIndex >= 0 ? hashIndex : trimmed.length,
+    queryIndex >= 0 ? queryIndex : trimmed.length,
+  )
+  const pathPart = trimmed.slice(0, endIndex)
+  const suffix = trimmed.slice(endIndex)
+
+  if (pathPart.endsWith('/') || /\.[a-z0-9]{2,5}$/i.test(pathPart)) {
+    return href
+  }
+
+  return `${pathPart}/${suffix}`
+}
+
+export function normalizeContentHtmlLinks(html: string): string {
+  return html.replace(A_HREF_RE, (full, prefix, href, suffix) => {
+    const normalized = normalizeInternalLinkHref(href)
+    if (normalized === href) return full
+    return `<a${prefix}${normalized}${suffix}>`
+  })
 }
 
 function isBackendContentImageUrl(url: string): boolean {
@@ -85,4 +116,12 @@ export function normalizeContentHtmlImages(
 
     return full
   })
+}
+
+/** Normalize backend HTML: hero image proxying + internal link trailing slashes. */
+export function normalizeContentHtml(
+  html: string,
+  siteOrigin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.medcover.io',
+): string {
+  return normalizeContentHtmlLinks(normalizeContentHtmlImages(html, siteOrigin))
 }

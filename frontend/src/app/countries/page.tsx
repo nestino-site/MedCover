@@ -1,16 +1,15 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { CountriesList, CountriesListSkeleton } from '@/components/hubs/CountriesList'
+import { GuidePostsList, GuidePostsListSkeleton } from '@/components/hubs/GuidePostsList'
 import { HubHero } from '@/components/hubs/HubHero'
 import { HubPageLayout } from '@/components/hubs/HubPageLayout'
 import { FilterBar } from '@/components/filters/FilterBar'
-import { FilterChips } from '@/components/filters/FilterChips'
 import { SortSelect } from '@/components/filters/SortSelect'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { JsonLd } from '@/components/shared/JsonLd'
 import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
-import { treatmentCategories } from '@/lib/content/treatments'
 import { buildCollectionPage } from '@/lib/schema/hub-collection'
 import type { FaqItem } from '@/lib/api/types'
 
@@ -63,29 +62,14 @@ const countryFaqs: FaqItem[] = [
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
 async function CountriesResults({ searchParams }: { searchParams: SearchParams }) {
-  const { treatment, sort } = await searchParams
-  const treatmentFilter = typeof treatment === 'string' ? treatment : undefined
+  const { sort } = await searchParams
   const sortFilter = typeof sort === 'string' ? sort : undefined
 
-  return (
-    <CountriesList locale={locale} treatment={treatmentFilter} sort={sortFilter ?? 'cost-asc'} />
-  )
+  return <CountriesList locale={locale} sort={sortFilter ?? 'cost-asc'} />
 }
 
 export default function CountriesHubPage({ searchParams }: { searchParams: SearchParams }) {
   const t = getDictionary(locale)
-
-  const heroStats = [
-    { value: '6', label: t.hubs.countries.hero.statCountries },
-    { value: '5+', label: t.hubs.countries.hero.statTreatments },
-    { value: '80+', label: t.hubs.countries.hero.statClinics },
-    { value: '500+', label: t.hubs.countries.hero.statInterviews },
-  ]
-
-  const treatmentOptions = treatmentCategories.map((c) => ({
-    value: c.id,
-    label: c.name,
-  }))
 
   const sortOptions = [
     { value: 'cost-asc', label: 'Cost: low → high' },
@@ -117,16 +101,10 @@ export default function CountriesHubPage({ searchParams }: { searchParams: Searc
     <>
       <JsonLd schema={schema} />
       <HubHero
+        variant="compact"
         eyebrow={t.hubs.countries.hero.eyebrow}
         title={t.hubs.countries.hero.title}
         subtitle={t.hubs.countries.hero.subtitle}
-        stats={heroStats}
-        highlights={t.hubs.countries.hero.highlights}
-        ctas={[
-          { label: t.hubs.countries.hero.ctaPrimary, href: '/costs/', variant: 'primary' },
-          { label: t.hubs.countries.hero.ctaSecondary, href: '#destinations', variant: 'outline' },
-        ]}
-        trust={t.hubs.countries.hero.trust}
       />
       <HubPageLayout
         locale={locale}
@@ -135,15 +113,13 @@ export default function CountriesHubPage({ searchParams }: { searchParams: Searc
         description={t.hubs.countries.description}
         showHeading={false}
       >
+        <Suspense fallback={<GuidePostsListSkeleton count={6} />}>
+          <GuidePostsList locale={locale} scope="country" className="mb-10" />
+        </Suspense>
+
         <div id="destinations">
           <Suspense fallback={null}>
             <FilterBar>
-              <FilterChips
-                options={treatmentOptions}
-                paramKey="treatment"
-                label="Treatment"
-                allLabel="All treatments"
-              />
               <SortSelect options={sortOptions} defaultValue="cost-asc" label="Sort countries" />
             </FilterBar>
           </Suspense>
@@ -152,7 +128,7 @@ export default function CountriesHubPage({ searchParams }: { searchParams: Searc
           </Suspense>
         </div>
 
-        <div className="mt-14 border-t border-[var(--color-border)] pt-2">
+        <div className="mt-14 border-t border-[var(--color-border)] pt-8">
           <FaqAccordion faqs={countryFaqs} title="IVF abroad — common questions" />
         </div>
       </HubPageLayout>

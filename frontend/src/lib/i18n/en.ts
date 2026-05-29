@@ -33,6 +33,8 @@ export const en = {
       guides: 'Guides',
       costs: 'Costs',
     },
+    expandMenu: 'Show {label} menu',
+    browseHub: 'Browse all',
     descriptions: {
       countries: 'Browse treatment destinations by country',
       cities: 'City-level clinic and travel guides',
@@ -59,7 +61,7 @@ export const en = {
     home: {
       title: 'MedCover — Find Treatment Abroad Based on Patient Truth',
       description:
-        'Verified costs and clinic scores for clinical care abroad. IVF destinations live now — dental, hair, and more coming soon.',
+        'Independent patient interviews, real costs, and clinic Truth Scores for medical travel — verified data, not clinic marketing.',
     },
     countries: {
       title: 'IVF Countries — Destination Guides',
@@ -110,11 +112,11 @@ export const en = {
   home: {
     hero: {
       eyebrow: 'Verified clinical data abroad',
-      title: 'IVF abroad — what patients actually paid',
+      title: 'Treatment abroad — what patients actually experienced',
       subtitle:
-        'Real costs from verified patient interviews across 6 European countries. No clinic marketing. Starting from €1,900.',
-      ctaPrimary: 'Compare costs',
-      ctaSecondary: 'Explore IVF',
+        'Independent guides built from verified patient interviews: real costs, clinic Truth Scores, and destination insights. No clinic marketing.',
+      ctaPrimary: 'Explore destinations',
+      ctaSecondary: 'Browse treatments',
       costTableLabel: 'Verified cost ranges · 2026',
       lowestBadge: 'Lowest',
       trustItems: [
@@ -123,13 +125,13 @@ export const en = {
         '500+ patient interviews',
       ],
     },
-    ivfStrip: {
-      label: 'Now live',
-      treatment: 'IVF',
-      ivfOverview: 'IVF overview',
-      costComparison: 'Cost comparison',
+    quickLinks: {
+      treatments: 'Treatments',
+      countries: 'Countries',
+      costs: 'Costs',
       compare: 'Compare',
-      cta: 'Explore IVF',
+      guides: 'Guides',
+      cta: 'Get started',
     },
     countries: {
       eyebrow: 'Destinations',
@@ -157,14 +159,14 @@ export const en = {
       subtitle: 'Three steps from research to matched clinic.',
       steps: [
         {
-          title: 'Explore IVF by country',
-          body: 'Real cost ranges and clinic scores from people who actually went — not from clinic marketing materials.',
-          cta: 'Explore IVF',
+          title: 'Explore destinations',
+          body: 'Country and city guides with real costs and clinic scores from people who actually traveled — not clinic brochures.',
+          cta: 'Browse countries',
         },
         {
           title: 'Compare without the spin',
-          body: 'Side-by-side data across 6 countries — costs, success rates, and patient experiences. No clinic referral fees, ever.',
-          cta: 'Compare costs',
+          body: 'Side-by-side costs, Truth Scores, and patient experiences across destinations. No clinic referral fees, ever.',
+          cta: 'Compare destinations',
         },
         {
           title: "Get matched when you're ready",
@@ -172,6 +174,11 @@ export const en = {
           cta: 'Coming soon',
         },
       ],
+    },
+    cta: {
+      headline: 'Ready to plan treatment abroad?',
+      description:
+        'Tell us your situation — we will match you with verified clinics and realistic cost breakdowns from patient data.',
     },
     cities: {
       eyebrow: 'City guides',
@@ -262,19 +269,21 @@ export const en = {
       },
       citiesLabel: 'Cities',
       viewCities: 'Browse cities',
+      exploreCountry: 'Explore {country}',
+      readIvfGuide: 'Read IVF guide article',
       treatmentsLabel: 'Treatment',
     },
     cities: {
-      title: 'IVF Cities',
-      description: 'City-level guides with local clinics, costs, and travel logistics.',
+      title: 'Cities',
+      description: 'City hubs for medical travel — IVF guides live, more treatments coming soon.',
       cardDescription: 'city guides with local clinics and travel tips',
       cardDescriptionEmpty: 'City-level guides with local clinics and travel tips',
       empty: 'City guides coming soon.',
       hero: {
-        eyebrow: 'City-Level IVF Guides',
-        title: 'Find the Right City for IVF Abroad',
+        eyebrow: 'City medical travel hubs',
+        title: 'Browse Cities for Treatment Abroad',
         subtitle:
-          'Local clinic rankings, neighbourhood tips, and verified patient costs for 20+ IVF cities across Europe — so you choose the city, not just the country.',
+          'City-level hubs for medical travel abroad. IVF patient guides are live — more treatment categories coming soon.',
         statCities: 'Cities covered',
         statCountries: 'Countries',
         statData: 'Verified patient data',
@@ -288,6 +297,8 @@ export const en = {
         ],
       },
       viewCountryGuide: 'Country guide',
+      viewCountryHub: 'Country hub',
+      viewCityHub: 'View city hub',
     },
     treatments: {
       title: 'Treatments',
@@ -319,15 +330,26 @@ export const en = {
     guides: {
       title: 'Guides',
       description: 'Published patient-verified guides — each link goes directly to the article.',
-      countryTab: 'Country guides',
+      countryTab: 'Country guide',
       cityTab: 'City guides',
+      cityGuidesLabel: 'City guides',
       viewGuide: 'View guide',
+      sortLabel: 'Sort guides',
+      sortAlpha: 'A – Z',
+      sortUpdated: 'Recently updated',
       empty: 'No published guides yet. New articles appear here after the backend publishes them.',
     },
     published: {
       empty: 'No published articles yet. New pages appear here after the backend publishes them.',
       viewArticle: 'Read article',
       updated: 'Updated',
+    },
+    guidePosts: {
+      allTitle: 'Published patient guides',
+      countryTitle: 'Country guides',
+      cityTitle: 'City guides',
+      subtitle: 'Each link goes directly to the full article.',
+      readGuide: 'Read guide',
     },
     costsHub: {
       title: 'Costs & financing',
@@ -481,34 +503,107 @@ export const en = {
       clinics: 'Clinics',
     },
   },
+  placeLanding: {
+    pillars: {
+      eyebrow: 'Treatment pillars',
+      heading: 'Treatments in {place}',
+      subtitle: 'IVF is live with verified patient guides. More specialties are on the way.',
+      active: 'Live',
+      comingSoon: 'Soon',
+    },
+  },
   countryLanding: {
-    h1Prefix: 'IVF in',
-    heroSubtitle: 'Clinics, costs & patient insights',
+    heroEyebrow: 'Medical travel destination',
+    heroSubtitle: 'Compare treatments, clinics, and verified patient guides for this country.',
     stats: {
-      cost: 'Starting from',
-      clinics: 'Verified clinics',
+      ivfCost: 'IVF from',
+      ivfClinics: 'IVF clinics',
       cities: 'City guides',
     },
+    ivfPillar: {
+      heading: 'IVF & Fertility',
+      subtitle: 'Verified patient guides for this destination.',
+    },
     featuredGuide: {
-      eyebrow: 'IVF Guide',
+      pillarLabel: 'IVF & Fertility guide',
       readFull: 'Read the full guide',
       comingSoon: 'Guide coming soon',
+      comingSoonTitle: 'IVF guide for {country}',
       comingSoonBody: 'Our detailed IVF guide for this country is being compiled from verified patient interviews.',
       faqPreviewHeading: 'Common questions',
     },
     citiesSection: {
-      eyebrow: 'City guides',
-      heading: 'IVF by City',
+      eyebrow: 'IVF city guides',
+      heading: 'Cities in this country',
       empty: 'City guides coming soon',
       viewGuide: 'View guide',
+      viewCity: 'View city hub',
     },
     treatmentsSection: {
       eyebrow: 'Available treatments',
       heading: 'Treatments',
       active: 'Active',
       comingSoon: 'Coming soon',
+      viewTreatmentHub: 'View treatment hub',
     },
-    speakableSummaryLabel: 'Country Summary',
+    treatmentFilterLabel: 'Treatment',
+    treatmentFilterAll: 'All treatments',
+    relatedArticles: {
+      eyebrow: 'Patient guides',
+      heading: 'Related articles',
+      empty: 'Guide articles coming soon.',
+    },
+    treatmentComingSoon: {
+      title: 'This treatment is not available yet',
+      body: 'IVF guides are live for this country. Other treatments are coming soon — switch back to IVF to explore guides.',
+    },
+    speakableSummaryLabel: 'Country overview',
+    cta: {
+      headline: 'Plan medical travel in {country}',
+      description: 'Based on verified patient interviews — not clinic marketing materials.',
+    },
+  },
+  cityLanding: {
+    heroEyebrow: 'City medical travel hub',
+    heroSubtitle: 'Compare treatments, local clinics, and verified patient guides for this city.',
+    backToCountry: 'Back to {country}',
+    speakableSummaryLabel: 'City overview',
+    treatmentFilterLabel: 'Treatment',
+    treatmentFilterAll: 'All treatments',
+    ivfPillar: {
+      heading: 'IVF & Fertility',
+      subtitle: 'Verified patient guides for this city.',
+    },
+    featuredGuide: {
+      pillarLabel: 'IVF & Fertility guide',
+      readFull: 'Read the full city guide',
+      comingSoon: 'Guide coming soon',
+      comingSoonTitle: 'IVF guide for {city}',
+      comingSoonBody:
+        'Our detailed IVF guide for this city is being compiled from verified patient interviews.',
+      faqPreviewHeading: 'Common questions',
+    },
+    relatedArticles: {
+      eyebrow: 'Patient guides',
+      heading: 'Related articles',
+      empty: 'Guide articles coming soon.',
+    },
+    treatmentComingSoon: {
+      title: 'This treatment is not available yet',
+      body: 'IVF city guides are live. Other treatments are coming soon — switch back to IVF to explore this city.',
+    },
+    cta: {
+      headline: 'Plan medical travel in {city}',
+      description: 'Based on verified patient interviews — not clinic marketing materials.',
+    },
+  },
+  treatmentHub: {
+    viewCountryHub: 'View country hub',
+    relatedArticles: {
+      eyebrow: 'Patient guides',
+      heading: 'Related IVF guides',
+      empty: 'Guide articles coming soon.',
+    },
   },
   truthScore: {
     label: 'Truth Score',

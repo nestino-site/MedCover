@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { cacheLife, cacheTag } from 'next/cache'
+import { FileText } from 'lucide-react'
 import { listPublishedPagesSafe } from '@/lib/api/content'
-import { filterPagesByHub, pageTitleFromSlug } from '@/lib/content/hubs'
+import { filterPagesByHub } from '@/lib/content/hubs'
+import { loadPublishedPostItems } from '@/lib/content/guide-posts'
 import { cacheTags } from '@/lib/cache/tags'
-import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
+import { getDictionary, type Locale } from '@/lib/i18n'
 
 export async function PublishedHubList({
   locale,
@@ -18,50 +20,64 @@ export async function PublishedHubList({
 
   const t = getDictionary(locale)
   const pages = await listPublishedPagesSafe()
-  const items = filterPagesByHub(pages, hubSegment, locale)
+  const filtered = filterPagesByHub(pages, hubSegment, locale)
+  const items = await loadPublishedPostItems(filtered, locale)
 
   if (items.length === 0) {
     return <p className="text-[var(--color-neutral-500)]">{t.hubs.published.empty}</p>
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {items.map((page) => {
-        const normalizedSlug = page.slug.replace(/^\//, '')
-        const title = pageTitleFromSlug(normalizedSlug)
-        const updated = new Date(page.updatedAt).toLocaleDateString(locale, {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-        })
+    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((item) => {
+        const updated = item.updatedAt
+          ? new Date(item.updatedAt).toLocaleDateString(locale, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            })
+          : null
 
         return (
-          <Link
-            key={page.slug}
-            href={localizedPath(`/${normalizedSlug}`, locale)}
-            className="group flex flex-col rounded-2xl border border-[var(--color-border)] bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <h2 className="font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
-              {title}
-            </h2>
-            <p className="mt-2 text-xs text-[var(--color-neutral-400)]">
-              {t.hubs.published.updated} {updated}
-            </p>
-            <p className="mt-4 text-sm font-medium text-[var(--color-accent-600)]">
-              {t.hubs.published.viewArticle} →
-            </p>
-          </Link>
+          <li key={item.slug}>
+            <Link
+              href={item.href}
+              className="group flex min-h-[88px] items-start gap-4 rounded-xl border border-[var(--color-border)] bg-white p-4 transition-colors hover:border-[var(--color-primary-300)] hover:bg-[var(--color-primary-50)]/40"
+            >
+              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary-100)] text-[var(--color-primary-700)]">
+                <FileText size={20} aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold leading-snug text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
+                  {item.title}
+                </span>
+                {item.description && (
+                  <span className="mt-1 block line-clamp-2 text-sm text-[var(--color-neutral-600)]">
+                    {item.description}
+                  </span>
+                )}
+                {updated && (
+                  <span className="mt-1 block text-xs text-[var(--color-neutral-400)]">
+                    {t.hubs.published.updated} {updated}
+                  </span>
+                )}
+                <span className="mt-2 block text-sm font-medium text-[var(--color-accent-600)]">
+                  {t.hubs.published.viewArticle} →
+                </span>
+              </span>
+            </Link>
+          </li>
         )
       })}
-    </div>
+    </ul>
   )
 }
 
 export function PublishedHubListSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="h-28 animate-pulse rounded-2xl bg-[var(--color-neutral-100)]" />
+        <div key={i} className="h-24 animate-pulse rounded-xl bg-[var(--color-neutral-100)]" />
       ))}
     </div>
   )

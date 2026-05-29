@@ -102,14 +102,12 @@ function ComparisonCard({
   return (
     <Link
       href={href}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
+      className="group flex flex-col rounded-xl border border-[var(--color-border)] bg-white p-4 transition-colors hover:border-[var(--color-primary-300)] hover:bg-[var(--color-primary-50)]/40"
     >
-      {/* Card header */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-5 py-4">
+      <div className="flex flex-wrap items-center gap-2">
         <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${badgeClass}`}>
           {treatment}
         </span>
-        <span className="mx-0.5 text-xs text-[var(--color-neutral-400)]">·</span>
         {locations.map((key, i) => (
           <span key={key} className="flex items-center gap-1">
             {i > 0 && (
@@ -121,18 +119,14 @@ function ComparisonCard({
           </span>
         ))}
       </div>
-
-      {/* Card body */}
-      <div className="flex flex-1 flex-col justify-between px-5 py-4">
-        {costRange && (
-          <p className="text-xs text-[var(--color-neutral-500)]">
-            Cost range: <span className="font-semibold text-[var(--color-primary-800)]">{costRange}</span>
-          </p>
-        )}
-        <p className="mt-4 text-sm font-medium text-[var(--color-accent-600)] group-hover:text-[var(--color-accent-700)]">
-          {t.hubs.compareHub.readComparison} →
+      {costRange && (
+        <p className="mt-2 text-xs text-[var(--color-neutral-500)]">
+          Cost range: <span className="font-semibold text-[var(--color-primary-800)]">{costRange}</span>
         </p>
-      </div>
+      )}
+      <p className="mt-3 text-sm font-medium text-[var(--color-accent-600)] group-hover:text-[var(--color-accent-700)]">
+        {t.hubs.compareHub.readComparison} →
+      </p>
     </Link>
   )
 }

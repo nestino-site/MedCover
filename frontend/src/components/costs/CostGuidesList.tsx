@@ -103,7 +103,7 @@ export async function CostGuidesList({ locale, treatment, country }: CostGuidesL
                     <Link
                       key={guide.slug}
                       href={href}
-                      className="group flex flex-col rounded-2xl border border-[var(--color-border)] bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                      className="group flex min-h-[88px] flex-col rounded-xl border border-[var(--color-border)] bg-white p-4 transition-colors hover:border-[var(--color-primary-300)] hover:bg-[var(--color-primary-50)]/40"
                     >
                       {meta ? (
                         <div className="mb-3 flex items-center gap-2">

@@ -1,12 +1,14 @@
 import { listPublishedPagesSafe } from '@/lib/api/content'
-import { getFeaturedCountries, getGuideArticles, type GuideArticleItem } from '@/lib/content/hubs'
+import { loadGuideGroupsForPages, limitGuideGroupsForNav } from '@/lib/content/guide-display'
+import { getFeaturedCountries, type GuideCountryGroup } from '@/lib/content/hubs'
 import { type Dictionary, type Locale } from '@/lib/i18n'
 import { MobileMenu } from './MobileMenu'
 import { NavMegaMenu } from './NavMegaMenu'
 
-async function loadGuideArticles(locale: Locale): Promise<GuideArticleItem[]> {
+async function loadGuideGroups(locale: Locale): Promise<GuideCountryGroup[]> {
   const pages = await listPublishedPagesSafe()
-  return getGuideArticles(pages, locale).slice(0, 12)
+  const groups = await loadGuideGroupsForPages(pages, locale)
+  return limitGuideGroupsForNav(groups, 12)
 }
 
 type HeaderMenuProps = {
@@ -16,14 +18,14 @@ type HeaderMenuProps = {
 
 export async function HeaderMegaMenu({ locale, t }: HeaderMenuProps) {
   const featuredCountries = getFeaturedCountries(locale)
-  const guideArticles = await loadGuideArticles(locale)
+  const guideGroups = await loadGuideGroups(locale)
 
   return (
     <NavMegaMenu
       locale={locale}
       t={t}
       featuredCountries={featuredCountries}
-      guideArticles={guideArticles}
+      guideGroups={guideGroups}
     />
   )
 }
@@ -34,16 +36,16 @@ export function HeaderMegaMenuFallback({ locale, t }: HeaderMenuProps) {
       locale={locale}
       t={t}
       featuredCountries={getFeaturedCountries(locale)}
-      guideArticles={[]}
+      guideGroups={[]}
     />
   )
 }
 
 export async function HeaderMobileMenu({ locale }: Pick<HeaderMenuProps, 'locale'>) {
-  const guideArticles = await loadGuideArticles(locale)
-  return <MobileMenu locale={locale} guideArticles={guideArticles} />
+  const guideGroups = await loadGuideGroups(locale)
+  return <MobileMenu locale={locale} guideGroups={guideGroups} />
 }
 
 export function HeaderMobileMenuFallback({ locale }: Pick<HeaderMenuProps, 'locale'>) {
-  return <MobileMenu locale={locale} guideArticles={[]} />
+  return <MobileMenu locale={locale} guideGroups={[]} />
 }

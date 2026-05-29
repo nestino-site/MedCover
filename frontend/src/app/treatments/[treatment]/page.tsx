@@ -2,24 +2,31 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
+import { getContentListSafe, getPageBySlug, listPublishedPagesSafe } from '@/lib/api/content'
+import {
+  getPublishedPageMetadata,
+  PublishedArticleView,
+} from '@/lib/content/published-page-route'
+import { buildTreatmentPageSchemas } from '@/lib/schema/treatment-page'
 import { treatmentCategories } from '@/lib/content/treatments'
 import {
   countryMeta,
   getFeaturedCountries,
   getCitiesForCountry,
   getCountryLandingPath,
+  getRelatedGuideSlugsForTreatment,
   partitionGuides,
-  staticCitiesPerCountry,
 } from '@/lib/content/hubs'
-import { getContentListSafe } from '@/lib/api/content'
-import { buildTreatmentPageSchemas } from '@/lib/schema/treatment-page'
+import { loadGuideArticlesBySlugs } from '@/lib/content/guide-posts'
 import { JsonLd } from '@/components/shared/JsonLd'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { SpeakableSummary } from '@/components/shared/SpeakableSummary'
+import { RelatedArticles } from '@/components/shared/RelatedArticles'
 import { getDictionary, localizedPath } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
+import { en } from '@/lib/i18n/en'
 import type { FaqItem } from '@/lib/api/types'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
@@ -27,10 +34,23 @@ const locale = activeLocale
 
 type Params = Promise<{ treatment: string }>
 
-export function generateStaticParams() {
-  return treatmentCategories
-    .filter((c) => c.status === 'active')
-    .map((c) => ({ treatment: c.id }))
+export async function generateStaticParams() {
+  const pages = await listPublishedPagesSafe()
+  const fromApi = pages
+    .map((page) => page.slug.replace(/^\//, ''))
+    .filter((slug) => /^treatments\/[^/]+$/.test(slug))
+    .map((slug) => ({ treatment: slug.replace(/^treatments\//, '') }))
+
+  const fromCategories = treatmentCategories
+    .filter((category) => category.status === 'active')
+    .map((category) => ({ treatment: category.id }))
+
+  const seen = new Set<string>()
+  return [...fromApi, ...fromCategories].filter(({ treatment }) => {
+    if (seen.has(treatment)) return false
+    seen.add(treatment)
+    return true
+  })
 }
 
 function getTreatmentBySlug(slug: string) {
@@ -69,6 +89,13 @@ const TREATMENT_FAQS: Record<string, FaqItem[]> = {
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { treatment } = await params
+  const slugPath = `/treatments/${treatment}`
+  const backendPage = await getPageBySlug(slugPath)
+
+  if (backendPage) {
+    return getPublishedPageMetadata({ status: 'ok', page: backendPage }, slugPath)
+  }
+
   const cat = getTreatmentBySlug(treatment)
   if (!cat) return { title: 'Treatment | MedCover' }
 
@@ -92,6 +119,9 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
 
   const allPages = await getContentListSafe()
   const { countries: countryPages, cities: cityPages } = partitionGuides(allPages, locale)
+  const relatedSlugs = getRelatedGuideSlugsForTreatment(countryPages, cityPages, locale)
+  const relatedArticles = await loadGuideArticlesBySlugs(relatedSlugs, allPages, locale)
+  const th = en.treatmentHub
 
   const countryDisplays =
     countryPages.length > 0
@@ -167,84 +197,91 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
             </div>
           </div>
 
-          {/* Countries grid */}
+          <RelatedArticles
+            eyebrow={th.relatedArticles.eyebrow}
+            heading={th.relatedArticles.heading}
+            articles={relatedArticles}
+            emptyMessage={th.relatedArticles.empty}
+          />
+
           <section aria-labelledby="countries-heading">
             <h2
               id="countries-heading"
-              className="mb-6 text-2xl font-bold tracking-tight text-[var(--color-primary-950)]"
+              className="mb-4 text-xl font-bold tracking-tight text-[var(--color-primary-950)]"
             >
               Destinations offering {cat.name}
             </h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {countryDisplays.map((c, i) => {
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {countryDisplays.map((c) => {
                 const cities = getCitiesForCountry(c.key, cityPages, locale)
-                const costNum = parseInt(c.meta.cost.replace(/[^0-9]/g, '') || '99999')
+                const guideHref = `/guides/${c.key}-ivf-guide`
                 return (
-                  <Link
+                  <article
                     key={c.key}
-                    href={c.href}
-                    className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                    className="flex flex-col rounded-xl border border-[var(--color-border)] bg-white"
                   >
-                    <div className="flex items-center gap-3 bg-[var(--color-primary-50)] px-5 py-4">
-                      <span className="text-3xl leading-none" role="img" aria-label={c.meta.name}>
+                    <div className="flex items-center gap-3 px-4 py-4">
+                      <span className="text-2xl leading-none" role="img" aria-label={c.meta.name}>
                         {c.meta.flag}
                       </span>
-                      <div>
-                        <p className="font-bold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
-                          {c.meta.name}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-[var(--color-primary-950)]">{c.meta.name}</p>
+                        <p className="text-xs text-[var(--color-neutral-500)]">
+                          {c.meta.cost} · {c.meta.clinics}
                         </p>
-                        <p className="text-xs text-[var(--color-neutral-500)]">{c.meta.tagline}</p>
                       </div>
-                      {i === 0 && (
-                        <span className="ml-auto shrink-0 rounded-full bg-[var(--color-accent-100)] px-2 py-0.5 text-xs font-semibold text-[var(--color-accent-700)]">
-                          Lowest cost
-                        </span>
-                      )}
                     </div>
-                    <div className="flex flex-1 flex-col p-4">
-                      <div className="flex items-baseline justify-between">
-                        <p className="text-xl font-bold text-[var(--color-primary-800)]">{c.meta.cost}</p>
-                        <p className="text-xs text-[var(--color-neutral-500)]">{c.meta.clinics}</p>
-                      </div>
-                      {cities.length > 0 && (
-                        <p className="mt-2 text-xs text-[var(--color-neutral-400)]">
-                          {cities.map((city) => city.cityName).join(' · ')}
-                        </p>
-                      )}
-                      <p className="mt-3 text-xs font-medium text-[var(--color-accent-600)]">
-                        View country guide →
-                      </p>
+                    {cities.length > 0 && (
+                      <ul className="flex flex-wrap gap-x-2 gap-y-1 px-4 pb-3 text-xs">
+                        {cities.map((city) => (
+                          <li key={city.cityKey}>
+                            <Link
+                              href={city.guideHref}
+                              className="text-[var(--color-primary-700)] hover:text-[var(--color-accent-600)] hover:underline"
+                            >
+                              {city.cityName}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="flex items-center gap-3 border-t border-[var(--color-border)] px-4 py-2.5 text-xs">
+                      <Link
+                        href={guideHref}
+                        className="font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
+                      >
+                        Read guide →
+                      </Link>
+                      <span className="text-[var(--color-neutral-300)]" aria-hidden="true">
+                        ·
+                      </span>
+                      <Link
+                        href={c.href}
+                        className="text-[var(--color-neutral-500)] hover:text-[var(--color-primary-800)]"
+                      >
+                        {th.viewCountryHub}
+                      </Link>
                     </div>
-                  </Link>
+                  </article>
                 )
               })}
             </div>
           </section>
 
-          {/* Quick links */}
-          <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-6">
-            <h2 className="mb-4 text-lg font-bold text-[var(--color-primary-950)]">Explore more</h2>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href={`/treatments/${treatmentSlug}/costs`}
-                className="rounded-lg border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-medium text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-50)]"
-              >
-                Cost comparison →
-              </Link>
-              <Link
-                href="/cities/"
-                className="rounded-lg border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-medium text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-50)]"
-              >
-                City guides →
-              </Link>
-              <Link
-                href="/guides/"
-                className="rounded-lg border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-medium text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-50)]"
-              >
-                All guides →
-              </Link>
-            </div>
-          </section>
+          <div className="flex flex-wrap gap-3 text-sm">
+            <Link
+              href={`/treatments/${treatmentSlug}/costs`}
+              className="font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
+            >
+              Cost comparison →
+            </Link>
+            <Link
+              href="/guides/"
+              className="text-[var(--color-neutral-500)] hover:text-[var(--color-primary-800)]"
+            >
+              All guides →
+            </Link>
+          </div>
 
           {/* FAQ */}
           {faqs.length > 0 && (
@@ -273,6 +310,24 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
 
 export default async function TreatmentPage({ params }: { params: Params }) {
   const { treatment } = await params
+  const slugPath = `/treatments/${treatment}`
+  const backendPage = await getPageBySlug(slugPath)
+
+  if (backendPage) {
+    return (
+      <Suspense
+        fallback={
+          <div className="mx-auto max-w-5xl animate-pulse px-4 py-16 sm:px-6">
+            <div className="h-4 w-48 rounded bg-[var(--color-neutral-100)]" />
+            <div className="mt-8 h-12 w-96 rounded bg-[var(--color-neutral-100)]" />
+          </div>
+        }
+      >
+        <PublishedArticleView slugPath={slugPath} locale={locale} />
+      </Suspense>
+    )
+  }
+
   return (
     <Suspense fallback={
       <div className="mx-auto max-w-5xl animate-pulse px-4 py-16 sm:px-6">

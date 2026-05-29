@@ -39,21 +39,16 @@ export default function CompareHubPage() {
 
       <CompareHero locale={locale} />
 
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[var(--color-primary-950)]">
-            Browse Comparisons
-          </h2>
-          <p className="mt-1 text-sm text-[var(--color-neutral-500)]">
-            Grouped by treatment. Updated as patient data is verified.
-          </p>
-        </div>
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <p className="mb-6 text-sm text-[var(--color-neutral-600)]">
+          Published comparisons — each link opens the full article.
+        </p>
 
         <Suspense fallback={<CompareHubContentSkeleton />}>
           <CompareHubContent locale={locale} />
         </Suspense>
 
-        <CrossHubNav locale={locale} hubId="compare" className="mt-16" />
+        <CrossHubNav locale={locale} hubId="compare" className="mt-12" />
       </div>
     </>
   )

@@ -6,24 +6,38 @@ import {
   countryMeta,
   staticCitiesPerCountry,
   getCitiesForCountry,
-  getCountryKeyFromSlug,
+  getRelatedGuideSlugsForCountry,
   partitionGuides,
 } from '@/lib/content/hubs'
+import { loadGuideArticlesBySlugs } from '@/lib/content/guide-posts'
+import { treatmentCategories } from '@/lib/content/treatments'
 import { buildCountryLandingSchemas } from '@/lib/schema/country-landing'
 import { JsonLd } from '@/components/shared/JsonLd'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { SpeakableSummary } from '@/components/shared/SpeakableSummary'
+import { RelatedArticles } from '@/components/shared/RelatedArticles'
+import { PlacePillars } from '@/components/shared/PlacePillars'
+import { FilterBar } from '@/components/filters/FilterBar'
+import { FilterChips } from '@/components/filters/FilterChips'
 import { CountryHero } from '@/components/country-landing/CountryHero'
 import { CountryFeaturedGuide } from '@/components/country-landing/CountryFeaturedGuide'
 import { CountryCitiesSection } from '@/components/country-landing/CountryCitiesSection'
-import { CountryTreatmentsSection } from '@/components/country-landing/CountryTreatmentsSection'
 import { getDictionary, localizedPath } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
+import { en } from '@/lib/i18n/en'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 type Params = Promise<{ countrySlug: string }>
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
+
+const treatmentOptions = treatmentCategories.map((c) => ({
+  value: c.id,
+  label: c.name,
+}))
+
+const activeTreatmentId = treatmentCategories.find((c) => c.status === 'active')?.id ?? 'ivf'
 
 export function generateStaticParams() {
   return Object.keys(staticCitiesPerCountry).map((countryKey) => ({
@@ -46,8 +60,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     .map((c) => c.charAt(0).toUpperCase() + c.slice(1))
     .join(', ')
 
-  const title = `IVF in ${meta.name}: ${meta.clinics}, Costs & City Guides | MedCover`
-  const description = `IVF in ${meta.name} ${meta.cost} — ${meta.clinics} across ${cityList || meta.name}. Compare costs, read patient reviews and explore city guides.`
+  const title = `Medical Travel in ${meta.name}: IVF, Costs & Clinics | MedCover`
+  const description = `Medical travel in ${meta.name} — IVF ${meta.cost}, ${meta.clinics}${cityList ? ` across ${cityList}` : ''}. Compare treatments, read patient guides, and explore city hubs.`
   const canonicalUrl = `${SITE_URL}/countries/${countrySlug}/`
 
   return {
@@ -69,12 +83,21 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   }
 }
 
-async function CountryLandingContent({ countrySlug }: { countrySlug: string }) {
+async function CountryLandingContent({
+  countrySlug,
+  treatmentFilter,
+}: {
+  countrySlug: string
+  treatmentFilter?: string
+}) {
   const locale = activeLocale
   const t = getDictionary(locale)
+  const cl = en.countryLanding
 
   const meta = getCountryMetaByKey(countrySlug)
   if (!meta) notFound()
+
+  const isIvfActive = !treatmentFilter || treatmentFilter === activeTreatmentId
 
   const [guide, allPages] = await Promise.all([
     getContentBySlugOptional(`guides/${countrySlug}-ivf-guide`),
@@ -83,14 +106,18 @@ async function CountryLandingContent({ countrySlug }: { countrySlug: string }) {
 
   const { cities: cityPages } = partitionGuides(allPages, locale)
   const cities = getCitiesForCountry(countrySlug, cityPages, locale)
+  const relatedSlugs = getRelatedGuideSlugsForCountry(countrySlug, cityPages, locale)
+  const relatedArticles = await loadGuideArticlesBySlugs(relatedSlugs, allPages, locale)
 
   const canonicalUrl = `${SITE_URL}/countries/${countrySlug}/`
+  const metaTitle = `Medical Travel in ${meta.name}: IVF, Costs & Clinics | MedCover`
+  const metaDescription = `Medical travel in ${meta.name} — IVF ${meta.cost}, ${meta.clinics}. Compare treatments and explore verified patient guides.`
 
   const schemas = buildCountryLandingSchemas({
     countryKey: countrySlug,
     countryName: meta.name,
-    metaTitle: `IVF in ${meta.name}: ${meta.clinics}, Costs & City Guides | MedCover`,
-    metaDescription: `IVF in ${meta.name} ${meta.cost} — ${meta.clinics}. Compare costs, read patient reviews and explore city guides.`,
+    metaTitle,
+    metaDescription,
     canonicalUrl,
     faqs: guide?.faq ?? [],
     cities,
@@ -119,34 +146,70 @@ async function CountryLandingContent({ countrySlug }: { countrySlug: string }) {
             citiesCount={cities.length}
           />
 
-          {/* Speakable summary */}
-          <SpeakableSummary label={t.countryLanding.speakableSummaryLabel}>
+          <PlacePillars placeName={meta.name} />
+
+          <SpeakableSummary label={cl.speakableSummaryLabel}>
             <p>
-              IVF in {meta.name} is available {meta.cost} across {meta.clinics}.
-              {cities.length > 0 && ` City guides are available for ${cities.map((c) => c.cityName).join(', ')}.`}
+              {meta.name} is a medical travel destination with verified patient data across{' '}
+              {meta.clinics}. IVF is available {meta.cost}.
+              {cities.length > 0 &&
+                ` City guides are available for ${cities.map((c) => c.cityName).join(', ')}.`}
             </p>
           </SpeakableSummary>
 
-          {/* Featured IVF Guide — integration point for generated guides */}
-          <CountryFeaturedGuide
-            guide={guide ?? null}
-            countryKey={countrySlug}
-            countryName={meta.name}
-          />
+          <Suspense fallback={null}>
+            <FilterBar>
+              <FilterChips
+                options={treatmentOptions}
+                paramKey="treatment"
+                label={cl.treatmentFilterLabel}
+                allLabel={cl.treatmentFilterAll}
+              />
+            </FilterBar>
+          </Suspense>
 
-          {/* Cities */}
-          <CountryCitiesSection
-            cities={cities}
-            countryName={meta.name}
-            countryFlag={meta.flag}
-          />
+          {isIvfActive ? (
+            <div id="ivf-pillar" className="space-y-8 scroll-mt-8">
+              <div>
+                <h2 className="text-xl font-bold text-[var(--color-primary-950)]">
+                  {cl.ivfPillar.heading}
+                </h2>
+                <p className="mt-1 text-sm text-[var(--color-neutral-600)]">{cl.ivfPillar.subtitle}</p>
+              </div>
 
-          {/* Treatments */}
-          <CountryTreatmentsSection countryName={meta.name} />
+              <CountryFeaturedGuide
+                guide={guide ?? null}
+                countryKey={countrySlug}
+                countryName={meta.name}
+              />
+
+              <CountryCitiesSection
+                cities={cities}
+                countryName={meta.name}
+                countryFlag={meta.flag}
+              />
+
+              <RelatedArticles
+                eyebrow={cl.relatedArticles.eyebrow}
+                heading={cl.relatedArticles.heading}
+                articles={relatedArticles}
+                emptyMessage={cl.relatedArticles.empty}
+              />
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-6 py-10 text-center">
+              <p className="font-semibold text-[var(--color-primary-950)]">
+                {cl.treatmentComingSoon.title}
+              </p>
+              <p className="mt-2 text-sm text-[var(--color-neutral-600)]">
+                {cl.treatmentComingSoon.body}
+              </p>
+            </div>
+          )}
 
           <CtaBlock
-            headline={`Plan Your IVF in ${meta.name}`}
-            description="Based on verified patient interviews — not clinic marketing materials."
+            headline={cl.cta.headline.replace('{country}', meta.name)}
+            description={cl.cta.description}
           />
         </div>
       </div>
@@ -165,12 +228,35 @@ function CountryLandingSkeleton() {
   )
 }
 
-export default async function CountryLandingPage({ params }: { params: Params }) {
+async function CountryLandingPageInner({
+  params,
+  searchParams,
+}: {
+  params: Params
+  searchParams: SearchParams
+}) {
   const { countrySlug } = await params
+  const { treatment } = await searchParams
+  const treatmentFilter = typeof treatment === 'string' ? treatment : undefined
 
   return (
+    <CountryLandingContent
+      countrySlug={countrySlug}
+      treatmentFilter={treatmentFilter}
+    />
+  )
+}
+
+export default function CountryLandingPage({
+  params,
+  searchParams,
+}: {
+  params: Params
+  searchParams: SearchParams
+}) {
+  return (
     <Suspense fallback={<CountryLandingSkeleton />}>
-      <CountryLandingContent countrySlug={countrySlug} />
+      <CountryLandingPageInner params={params} searchParams={searchParams} />
     </Suspense>
   )
 }

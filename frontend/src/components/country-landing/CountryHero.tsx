@@ -16,8 +16,7 @@ export function CountryHero({ name, flag, tagline, cost, clinics, citiesCount }:
   const t = en.countryLanding
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--color-primary-950)] via-[var(--color-primary-900)] to-[var(--color-accent-900)] px-6 py-10 text-white sm:px-10 sm:py-14">
-      {/* Subtle glow */}
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--color-primary-950)] via-[var(--color-primary-900)] to-[var(--color-accent-900)] px-6 py-8 text-white sm:px-10 sm:py-10">
       <div
         className="pointer-events-none absolute inset-0 opacity-10"
         aria-hidden="true"
@@ -27,23 +26,27 @@ export function CountryHero({ name, flag, tagline, cost, clinics, citiesCount }:
       />
 
       <div className="relative mx-auto max-w-3xl">
-        {/* Eyebrow */}
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-2">
           <Globe size={14} className="text-[var(--color-accent-400)]" aria-hidden="true" />
           <span className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-400)]">
-            {flag} {name} · {tagline}
+            {t.heroEyebrow}
           </span>
         </div>
 
-        {/* H1 */}
-        <h1 className="text-5xl font-bold leading-tight tracking-tight text-white">
-          {t.h1Prefix} {name}
-        </h1>
+        <div className="flex items-center gap-3">
+          <span className="text-4xl leading-none" role="img" aria-label={name}>
+            {flag}
+          </span>
+          <div>
+            <h1 className="text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
+              {name}
+            </h1>
+            <p className="mt-1 text-sm text-[var(--color-primary-300)]">{tagline}</p>
+          </div>
+        </div>
 
-        {/* Subtitle */}
-        <p className="mt-2 text-lg text-[var(--color-primary-300)]">{t.heroSubtitle}</p>
+        <p className="mt-3 text-base text-[var(--color-primary-200)]">{t.heroSubtitle}</p>
 
-        {/* Trust chips */}
         <div className="mt-4 flex flex-wrap gap-2">
           {trustChips.map((chip) => (
             <span
@@ -55,25 +58,24 @@ export function CountryHero({ name, flag, tagline, cost, clinics, citiesCount }:
           ))}
         </div>
 
-        {/* Quick stats — speakable */}
         <div
           data-speakable="true"
-          className="mt-8 grid grid-cols-3 gap-4 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm sm:gap-6 sm:p-6"
+          className="mt-6 grid grid-cols-3 gap-4 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm sm:gap-6 sm:p-5"
         >
           {cost && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary-400)]">
-                {t.stats.cost}
+                {t.stats.ivfCost}
               </p>
-              <p className="mt-1 text-xl font-bold text-white">{cost}</p>
+              <p className="mt-1 text-lg font-bold text-white">{cost}</p>
             </div>
           )}
           {clinics && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary-400)]">
-                {t.stats.clinics}
+                {t.stats.ivfClinics}
               </p>
-              <p className="mt-1 text-xl font-bold text-white">{clinics}</p>
+              <p className="mt-1 text-lg font-bold text-white">{clinics}</p>
             </div>
           )}
           {citiesCount > 0 && (
@@ -81,15 +83,14 @@ export function CountryHero({ name, flag, tagline, cost, clinics, citiesCount }:
               <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary-400)]">
                 {t.stats.cities}
               </p>
-              <p className="mt-1 text-xl font-bold text-white">{citiesCount}</p>
+              <p className="mt-1 text-lg font-bold text-white">{citiesCount}</p>
             </div>
           )}
         </div>
 
-        {/* Verified badge */}
-        <div className="mt-6 inline-flex items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3 backdrop-blur-sm">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-500)]/20">
-            <ShieldCheck size={20} className="text-[var(--color-accent-400)]" aria-hidden="true" />
+        <div className="mt-5 inline-flex items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3 backdrop-blur-sm">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-500)]/20">
+            <ShieldCheck size={18} className="text-[var(--color-accent-400)]" aria-hidden="true" />
           </div>
           <div>
             <p className="text-sm font-semibold text-white">MedCover verified</p>

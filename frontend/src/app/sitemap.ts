@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { listPublishedPages } from '@/lib/api/content'
+import { filterSitemapPublishedPages } from '@/lib/content/slug-canonical'
 import { filterPagesByLocale } from '@/lib/content/site-graph'
 import { getSitemapHubs, hubPath } from '@/lib/content/site-nav'
 import { staticCitiesPerCountry } from '@/lib/content/hubs'
@@ -62,6 +63,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'monthly',
         priority: 0.75,
       })
+      for (const cityKey of staticCitiesPerCountry[countryKey] ?? []) {
+        entries.push({
+          url: absoluteUrl(localizedPath(`/cities/${countryKey}/${cityKey}`, locale), SITE_URL),
+          lastModified: new Date(),
+          changeFrequency: 'weekly',
+          priority: 0.8,
+        })
+      }
     }
 
     // Treatment sub-pages
@@ -80,7 +89,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })
     }
 
-    const localePages = filterPagesByLocale(pages, locale)
+    const localePages = filterSitemapPublishedPages(filterPagesByLocale(pages, locale))
     for (const page of localePages) {
       const slugPath = page.slug.startsWith('/') ? page.slug : `/${page.slug}`
       const isCountryGuide = /^\/guides\/[^/]+-ivf-guide$/.test(slugPath)

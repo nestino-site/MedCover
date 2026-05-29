@@ -101,12 +101,9 @@ type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
 function CostComparisonGridSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="h-44 animate-pulse rounded-2xl border border-[var(--color-border)] bg-[var(--color-neutral-100)]"
-        />
+        <div key={i} className="h-28 animate-pulse rounded-xl bg-[var(--color-neutral-100)]" />
       ))}
     </div>
   )
@@ -153,80 +150,68 @@ export default function CostsPage({ searchParams }: { searchParams: SearchParams
     <>
       <JsonLd schema={schemas} />
       <HubHero
+        variant="compact"
         eyebrow="Cost Transparency"
         title="IVF Treatment Costs Abroad"
         subtitle="Real cost ranges from verified patient data — not clinic brochures. Compare 6 countries side by side."
       />
 
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        {/* Filter bar */}
-        <Suspense fallback={null}>
-          <FilterBar>
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-              <FilterChips
-                options={treatmentOptions}
-                paramKey="treatment"
-                label="Treatment"
-                allLabel="All treatments"
-              />
-              <FilterChips
-                options={countryOptions}
-                paramKey="country"
-                label="Country"
-                allLabel="All countries"
-              />
-            </div>
-            <SortSelect options={sortOptions} defaultValue="cost-asc" label="Sort costs" />
-          </FilterBar>
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <Suspense fallback={<CostGuidesListSkeleton />}>
+          <CostGuidesResults searchParams={searchParams} />
         </Suspense>
 
-        {/* Cost comparison grid */}
-        <section aria-labelledby="cost-comparison-heading" className="mb-16">
+        <section aria-labelledby="cost-comparison-heading" className="mt-12">
           <h2
             id="cost-comparison-heading"
-            className="mb-6 text-2xl font-bold tracking-tight text-[var(--color-primary-950)]"
+            className="mb-4 text-lg font-bold text-[var(--color-primary-950)]"
           >
             Cost comparison
           </h2>
+          <Suspense fallback={null}>
+            <FilterBar>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+                <FilterChips
+                  options={treatmentOptions}
+                  paramKey="treatment"
+                  label="Treatment"
+                  allLabel="All treatments"
+                />
+                <FilterChips
+                  options={countryOptions}
+                  paramKey="country"
+                  label="Country"
+                  allLabel="All countries"
+                />
+              </div>
+              <SortSelect options={sortOptions} defaultValue="cost-asc" label="Sort costs" />
+            </FilterBar>
+          </Suspense>
           <Suspense fallback={<CostComparisonGridSkeleton />}>
             <CostComparisonResults searchParams={searchParams} />
           </Suspense>
         </section>
 
-        {/* Cost guides by treatment */}
-        <Suspense fallback={<CostGuidesListSkeleton />}>
-          <CostGuidesResults searchParams={searchParams} />
-        </Suspense>
-
-        {/* Cost factors */}
-        <section aria-labelledby="cost-factors-heading" className="mt-16">
+        <section aria-labelledby="cost-factors-heading" className="mt-12">
           <h2
             id="cost-factors-heading"
-            className="text-2xl font-bold tracking-tight text-[var(--color-primary-950)]"
+            className="text-lg font-bold text-[var(--color-primary-950)]"
           >
             What affects the price?
           </h2>
-          <p className="mt-2 text-[var(--color-neutral-600)]">
-            The quoted headline price rarely tells the full story. Here are the four factors that
-            most affect your total cost.
-          </p>
-          <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {costFactors.map((factor) => {
               const Icon = factor.icon
               return (
                 <div
                   key={factor.title}
-                  className="flex gap-4 rounded-xl border border-[var(--color-border)] bg-white p-5"
+                  className="flex gap-3 rounded-lg border border-[var(--color-border)] bg-white p-4"
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary-50)]">
-                    <Icon
-                      size={20}
-                      className="text-[var(--color-primary-700)]"
-                      aria-hidden="true"
-                    />
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary-50)]">
+                    <Icon size={18} className="text-[var(--color-primary-700)]" aria-hidden="true" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-[var(--color-primary-950)]">
+                    <h3 className="text-sm font-semibold text-[var(--color-primary-950)]">
                       {factor.title}
                     </h3>
                     <p className="mt-1 text-sm text-[var(--color-neutral-600)]">
@@ -239,11 +224,10 @@ export default function CostsPage({ searchParams }: { searchParams: SearchParams
           </div>
         </section>
 
-        {/* FAQ */}
-        <section aria-labelledby="faq-heading" className="mt-16">
+        <section aria-labelledby="faq-heading" className="mt-12 border-t border-[var(--color-border)] pt-8">
           <h2
             id="faq-heading"
-            className="mb-6 text-2xl font-bold tracking-tight text-[var(--color-primary-950)]"
+            className="mb-4 text-lg font-bold text-[var(--color-primary-950)]"
           >
             Frequently asked questions
           </h2>
@@ -252,12 +236,12 @@ export default function CostsPage({ searchParams }: { searchParams: SearchParams
           </div>
         </section>
 
-        <CrossHubNav locale={locale} hubId="costs" className="mt-12" />
+        <CrossHubNav locale={locale} hubId="costs" className="mt-10" />
       </div>
 
       <CtaBlock
         headline="Get a Personalised Cost Estimate"
-        description={`Tell us your situation — we'll match you with verified clinics and realistic cost breakdowns.`}
+        description="Tell us your situation — we'll match you with verified clinics and realistic cost breakdowns."
       />
     </>
   )

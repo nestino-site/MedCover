@@ -1,7 +1,10 @@
 import { createPublishedPageHandlers } from '@/lib/content/published-page-route'
+import { resolveCompareCanonicalSlug } from '@/lib/content/slug-canonical'
 import { ComparisonDetailHeader } from '@/components/compare/ComparisonDetailHeader'
 
-const handlers = createPublishedPageHandlers(['compare'])
+const handlers = createPublishedPageHandlers(['compare'], {
+  resolveCanonicalSlug: resolveCompareCanonicalSlug,
+})
 
 export const generateStaticParams = handlers.generateStaticParams
 export const generateMetadata = handlers.generateMetadata

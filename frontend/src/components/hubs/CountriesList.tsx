@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { listPublishedPagesSafe } from '@/lib/api/content'
-import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
+import { getDictionary, type Locale } from '@/lib/i18n'
 import {
   getFeaturedCountries,
   getCountryDisplay,
@@ -15,7 +15,7 @@ import { treatmentCategories } from '@/lib/content/treatments'
 interface CountryCardData {
   slug: string
   href: string
-  citiesHref: string
+  guideHref: string
   name: string
   flag: string
   tagline: string
@@ -47,59 +47,50 @@ function Pill({ children }: { children: ReactNode }) {
 
 function CountryCard({ data, t }: { data: CountryCardData; t: ReturnType<typeof getDictionary> }) {
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white transition-shadow hover:shadow-lg">
-      {/* Header: flag + name + treatment badge */}
-      <div className="flex items-start justify-between gap-3 bg-[var(--color-primary-50)] px-5 py-6">
-        <div className="flex items-center gap-3">
-          <span className="text-4xl leading-none" role="img" aria-label={data.name}>
+    <article className="group flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-white transition-colors hover:border-[var(--color-primary-200)]">
+      <Link href={data.href} className="flex flex-1 flex-col">
+        <div className="flex items-center gap-3 px-4 py-4">
+          <span className="text-3xl leading-none" role="img" aria-label={data.name}>
             {data.flag}
           </span>
-          <div>
-            <h2 className="text-lg font-bold text-[var(--color-primary-950)]">{data.name}</h2>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
+              {data.name}
+            </h2>
             <p className="text-sm text-[var(--color-neutral-500)]">{data.tagline}</p>
           </div>
         </div>
-        <span className="shrink-0 rounded-full bg-[var(--color-accent-100)] px-2.5 py-0.5 text-xs font-semibold text-[var(--color-accent-700)]">
-          {data.treatmentName}
-        </span>
-      </div>
 
-      <div className="flex flex-1 flex-col p-5">
-        {/* Cost + clinics pills */}
         {(data.cost || data.clinics) && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 px-4 pb-3">
             {data.cost && <Pill>{data.cost}</Pill>}
             {data.clinics && <Pill>{data.clinics}</Pill>}
           </div>
         )}
 
-        {/* Cities */}
         {data.cities.length > 0 && (
-          <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
-              {t.hubs.countries.citiesLabel}
-            </p>
-            <p className="mt-1 text-sm text-[var(--color-neutral-600)]">
-              {data.cities.map((c) => c.cityName).join(' • ')}
-            </p>
-          </div>
+          <p className="px-4 pb-3 text-xs text-[var(--color-neutral-500)]">
+            {data.cities.map((c) => c.cityName).join(' · ')}
+          </p>
         )}
+      </Link>
 
-        {/* CTAs */}
-        <div className="mt-auto flex flex-col gap-2 pt-5 sm:flex-row">
-          <Link
-            href={data.href}
-            className="flex-1 rounded-lg border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-4 py-2 text-center text-sm font-semibold text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-100)]"
-          >
-            {t.hubs.guides.viewGuide} →
-          </Link>
-          <Link
-            href={data.citiesHref}
-            className="flex-1 rounded-lg border border-[var(--color-border)] bg-white px-4 py-2 text-center text-sm font-medium text-[var(--color-neutral-700)] transition-colors hover:border-[var(--color-primary-200)] hover:text-[var(--color-primary-800)]"
-          >
-            {t.hubs.countries.viewCities}
-          </Link>
-        </div>
+      <div className="flex items-center gap-3 border-t border-[var(--color-border)] px-4 py-2.5 text-xs">
+        <Link
+          href={data.guideHref}
+          className="font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
+        >
+          {t.hubs.guidePosts.readGuide} →
+        </Link>
+        <span className="text-[var(--color-neutral-300)]" aria-hidden="true">
+          ·
+        </span>
+        <Link
+          href={data.href}
+          className="text-[var(--color-neutral-500)] hover:text-[var(--color-primary-800)]"
+        >
+          {t.hubs.countries.exploreCountry.replace('{country}', data.name)}
+        </Link>
       </div>
     </article>
   )
@@ -133,7 +124,7 @@ export async function CountriesList({ locale, treatment, sort }: CountriesListPr
     return {
       slug: display.slug,
       href: display.href,
-      citiesHref: localizedPath(`/countries/${countryKey}/cities`, locale),
+      guideHref: display.guideHref,
       name: display.name,
       flag: display.flag,
       tagline: display.tagline,

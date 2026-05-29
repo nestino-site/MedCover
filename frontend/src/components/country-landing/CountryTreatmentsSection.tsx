@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { treatmentCategories } from '@/lib/content/treatments'
-import { hubPath } from '@/lib/content/site-nav'
+import { localizedPath } from '@/lib/i18n'
 import { en } from '@/lib/i18n/en'
 
 interface CountryTreatmentsSectionProps {
   countryName: string
+  countryKey?: string
 }
 
 export function CountryTreatmentsSection({ countryName }: CountryTreatmentsSectionProps) {
@@ -49,23 +50,13 @@ export function CountryTreatmentsSection({ countryName }: CountryTreatmentsSecti
               </div>
 
               {isActive && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {treatment.hubLinks.map((link) => {
-                    const label = link.labelKey === 'countries'
-                      ? en.nav.countries
-                      : link.labelKey === 'cities'
-                        ? en.nav.cities
-                        : en.nav.guides
-                    return (
-                      <Link
-                        key={link.hubId}
-                        href={hubPath(link.hubId, 'en')}
-                        className="rounded-full border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-3 py-1 text-xs font-medium text-[var(--color-primary-700)] transition-colors hover:bg-[var(--color-primary-100)]"
-                      >
-                        {label}
-                      </Link>
-                    )
-                  })}
+                <div className="mt-4">
+                  <Link
+                    href={localizedPath(`/treatments/${treatment.id}`, 'en')}
+                    className="inline-flex rounded-lg border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-4 py-2 text-sm font-semibold text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-100)]"
+                  >
+                    {t.viewTreatmentHub} →
+                  </Link>
                 </div>
               )}
             </div>

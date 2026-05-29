@@ -2,9 +2,8 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { HubHero } from '@/components/hubs/HubHero'
 import { HubPageLayout } from '@/components/hubs/HubPageLayout'
+import { GuidePostsList, GuidePostsListSkeleton } from '@/components/hubs/GuidePostsList'
 import { TreatmentsList, TreatmentsListSkeleton } from '@/components/hubs/TreatmentsList'
-import { FilterBar } from '@/components/filters/FilterBar'
-import { FilterChips } from '@/components/filters/FilterChips'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { JsonLd } from '@/components/shared/JsonLd'
 import { getDictionary } from '@/lib/i18n'
@@ -58,22 +57,8 @@ const treatmentFaqs: FaqItem[] = [
   },
 ]
 
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
-
-async function TreatmentsResults({ searchParams }: { searchParams: SearchParams }) {
-  const { status } = await searchParams
-  const statusFilter = typeof status === 'string' ? status : undefined
-
-  return <TreatmentsList locale={locale} status={statusFilter} />
-}
-
-export default function TreatmentsHubPage({ searchParams }: { searchParams: SearchParams }) {
+export default function TreatmentsHubPage() {
   const t = getDictionary(locale)
-
-  const statusOptions = [
-    { value: 'active', label: t.hubs.treatments.activeBadge },
-    { value: 'coming_soon', label: t.hubs.treatments.soonBadge },
-  ]
 
   const schema = buildCollectionPage({
     url: `${SITE_URL}/treatments/`,
@@ -97,15 +82,10 @@ export default function TreatmentsHubPage({ searchParams }: { searchParams: Sear
     <>
       <JsonLd schema={schema} />
       <HubHero
+        variant="compact"
         eyebrow={t.hubs.treatments.hero.eyebrow}
         title={t.hubs.treatments.hero.title}
         subtitle={t.hubs.treatments.hero.subtitle}
-        highlights={t.hubs.treatments.hero.highlights}
-        ctas={[
-          { label: t.hubs.treatments.hero.ctaPrimary, href: '/treatments/ivf/', variant: 'primary' },
-          { label: t.hubs.treatments.hero.ctaSecondary, href: '/countries/', variant: 'outline' },
-        ]}
-        trust={t.hubs.treatments.hero.trust}
       />
       <HubPageLayout
         locale={locale}
@@ -114,21 +94,15 @@ export default function TreatmentsHubPage({ searchParams }: { searchParams: Sear
         description={t.hubs.treatments.description}
         showHeading={false}
       >
-        <Suspense fallback={null}>
-          <FilterBar>
-            <FilterChips
-              options={statusOptions}
-              paramKey="status"
-              label="Status"
-              allLabel="All treatments"
-            />
-          </FilterBar>
-        </Suspense>
-        <Suspense fallback={<TreatmentsListSkeleton />}>
-          <TreatmentsResults searchParams={searchParams} />
+        <Suspense fallback={<GuidePostsListSkeleton />}>
+          <GuidePostsList locale={locale} scope="all" className="mb-10" />
         </Suspense>
 
-        <div className="mt-14 border-t border-[var(--color-border)] pt-2">
+        <Suspense fallback={<TreatmentsListSkeleton />}>
+          <TreatmentsList locale={locale} />
+        </Suspense>
+
+        <div className="mt-14 border-t border-[var(--color-border)] pt-8">
           <FaqAccordion faqs={treatmentFaqs} title="Medical treatment abroad — common questions" />
         </div>
       </HubPageLayout>

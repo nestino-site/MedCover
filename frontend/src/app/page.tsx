@@ -35,7 +35,8 @@ const homeSchema = {
   '@id': `${SITE_URL}/#website`,
   name: 'MedCover',
   url: SITE_URL,
-  description: 'Verified patient data for IVF treatment abroad — real costs, clinic scores, and city guides across 6 European countries.',
+  description:
+    'Independent patient interviews, real costs, and clinic Truth Scores for medical travel abroad — verified data, not clinic marketing.',
   potentialAction: {
     '@type': 'SearchAction',
     target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/guides/?q={search_term_string}` },
@@ -46,16 +47,15 @@ const homeSchema = {
 export default function HomePage() {
   const t = getDictionary(locale)
   const graph = buildHomeLinkGraph(locale)
-  const { countries, treatment } = graph
-  const activeTreatment = treatmentCategories.find((c) => c.status === 'active')
-  const countriesHubHref = localizedPath('/countries', locale)
+  const { countries, hubs } = graph
+  const activeTreatments = treatmentCategories.filter((c) => c.status === 'active')
 
   const howItWorksSteps = [
     {
       step: '01',
       icon: BarChart3,
       ...t.home.howItWorks.steps[0],
-      href: treatment.overview,
+      href: hubs.countries,
       iconBg: 'bg-[var(--color-primary-100)]',
       iconColor: 'text-[var(--color-primary-600)]',
     },
@@ -63,7 +63,7 @@ export default function HomePage() {
       step: '02',
       icon: CheckCircle2,
       ...t.home.howItWorks.steps[1],
-      href: treatment.costs,
+      href: hubs.compare,
       iconBg: 'bg-[var(--color-accent-100)]',
       iconColor: 'text-[var(--color-accent-600)]',
     },
@@ -71,7 +71,7 @@ export default function HomePage() {
       step: '03',
       icon: HeartHandshake,
       ...t.home.howItWorks.steps[2],
-      href: '#',
+      href: hubs.start,
       iconBg: 'bg-[var(--color-trust-100)]',
       iconColor: 'text-[var(--color-trust-600)]',
     },
@@ -105,20 +105,18 @@ export default function HomePage() {
               {t.home.hero.title}
             </h1>
             <p className="mx-auto mt-5 max-w-lg text-lg text-[var(--color-primary-200)] lg:mx-0">
-              Real costs from verified patient interviews across 6 European countries.
-              No clinic marketing. Starting from{' '}
-              <strong className="text-[var(--color-accent-300)]">€1,900</strong>.
+              {t.home.hero.subtitle}
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
               <Link
-                href={treatment.costs}
+                href={hubs.countries}
                 className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-trust-500)] px-7 py-3.5 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-[var(--color-trust-400)]"
               >
                 {t.home.hero.ctaPrimary}
                 <ArrowRight size={16} aria-hidden="true" />
               </Link>
               <Link
-                href={treatment.overview}
+                href={hubs.treatments}
                 className="inline-flex items-center rounded-xl border border-white/20 px-7 py-3.5 text-sm font-medium text-[var(--color-primary-100)] transition-colors hover:border-white/40 hover:text-white"
               >
                 {t.home.hero.ctaSecondary}
@@ -136,29 +134,33 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── SECTION 2: IVF STRIP ─────────────────────────────── */}
+      {/* ── SECTION 2: QUICK LINKS ───────────────────────────── */}
       <section className="border-b border-[var(--color-border)] bg-[var(--color-primary-900)]">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 py-3 text-sm sm:px-6 lg:justify-start lg:px-8">
-          <span className="font-semibold text-[var(--color-trust-400)]">
-            {t.home.ivfStrip.label}: {t.home.ivfStrip.treatment}
-          </span>
-          <span className="hidden text-[var(--color-primary-600)] sm:inline">·</span>
-          <Link href={treatment.overview} className="text-[var(--color-primary-200)] hover:text-white">
-            {t.home.ivfStrip.ivfOverview}
+          <Link href={hubs.treatments} className="font-medium text-[var(--color-primary-200)] hover:text-white">
+            {t.home.quickLinks.treatments}
           </Link>
           <span className="text-[var(--color-primary-600)]">·</span>
-          <Link href={treatment.costs} className="text-[var(--color-primary-200)] hover:text-white">
-            {t.home.ivfStrip.costComparison}
+          <Link href={hubs.countries} className="text-[var(--color-primary-200)] hover:text-white">
+            {t.home.quickLinks.countries}
           </Link>
           <span className="text-[var(--color-primary-600)]">·</span>
-          <Link href={treatment.compare} className="text-[var(--color-primary-200)] hover:text-white">
-            {t.home.ivfStrip.compare}
+          <Link href={hubs.costs} className="text-[var(--color-primary-200)] hover:text-white">
+            {t.home.quickLinks.costs}
+          </Link>
+          <span className="text-[var(--color-primary-600)]">·</span>
+          <Link href={hubs.compare} className="text-[var(--color-primary-200)] hover:text-white">
+            {t.home.quickLinks.compare}
+          </Link>
+          <span className="text-[var(--color-primary-600)]">·</span>
+          <Link href={hubs.guides} className="text-[var(--color-primary-200)] hover:text-white">
+            {t.home.quickLinks.guides}
           </Link>
           <Link
-            href={treatment.overview}
+            href={hubs.start}
             className="ml-auto hidden rounded-lg bg-white/10 px-4 py-1.5 font-medium text-white hover:bg-white/15 lg:inline-flex"
           >
-            {t.home.ivfStrip.cta} →
+            {t.home.quickLinks.cta} →
           </Link>
         </div>
       </section>
@@ -178,7 +180,7 @@ export default function HomePage() {
             </p>
           </div>
           <Link
-            href={countriesHubHref}
+            href={hubs.countries}
             className="shrink-0 text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
           >
             {t.home.countries.viewAll} →
@@ -208,18 +210,21 @@ export default function HomePage() {
                 )}
               </div>
 
-              {activeTreatment && (
+              {activeTreatments.length > 0 && (
                 <div className="mt-3">
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
                     {t.home.countries.treatmentsLabel}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    <Link
-                      href={treatment.overview}
-                      className="rounded-full bg-[var(--color-accent-50)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]"
-                    >
-                      {activeTreatment.name}
-                    </Link>
+                    {activeTreatments.map((category) => (
+                      <Link
+                        key={category.id}
+                        href={localizedPath(`/treatments/${category.id}`, locale)}
+                        className="rounded-full bg-[var(--color-accent-50)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]"
+                      >
+                        {category.name}
+                      </Link>
+                    ))}
                   </div>
                 </div>
               )}
@@ -308,10 +313,7 @@ export default function HomePage() {
       </section>
 
       {/* ── SECTION 5: CTA ───────────────────────────────────── */}
-      <CtaBlock
-        headline="Ready to plan your IVF abroad?"
-        description="Tell us your situation — we'll match you with verified clinics and realistic cost breakdowns."
-      />
+      <CtaBlock headline={t.home.cta.headline} description={t.home.cta.description} />
     </div>
   )
 }

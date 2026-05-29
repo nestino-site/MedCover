@@ -6,6 +6,14 @@ export interface CityDisplay {
   cityKey: string
   cityName: string
   citySlug: string
+  /** Canonical city hub URL */
+  href: string
+  /** Published IVF guide article */
+  guideHref: string
+}
+
+export interface RelatedArticleItem {
+  title: string
   href: string
 }
 
@@ -70,11 +78,15 @@ export const countryMeta: Record<
 }
 
 export function getFeaturedCountries(locale: Locale = 'en') {
-  return Object.entries(countryMeta).map(([slug, meta]) => ({
-    slug,
-    href: localizedPath(`/${slug}`, locale),
-    ...meta,
-  }))
+  return Object.entries(countryMeta).map(([slug, meta]) => {
+    const countryKey = getCountryKeyFromSlug(slug) ?? ''
+    return {
+      slug,
+      href: getCountryLandingPath(countryKey, locale),
+      guideHref: localizedPath(`/${slug}`, locale),
+      ...meta,
+    }
+  })
 }
 
 /** @deprecated Use getFeaturedCountries(locale) */
@@ -118,7 +130,20 @@ export interface GuideArticleItem {
   slug: string
   href: string
   title: string
+  description: string
   updatedAt: string
+  kind: 'country' | 'city'
+  countryKey: string
+  countryName: string
+  flag: string
+}
+
+export interface GuideCountryGroup {
+  countryKey: string
+  countryName: string
+  flag: string
+  countryGuide: GuideArticleItem | null
+  cityGuides: GuideArticleItem[]
 }
 
 export function getGuideArticles(
@@ -127,11 +152,44 @@ export function getGuideArticles(
 ): GuideArticleItem[] {
   return filterPagesByHub(pages, 'guides', locale).map((page) => {
     const slug = page.slug.replace(/^\//, '')
+    const normalized = slug.replace(/^\//, '')
+    let description = 'Patient guide'
+    let kind: 'country' | 'city' = 'country'
+    let countryKey = ''
+    let countryName = ''
+    let flag = '🌍'
+    let title = pageTitleFromSlug(slug)
+
+    if (isCountryGuideSlug(normalized)) {
+      const meta = countryMeta[normalized]
+      countryKey = getCountryKeyFromSlug(normalized) ?? ''
+      countryName = meta?.name ?? title
+      flag = meta?.flag ?? '🌍'
+      title = meta ? `${meta.name} IVF Guide` : title
+      description = meta?.tagline ?? description
+    } else if (isCityGuideSlug(normalized)) {
+      kind = 'city'
+      const parsed = parseCitySlug(normalized)
+      if (parsed) {
+        countryKey = parsed.countryKey
+        countryName = parsed.countryName
+        title = `${parsed.cityName} IVF Guide`
+        description = parsed.countryName
+        const countrySlug = `guides/${parsed.countryKey}-ivf-guide`
+        flag = countryMeta[countrySlug]?.flag ?? '🌍'
+      }
+    }
+
     return {
       slug,
       href: localizedPath(`/${slug}`, locale),
-      title: pageTitleFromSlug(slug),
+      title,
+      description,
       updatedAt: page.updatedAt,
+      kind,
+      countryKey,
+      countryName,
+      flag,
     }
   })
 }
@@ -192,22 +250,28 @@ export function getCitiesForCountry(
         const parsed = parseCitySlug(p.slug)
         if (!parsed) return null
         const cityKey = p.slug.match(/^guides\/[^/]+\/(.+)-ivf-guide$/)?.[1] ?? ''
+        const guideSlug = p.slug.replace(/^\//, '')
         return {
           cityKey,
           cityName: parsed.cityName,
-          citySlug: p.slug,
-          href: localizedPath(`/${p.slug}`, locale),
+          citySlug: guideSlug,
+          href: getCityHubPath(countryKey, cityKey, locale),
+          guideHref: localizedPath(`/${guideSlug}`, locale),
         }
       })
       .filter((c): c is CityDisplay => c !== null)
   }
   const fallback = staticCitiesPerCountry[countryKey] ?? []
-  return fallback.map((cityKey) => ({
-    cityKey,
-    cityName: slugToLabel(cityKey),
-    citySlug: `guides/${countryKey}/${cityKey}-ivf-guide`,
-    href: localizedPath(`/guides/${countryKey}/${cityKey}-ivf-guide`, locale),
-  }))
+  return fallback.map((cityKey) => {
+    const guideSlug = `guides/${countryKey}/${cityKey}-ivf-guide`
+    return {
+      cityKey,
+      cityName: slugToLabel(cityKey),
+      citySlug: guideSlug,
+      href: getCityHubPath(countryKey, cityKey, locale),
+      guideHref: localizedPath(`/${guideSlug}`, locale),
+    }
+  })
 }
 
 export function getStaticGuidePages(locale: Locale): ContentListItem[] {
@@ -235,9 +299,210 @@ export function getCountryLandingPath(countryKey: string, locale: Locale = 'en')
   return localizedPath(`/countries/${countryKey}`, locale)
 }
 
+export function getCityHubPath(
+  countryKey: string,
+  cityKey: string,
+  locale: Locale = 'en',
+): string {
+  return localizedPath(`/cities/${countryKey}/${cityKey}`, locale)
+}
+
+export function getCountryGuideHref(countryKey: string, locale: Locale = 'en'): string {
+  return localizedPath(`/guides/${countryKey}-ivf-guide`, locale)
+}
+
+export function getCityGuideHref(
+  countryKey: string,
+  cityKey: string,
+  locale: Locale = 'en',
+): string {
+  return localizedPath(`/guides/${countryKey}/${cityKey}-ivf-guide`, locale)
+}
+
+/** Guide article slugs for a country hub (country + city guides). */
+export function getRelatedGuideSlugsForCountry(
+  countryKey: string,
+  allCityPages: ContentListItem[],
+  locale: Locale,
+): string[] {
+  const slugs: string[] = [`guides/${countryKey}-ivf-guide`]
+  for (const city of getCitiesForCountry(countryKey, allCityPages, locale)) {
+    slugs.push(city.citySlug.replace(/^\//, ''))
+  }
+  return slugs
+}
+
+/** @deprecated Use getRelatedGuideSlugsForCountry + loadGuideArticlesBySlugs */
+export function getRelatedGuidesForCountry(
+  countryKey: string,
+  allCityPages: ContentListItem[],
+  locale: Locale,
+): RelatedArticleItem[] {
+  return getRelatedGuideSlugsForCountry(countryKey, allCityPages, locale).map((slug) => {
+    const meta = countryMeta[slug]
+    const href = localizedPath(`/${slug}`, locale)
+    if (meta) {
+      return { title: `${meta.name} IVF Guide`, href }
+    }
+    const parsed = parseCitySlug(slug)
+    if (parsed) {
+      return { title: `${parsed.cityName} IVF Guide`, href }
+    }
+    return { title: pageTitleFromSlug(slug), href }
+  })
+}
+
+/** Guide article slugs for a city hub (city, country, sibling cities). */
+export function getRelatedGuideSlugsForCity(
+  countryKey: string,
+  cityKey: string,
+  allCityPages: ContentListItem[],
+  locale: Locale,
+): string[] {
+  const cities = getCitiesForCountry(countryKey, allCityPages, locale)
+  const current = cities.find((c) => c.cityKey === cityKey)
+  const slugs: string[] = []
+
+  if (current) {
+    slugs.push(current.citySlug.replace(/^\//, ''))
+  }
+
+  slugs.push(`guides/${countryKey}-ivf-guide`)
+
+  for (const city of cities) {
+    if (city.cityKey === cityKey) continue
+    slugs.push(city.citySlug.replace(/^\//, ''))
+  }
+
+  return slugs
+}
+
+/** @deprecated Use getRelatedGuideSlugsForCity + loadGuideArticlesBySlugs */
+export function getRelatedGuidesForCity(
+  countryKey: string,
+  cityKey: string,
+  allCityPages: ContentListItem[],
+  locale: Locale,
+): RelatedArticleItem[] {
+  const cities = getCitiesForCountry(countryKey, allCityPages, locale)
+  const current = cities.find((c) => c.cityKey === cityKey)
+  const countrySlug = `guides/${countryKey}-ivf-guide`
+  const countryName = countryMeta[countrySlug]?.name ?? slugToLabel(countryKey)
+  const items: RelatedArticleItem[] = []
+
+  if (current) {
+    items.push({
+      title: `${current.cityName} IVF Guide`,
+      href: current.guideHref,
+    })
+  }
+
+  items.push({
+    title: `${countryName} IVF Guide`,
+    href: getCountryGuideHref(countryKey, locale),
+  })
+
+  for (const city of cities) {
+    if (city.cityKey === cityKey) continue
+    items.push({
+      title: `${city.cityName} IVF Guide`,
+      href: city.guideHref,
+    })
+  }
+
+  return items
+}
+
+/** Guide article slugs for treatment hub (all country + city guides). */
+export function getRelatedGuideSlugsForTreatment(
+  countryPages: ContentListItem[],
+  cityPages: ContentListItem[],
+  locale: Locale,
+): string[] {
+  const slugs: string[] = []
+
+  for (const page of countryPages) {
+    slugs.push(page.slug.replace(/^\//, ''))
+  }
+  for (const page of cityPages) {
+    slugs.push(page.slug.replace(/^\//, ''))
+  }
+
+  if (slugs.length === 0) {
+    for (const slug of Object.keys(countryMeta)) {
+      const countryKey = getCountryKeyFromSlug(slug)
+      if (!countryKey) continue
+      slugs.push(slug)
+      for (const city of getCitiesForCountry(countryKey, [], locale)) {
+        slugs.push(city.citySlug.replace(/^\//, ''))
+      }
+    }
+  }
+
+  return slugs
+}
+
+/** @deprecated Use getRelatedGuideSlugsForTreatment + loadGuideArticlesBySlugs */
+export function getRelatedGuidesForTreatment(
+  countryPages: ContentListItem[],
+  cityPages: ContentListItem[],
+  locale: Locale,
+): RelatedArticleItem[] {
+  const items: RelatedArticleItem[] = []
+
+  for (const page of countryPages) {
+    const slug = page.slug.replace(/^\//, '')
+    const meta = countryMeta[slug]
+    if (!meta) continue
+    items.push({
+      title: `${meta.name} IVF Guide`,
+      href: localizedPath(`/${slug}`, locale),
+    })
+  }
+
+  for (const page of cityPages) {
+    const slug = page.slug.replace(/^\//, '')
+    const parsed = parseCitySlug(slug)
+    if (!parsed) continue
+    items.push({
+      title: `${parsed.cityName} IVF Guide`,
+      href: localizedPath(`/${slug}`, locale),
+    })
+  }
+
+  if (items.length === 0) {
+    for (const [slug, meta] of Object.entries(countryMeta)) {
+      const countryKey = getCountryKeyFromSlug(slug)
+      if (!countryKey) continue
+      items.push({
+        title: `${meta.name} IVF Guide`,
+        href: localizedPath(`/${slug}`, locale),
+      })
+      for (const city of getCitiesForCountry(countryKey, [], locale)) {
+        items.push({
+          title: `${city.cityName} IVF Guide`,
+          href: city.guideHref,
+        })
+      }
+    }
+  }
+
+  return items
+}
+
 export function getCountryDisplay(slug: string, locale: Locale = 'en') {
-  const meta = countryMeta[slug]
-  if (meta) return { ...meta, slug, href: localizedPath(`/${slug}`, locale) }
+  const countryKey = getCountryKeyFromSlug(slug)
+  const guideHref = localizedPath(`/${slug}`, locale)
+
+  if (countryMeta[slug]) {
+    const meta = countryMeta[slug]
+    return {
+      ...meta,
+      slug,
+      href: countryKey ? getCountryLandingPath(countryKey, locale) : guideHref,
+      guideHref,
+    }
+  }
 
   const name = slugToLabel(slug.replace(/^guides\//, '').replace(/-ivf-guide$/, ''))
   return {
@@ -247,6 +512,7 @@ export function getCountryDisplay(slug: string, locale: Locale = 'en') {
     cost: '',
     clinics: '',
     slug,
-    href: localizedPath(`/${slug}`, locale),
+    href: countryKey ? getCountryLandingPath(countryKey, locale) : guideHref,
+    guideHref,
   }
 }

@@ -1,19 +1,14 @@
-import type { Metadata } from 'next'
-import { Suspense } from 'react'
-import { GuidesList, GuidesListSkeleton } from '@/components/hubs/GuidesList'
+import { GuidePostsList, GuidePostsListSkeleton } from '@/components/hubs/GuidePostsList'
 import { HubPageLayout } from '@/components/hubs/HubPageLayout'
 import { FilterBar } from '@/components/filters/FilterBar'
 import { SortSelect } from '@/components/filters/SortSelect'
 import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
+import type { Metadata } from 'next'
+import { Suspense } from 'react'
 
 const locale = activeLocale
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
-
-const sortOptions = [
-  { value: 'alpha', label: 'A – Z' },
-  { value: 'updated', label: 'Recently updated' },
-]
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(locale)
@@ -26,16 +21,21 @@ export async function generateMetadata(): Promise<Metadata> {
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
-function GuidesSortBar() {
-  return (
-    <FilterBar>
-      <SortSelect options={sortOptions} defaultValue="alpha" label="Sort guides" />
-    </FilterBar>
-  )
+async function GuidesResults({ searchParams }: { searchParams: SearchParams }) {
+  const params = await searchParams
+  const sort = typeof params.sort === 'string' ? params.sort : undefined
+  const q = typeof params.q === 'string' ? params.q : undefined
+
+  return <GuidePostsList locale={locale} scope="all" showHeading={false} sort={sort} q={q} />
 }
 
-function GuidesPageShell({ children }: { children: React.ReactNode }) {
+export default function GuidesHubPage({ searchParams }: { searchParams: SearchParams }) {
   const t = getDictionary(locale)
+
+  const sortOptions = [
+    { value: 'alpha', label: t.hubs.guides.sortAlpha },
+    { value: 'updated', label: t.hubs.guides.sortUpdated },
+  ]
 
   return (
     <HubPageLayout
@@ -45,31 +45,13 @@ function GuidesPageShell({ children }: { children: React.ReactNode }) {
       description={t.hubs.guides.description}
     >
       <Suspense fallback={null}>
-        <GuidesSortBar />
+        <FilterBar>
+          <SortSelect options={sortOptions} defaultValue="alpha" label={t.hubs.guides.sortLabel} />
+        </FilterBar>
       </Suspense>
-      {children}
+      <Suspense fallback={<GuidePostsListSkeleton grouped />}>
+        <GuidesResults searchParams={searchParams} />
+      </Suspense>
     </HubPageLayout>
-  )
-}
-
-async function GuidesPageContent({ searchParams }: { searchParams: SearchParams }) {
-  const { sort, q } = await searchParams
-  const sortFilter = typeof sort === 'string' ? sort : undefined
-  const qFilter = typeof q === 'string' ? q : undefined
-
-  return (
-    <Suspense fallback={<GuidesListSkeleton />}>
-      <GuidesList locale={locale} sort={sortFilter} q={qFilter} />
-    </Suspense>
-  )
-}
-
-export default function GuidesHubPage({ searchParams }: { searchParams: SearchParams }) {
-  return (
-    <GuidesPageShell>
-      <Suspense fallback={<GuidesListSkeleton />}>
-        <GuidesPageContent searchParams={searchParams} />
-      </Suspense>
-    </GuidesPageShell>
   )
 }
