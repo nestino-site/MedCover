@@ -51,6 +51,7 @@ const COST_FAQS: Record<string, FaqItem[]> = {
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  'use cache'
   const { treatment } = await params
   const cat = getTreatmentBySlug(treatment)
   if (!cat) return { title: 'Treatment Costs | MedCover' }

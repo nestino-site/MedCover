@@ -62,12 +62,18 @@ const countryFaqs: FaqItem[] = [
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
-export default async function CountriesHubPage({ searchParams }: { searchParams: SearchParams }) {
+async function CountriesResults({ searchParams }: { searchParams: SearchParams }) {
   const { treatment, sort } = await searchParams
-  const t = getDictionary(locale)
-
   const treatmentFilter = typeof treatment === 'string' ? treatment : undefined
   const sortFilter = typeof sort === 'string' ? sort : undefined
+
+  return (
+    <CountriesList locale={locale} treatment={treatmentFilter} sort={sortFilter ?? 'cost-asc'} />
+  )
+}
+
+export default function CountriesHubPage({ searchParams }: { searchParams: SearchParams }) {
+  const t = getDictionary(locale)
 
   const heroStats = [
     { value: '6', label: t.hubs.countries.hero.statCountries },
@@ -128,20 +134,21 @@ export default async function CountriesHubPage({ searchParams }: { searchParams:
         title={t.hubs.countries.title}
         description={t.hubs.countries.description}
         showHeading={false}
-        fromFilters={{ treatment: treatmentFilter }}
       >
         <div id="destinations">
-          <FilterBar>
-            <FilterChips
-              options={treatmentOptions}
-              paramKey="treatment"
-              label="Treatment"
-              allLabel="All treatments"
-            />
-            <SortSelect options={sortOptions} defaultValue="cost-asc" label="Sort countries" />
-          </FilterBar>
+          <Suspense fallback={null}>
+            <FilterBar>
+              <FilterChips
+                options={treatmentOptions}
+                paramKey="treatment"
+                label="Treatment"
+                allLabel="All treatments"
+              />
+              <SortSelect options={sortOptions} defaultValue="cost-asc" label="Sort countries" />
+            </FilterBar>
+          </Suspense>
           <Suspense fallback={<CountriesListSkeleton />}>
-            <CountriesList locale={locale} treatment={treatmentFilter} sort={sortFilter ?? 'cost-asc'} />
+            <CountriesResults searchParams={searchParams} />
           </Suspense>
         </div>
 

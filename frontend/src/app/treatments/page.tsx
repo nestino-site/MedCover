@@ -60,11 +60,15 @@ const treatmentFaqs: FaqItem[] = [
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
-export default async function TreatmentsHubPage({ searchParams }: { searchParams: SearchParams }) {
+async function TreatmentsResults({ searchParams }: { searchParams: SearchParams }) {
   const { status } = await searchParams
-  const t = getDictionary(locale)
-
   const statusFilter = typeof status === 'string' ? status : undefined
+
+  return <TreatmentsList locale={locale} status={statusFilter} />
+}
+
+export default function TreatmentsHubPage({ searchParams }: { searchParams: SearchParams }) {
+  const t = getDictionary(locale)
 
   const statusOptions = [
     { value: 'active', label: t.hubs.treatments.activeBadge },
@@ -109,18 +113,19 @@ export default async function TreatmentsHubPage({ searchParams }: { searchParams
         title={t.hubs.treatments.title}
         description={t.hubs.treatments.description}
         showHeading={false}
-        fromFilters={{}}
       >
-        <FilterBar>
-          <FilterChips
-            options={statusOptions}
-            paramKey="status"
-            label="Status"
-            allLabel="All treatments"
-          />
-        </FilterBar>
+        <Suspense fallback={null}>
+          <FilterBar>
+            <FilterChips
+              options={statusOptions}
+              paramKey="status"
+              label="Status"
+              allLabel="All treatments"
+            />
+          </FilterBar>
+        </Suspense>
         <Suspense fallback={<TreatmentsListSkeleton />}>
-          <TreatmentsList locale={locale} status={statusFilter} />
+          <TreatmentsResults searchParams={searchParams} />
         </Suspense>
 
         <div className="mt-14 border-t border-[var(--color-border)] pt-2">

@@ -62,13 +62,24 @@ const cityFaqs: FaqItem[] = [
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
-export default async function CitiesHubPage({ searchParams }: { searchParams: SearchParams }) {
+async function CitiesResults({ searchParams }: { searchParams: SearchParams }) {
   const { country, sort, q } = await searchParams
-  const t = getDictionary(locale)
-
   const countryFilter = typeof country === 'string' ? country : undefined
   const sortFilter = typeof sort === 'string' ? sort : undefined
   const qFilter = typeof q === 'string' ? q : undefined
+
+  return (
+    <CitiesList
+      locale={locale}
+      country={countryFilter}
+      sort={sortFilter}
+      q={qFilter}
+    />
+  )
+}
+
+export default function CitiesHubPage({ searchParams }: { searchParams: SearchParams }) {
+  const t = getDictionary(locale)
 
   const heroStats = [
     { value: '20+', label: t.hubs.cities.hero.statCities },
@@ -126,25 +137,21 @@ export default async function CitiesHubPage({ searchParams }: { searchParams: Se
         title={t.hubs.cities.title}
         description={t.hubs.cities.description}
         showHeading={false}
-        fromFilters={{ country: countryFilter }}
       >
         <div id="cities">
-          <FilterBar>
-            <FilterChips
-              options={countryOptions}
-              paramKey="country"
-              label="Country"
-              allLabel="All countries"
-            />
-            <SortSelect options={sortOptions} defaultValue="country" label="Sort cities" />
-          </FilterBar>
+          <Suspense fallback={null}>
+            <FilterBar>
+              <FilterChips
+                options={countryOptions}
+                paramKey="country"
+                label="Country"
+                allLabel="All countries"
+              />
+              <SortSelect options={sortOptions} defaultValue="country" label="Sort cities" />
+            </FilterBar>
+          </Suspense>
           <Suspense fallback={<CitiesListSkeleton />}>
-            <CitiesList
-              locale={locale}
-              country={countryFilter}
-              sort={sortFilter}
-              q={qFilter}
-            />
+            <CitiesResults searchParams={searchParams} />
           </Suspense>
         </div>
 

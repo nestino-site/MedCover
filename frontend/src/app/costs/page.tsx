@@ -99,13 +99,40 @@ const schemas = [
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
-export default async function CostsPage({ searchParams }: { searchParams: SearchParams }) {
-  const { treatment, country, sort } = await searchParams
+function CostComparisonGridSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="h-44 animate-pulse rounded-2xl border border-[var(--color-border)] bg-[var(--color-neutral-100)]"
+        />
+      ))}
+    </div>
+  )
+}
 
-  const treatmentFilter = typeof treatment === 'string' ? treatment : undefined
+async function CostComparisonResults({ searchParams }: { searchParams: SearchParams }) {
+  const { country, sort } = await searchParams
   const countryFilter = typeof country === 'string' ? country : undefined
   const sortFilter = typeof sort === 'string' ? sort : undefined
 
+  return (
+    <CostComparisonGrid locale={locale} sort={sortFilter} country={countryFilter} />
+  )
+}
+
+async function CostGuidesResults({ searchParams }: { searchParams: SearchParams }) {
+  const { treatment, country } = await searchParams
+  const treatmentFilter = typeof treatment === 'string' ? treatment : undefined
+  const countryFilter = typeof country === 'string' ? country : undefined
+
+  return (
+    <CostGuidesList locale={locale} treatment={treatmentFilter} country={countryFilter} />
+  )
+}
+
+export default function CostsPage({ searchParams }: { searchParams: SearchParams }) {
   const treatmentOptions = treatmentCategories.map((c) => ({
     value: c.id,
     label: c.name,
@@ -133,23 +160,25 @@ export default async function CostsPage({ searchParams }: { searchParams: Search
 
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         {/* Filter bar */}
-        <FilterBar>
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-            <FilterChips
-              options={treatmentOptions}
-              paramKey="treatment"
-              label="Treatment"
-              allLabel="All treatments"
-            />
-            <FilterChips
-              options={countryOptions}
-              paramKey="country"
-              label="Country"
-              allLabel="All countries"
-            />
-          </div>
-          <SortSelect options={sortOptions} defaultValue="cost-asc" label="Sort costs" />
-        </FilterBar>
+        <Suspense fallback={null}>
+          <FilterBar>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+              <FilterChips
+                options={treatmentOptions}
+                paramKey="treatment"
+                label="Treatment"
+                allLabel="All treatments"
+              />
+              <FilterChips
+                options={countryOptions}
+                paramKey="country"
+                label="Country"
+                allLabel="All countries"
+              />
+            </div>
+            <SortSelect options={sortOptions} defaultValue="cost-asc" label="Sort costs" />
+          </FilterBar>
+        </Suspense>
 
         {/* Cost comparison grid */}
         <section aria-labelledby="cost-comparison-heading" className="mb-16">
@@ -159,16 +188,14 @@ export default async function CostsPage({ searchParams }: { searchParams: Search
           >
             Cost comparison
           </h2>
-          <CostComparisonGrid
-            locale={locale}
-            sort={sortFilter}
-            country={countryFilter}
-          />
+          <Suspense fallback={<CostComparisonGridSkeleton />}>
+            <CostComparisonResults searchParams={searchParams} />
+          </Suspense>
         </section>
 
         {/* Cost guides by treatment */}
         <Suspense fallback={<CostGuidesListSkeleton />}>
-          <CostGuidesList locale={locale} treatment={treatmentFilter} country={countryFilter} />
+          <CostGuidesResults searchParams={searchParams} />
         </Suspense>
 
         {/* Cost factors */}
@@ -225,12 +252,7 @@ export default async function CostsPage({ searchParams }: { searchParams: Search
           </div>
         </section>
 
-        <CrossHubNav
-          locale={locale}
-          hubId="costs"
-          className="mt-12"
-          fromFilters={{ treatment: treatmentFilter, country: countryFilter }}
-        />
+        <CrossHubNav locale={locale} hubId="costs" className="mt-12" />
       </div>
 
       <CtaBlock
