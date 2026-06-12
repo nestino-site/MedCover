@@ -2,6 +2,7 @@
 export const TREATMENT_SLUG_ALIASES: Record<string, string> = {
   'ivf-in-vitro-fertilisation': 'ivf',
   'ivf-in-vitro-fertilization': 'ivf',
+  'hair-transplant': 'hair',
 }
 
 export function canonicalTreatmentSlug(slug: string): string {

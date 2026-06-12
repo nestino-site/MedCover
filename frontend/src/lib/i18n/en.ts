@@ -743,6 +743,7 @@ export const en = {
       founded: 'Founded {year}',
       inHouseLab: 'In-house lab',
       languages: 'Languages: {list}',
+      treatments: '{count} treatments',
     },
     sidebar: {
       title: 'Contact & facts',

@@ -153,7 +153,7 @@ export async function getCompare(
   cacheTag(cacheTags.compare(key), cacheTags.site(SITE_ID))
 
   const qs = new URLSearchParams({ type, a, b })
-  if (treatment) qs.set('treatment', treatment)
+  if (treatment) qs.set('treatment', canonicalTreatmentSlug(treatment))
 
   return fetchJson(`/content/compare?${qs}`, CompareResponseSchema)
 }

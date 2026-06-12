@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { canonicalSlugPath } from '@/lib/api/content'
 import { cacheTags } from '@/lib/cache/tags'
 import { normalizePath } from '@/lib/i18n/paths'
+import { parseCompareSlug } from '@/lib/routes'
 
 const REPLAY_WINDOW_MS = 5 * 60 * 1000
 const ACCEPTED_EVENTS = new Set([
@@ -35,12 +36,15 @@ interface WebhookPayload {
 }
 
 function revalidateClinicScopeTags(path: string) {
-  const match = path.replace(/^\//, '').match(/^clinics\/([^/]+)(?:\/([^/]+))?/)
+  const match = path.replace(/^\//, '').match(/^clinics\/([^/]+)(?:\/([^/]+))?(?:\/([^/]+))?/)
   if (!match) return
-  const [, country, city] = match
+  const [, country, city, clinicSlug] = match
   revalidateTag(cacheTags.clinics(country), 'max')
   if (city) {
     revalidateTag(cacheTags.clinics(`${country}-${city}`), 'max')
+  }
+  if (city && clinicSlug) {
+    revalidateTag(cacheTags.clinics(`${country}-${city}-${clinicSlug}`), 'max')
   }
 }
 
@@ -55,21 +59,20 @@ function revalidateCompareScopeTags(path: string) {
   const match = path.replace(/^\//, '').match(/^compare\/(.+)/)
   if (!match) return
   const tail = match[1].replace(/\/$/, '')
-  const forParts = tail.match(/^(.+)-vs-(.+)-for-(.+)$/)
-  if (forParts) {
+  const parsed = parseCompareSlug(tail)
+  if (parsed?.treatment) {
     revalidateTag(
-      cacheTags.compare(`country-${forParts[1]}-${forParts[2]}-${forParts[3]}`),
+      cacheTags.compare(`country-${parsed.entityA}-${parsed.entityB}-${parsed.treatment}`),
       'max',
     )
     revalidateTag(
-      cacheTags.compare(`city-${forParts[1]}-${forParts[2]}-${forParts[3]}`),
+      cacheTags.compare(`city-${parsed.entityA}-${parsed.entityB}-${parsed.treatment}`),
       'max',
     )
     return
   }
-  const vsParts = tail.match(/^(.+)-vs-(.+)$/)
-  if (vsParts) {
-    revalidateTag(cacheTags.compare(`clinic-${vsParts[1]}-${vsParts[2]}-`), 'max')
+  if (parsed) {
+    revalidateTag(cacheTags.compare(`clinic-${parsed.entityA}-${parsed.entityB}-`), 'max')
   }
 }
 

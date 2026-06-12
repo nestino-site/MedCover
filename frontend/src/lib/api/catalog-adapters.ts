@@ -10,6 +10,7 @@ import type {
 import { clinicPdpPath, slugToLabel } from '@/lib/routes'
 import { flagEmojiForCountry } from '@/lib/content/country-flags'
 import { loadPublishedPage } from './content'
+import { enrichClinicDetailFromCms } from '@/lib/clinics/cms-clinic-enrichment'
 
 /** Derive taxonomy from published page slugs (real backend data). */
 export function buildTaxonomyFromPages(pages: ContentListItem[]): Taxonomy {
@@ -204,7 +205,7 @@ export async function getClinicDetailFromPage(
     treatments: [],
   })
 
-  return {
+  const sparse: ClinicDetail = {
     ...base,
     longDescription: page.seo.metaDescription ?? null,
     media: page.heroImage?.url
@@ -218,6 +219,12 @@ export async function getClinicDetailFromPage(
     publishedAt: page.publishedAt,
     updatedAt: page.updatedAt,
   }
+
+  if (page.htmlContent) {
+    return enrichClinicDetailFromCms(sparse, page.htmlContent, page.tableOfContents).clinic
+  }
+
+  return sparse
 }
 
 export function buildEmptyCosts(treatmentSlug: string): CostsResponse {

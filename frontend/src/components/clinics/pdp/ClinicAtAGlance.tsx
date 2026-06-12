@@ -53,6 +53,14 @@ export function ClinicAtAGlance({ clinic, className }: ClinicAtAGlanceProps) {
     )
   }
 
+  if (clinic.treatments.length > 0) {
+    chips.push(
+      <Chip key="treatments" href="#treatments">
+        {copy.treatments.replace('{count}', String(clinic.treatments.length))}
+      </Chip>,
+    )
+  }
+
   if (clinic.googleRating != null) {
     chips.push(
       <Chip key="reviews" href="#reviews">

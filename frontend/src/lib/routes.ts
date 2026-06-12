@@ -1,5 +1,9 @@
 import { localizedPath, type Locale } from '@/lib/i18n'
-import { canonicalTreatmentSlug, TREATMENT_SLUG_ALIASES } from '@/lib/content/treatment-slugs'
+import {
+  canonicalTreatmentSlug,
+  TREATMENT_SLUG_ALIASES,
+  treatmentSlugVariants,
+} from '@/lib/content/treatment-slugs'
 import type { Taxonomy } from '@/lib/api/types'
 
 /** Ensure trailing slash for public paths. */
@@ -185,8 +189,37 @@ export interface ParsedCompareSlug {
   isCanonicalOrder: boolean
 }
 
-const COMPARE_FOR_RE = /^(.+)-vs-(.+)-for-(.+)$/
 const COMPARE_VS_RE = /^(.+)-vs-(.+)$/
+
+/** Collapse repeated `-for` segments (legacy middleware bug artifact). */
+function dedupeCompareForSegments(tail: string): string {
+  const vsIndex = tail.indexOf('-vs-')
+  if (vsIndex === -1) return tail
+
+  const head = tail.slice(0, vsIndex + 4)
+  const rest = tail.slice(vsIndex + 4)
+  const normalizedRest = rest.replace(/^(.+?)(?:-for)+-([^-]+)$/, '$1-for-$2')
+  return head + normalizedRest
+}
+
+function parseTreatmentCompareTail(
+  tail: string,
+): { rawA: string; rawB: string; treatment: string } | null {
+  const normalized = dedupeCompareForSegments(tail)
+  const vsIndex = normalized.indexOf('-vs-')
+  if (vsIndex <= 0) return null
+
+  const rawA = normalized.slice(0, vsIndex)
+  const rest = normalized.slice(vsIndex + 4)
+  const forIndex = rest.lastIndexOf('-for-')
+  if (forIndex <= 0) return null
+
+  const rawB = rest.slice(0, forIndex)
+  const treatment = rest.slice(forIndex + 5)
+  if (!rawA || !rawB || !treatment) return null
+
+  return { rawA, rawB, treatment }
+}
 
 /** Legacy CMS/public tails: `greece-vs-spain-ivf` (no `-for-`). Longest suffix first. */
 const LEGACY_COMPARE_TREATMENT_SUFFIXES = [
@@ -236,13 +269,16 @@ function buildTreatmentCompareParsed(
 }
 
 export function parseCompareSlug(rawSlug: string): ParsedCompareSlug | null {
-  const slug = stripCompareSlug(rawSlug)
+  const slug = dedupeCompareForSegments(stripCompareSlug(rawSlug))
   if (!slug) return null
 
-  const forMatch = slug.match(COMPARE_FOR_RE)
-  if (forMatch) {
-    const [, rawA, rawB, treatment] = forMatch
-    return buildTreatmentCompareParsed(rawA, rawB, treatment)
+  const treatmentParts = parseTreatmentCompareTail(slug)
+  if (treatmentParts) {
+    return buildTreatmentCompareParsed(
+      treatmentParts.rawA,
+      treatmentParts.rawB,
+      treatmentParts.treatment,
+    )
   }
 
   const legacy = parseLegacyCompareTail(slug)
@@ -250,17 +286,19 @@ export function parseCompareSlug(rawSlug: string): ParsedCompareSlug | null {
     return buildTreatmentCompareParsed(legacy.entityA, legacy.entityB, legacy.treatment)
   }
 
-  const vsMatch = slug.match(COMPARE_VS_RE)
-  if (vsMatch) {
-    const [, rawA, rawB] = vsMatch
-    const [entityA, entityB] = canonicalPair(rawA, rawB)
-    const isCanonicalOrder = rawA === entityA
-    return {
-      type: 'clinic',
-      entityA,
-      entityB,
-      canonicalSlug: `${entityA}-vs-${entityB}`,
-      isCanonicalOrder,
+  const vsIndex = slug.indexOf('-vs-')
+  if (vsIndex > 0) {
+    const rawA = slug.slice(0, vsIndex)
+    const rawB = slug.slice(vsIndex + 4)
+    if (rawA && rawB && !slug.includes('-for-')) {
+      const [entityA, entityB] = canonicalPair(rawA, rawB)
+      return {
+        type: 'clinic',
+        entityA,
+        entityB,
+        canonicalSlug: `${entityA}-vs-${entityB}`,
+        isCanonicalOrder: rawA === entityA,
+      }
     }
   }
 
@@ -298,6 +336,38 @@ export function cmsCompareSlug(a: string, b: string, treatment?: string): string
     )
   }
   return cmsPageSlug('compare', `${entityA}-vs-${entityB}`)
+}
+
+/** CMS slugs to probe — canonical first, then backend/taxonomy alias variants, then legacy `-ivf`. */
+export function cmsCompareSlugCandidates(
+  a: string,
+  b: string,
+  treatment?: string,
+): string[] {
+  const ordered: string[] = []
+  const seen = new Set<string>()
+  const add = (slug: string) => {
+    if (seen.has(slug)) return
+    seen.add(slug)
+    ordered.push(slug)
+  }
+
+  if (treatment) {
+    const canonical = canonicalTreatmentSlug(treatment)
+    const [entityA, entityB] = canonicalPair(a, b)
+    add(cmsCompareSlug(a, b, canonical))
+    for (const variant of treatmentSlugVariants(canonical)) {
+      add(cmsPageSlug('compare', `${entityA}-vs-${entityB}-for-${variant}`))
+    }
+    if (canonical === 'ivf') {
+      add(legacyCompareCmsSlug(a, b))
+    }
+  } else {
+    add(cmsCompareSlug(a, b))
+    add(legacyCompareCmsSlug(a, b))
+  }
+
+  return ordered
 }
 
 /** Legacy CMS slug before `-for-{treatment}` migration. */
@@ -460,10 +530,27 @@ export function legacyCostToNew(slug: string): string | null {
 }
 
 export function legacyCompareToNew(slug: string): string | null {
-  const match = slug.replace(/^\//, '').match(/^compare\/(.+)-vs-(.+)-ivf\/?$/)
+  const stripped = slug.replace(/^\//, '').replace(/\/$/, '')
+  if (stripped.includes('-for-')) return null
+  const match = stripped.match(/^compare\/([^/]+)-vs-([^/]+)-ivf$/)
   if (!match) return null
   const [a, b] = canonicalPair(match[1], match[2])
   return `/compare/${a}-vs-${b}-for-ivf/`
+}
+
+/** Redirect compare URLs to canonical slug (order, legacy `-ivf`, duplicated `-for-`). */
+export function comparePublicRedirect(pathname: string): string | null {
+  const normalized = pathname.endsWith('/') ? pathname : `${pathname}/`
+  const match = normalized.match(/^\/compare\/([^/]+)\/$/)
+  if (!match) return null
+
+  const parsed = parseCompareSlug(match[1])
+  if (!parsed) return null
+
+  if (parsed.canonicalSlug !== match[1]) {
+    return `/compare/${parsed.canonicalSlug}/`
+  }
+  return null
 }
 
 export function legacyCityToClinic(slug: string): string | null {

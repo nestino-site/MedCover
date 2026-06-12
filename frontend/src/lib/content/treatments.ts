@@ -96,15 +96,6 @@ const COMING_SOON_TREATMENTS: Omit<TreatmentCategory, 'clinicCount' | 'countries
     ],
   },
   {
-    id: 'hair',
-    name: 'Hair Restoration',
-    hubLinks: [
-      { hubId: 'countries', labelKey: 'countries' },
-      { hubId: 'clinics', labelKey: 'cities' },
-      { hubId: 'guides', labelKey: 'guides' },
-    ],
-  },
-  {
     id: 'cosmetic',
     name: 'Cosmetic Surgery',
     hubLinks: [

@@ -1,6 +1,5 @@
 import { canonicalSlugPath } from '@/lib/api/content'
 import type { ContentListItem, Taxonomy } from '@/lib/api/types'
-import { isTreatmentCompareTail } from '@/lib/content/slug-canonical'
 import {
   compareCityPath,
   compareCountryPath,
@@ -35,7 +34,9 @@ function compareTailFromPageSlug(pageSlug: string): string | null {
   if (!rawTail) return null
 
   const canonicalTail = canonicalCompareTail(rawTail)
-  if (!canonicalTail || !isTreatmentCompareTail(rawTail)) return null
+  if (!canonicalTail) return null
+  const parsed = parseCompareSlug(canonicalTail)
+  if (!parsed?.treatment) return null
 
   return canonicalTail
 }
@@ -52,7 +53,9 @@ export function publishedCompareSlugs(pages: ContentListItem[]): Set<string> {
 export function isPublishedCompareSlug(slug: string, pages: ContentListItem[]): boolean {
   const rawTail = stripLeadingSlash(slug.replace(/^compare\//, ''))
   const canonicalTail = canonicalCompareTail(rawTail)
-  if (!canonicalTail || !isTreatmentCompareTail(rawTail)) return false
+  if (!canonicalTail) return false
+  const parsed = parseCompareSlug(canonicalTail)
+  if (!parsed?.treatment) return false
   return publishedCompareSlugs(pages).has(canonicalTail)
 }
 

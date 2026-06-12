@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { getTaxonomy, getCompare } from '@/lib/api/catalog'
-import { loadPublishedPage, listPublishedPagesSafe } from '@/lib/api/content'
+import { listPublishedPagesSafe } from '@/lib/api/content'
+import { loadComparePage } from '@/lib/compare/cms'
 import { isPublishedCompareSlug } from '@/lib/compare/static-params'
 import { EntityHero } from '@/components/shared/EntityHero'
 import { ComparisonTable } from '@/components/shared/ComparisonTable'
@@ -16,7 +17,6 @@ import { activeLocale } from '@/lib/i18n/locale'
 import {
   cmsCompareSlug,
   compareHubPath,
-  legacyCompareCmsSlug,
   resolveCompareCanonicalSlug,
   slugToLabel,
   validateCompareEntities,
@@ -24,27 +24,6 @@ import {
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
 import { heroAnswerFromCmsPage, siteOrigin } from '@/lib/seo/cms-seo'
 import { normalizeContentHtml } from '@/lib/content/html-content-images'
-import type { PageFetchResult } from '@/lib/api/content'
-
-async function loadCompareCms(
-  parsed: {
-    type: 'clinic' | 'city' | 'country'
-    entityA: string
-    entityB: string
-    treatment?: string
-  },
-): Promise<PageFetchResult> {
-  const primarySlug = cmsCompareSlug(parsed.entityA, parsed.entityB, parsed.treatment)
-  const primary = await loadPublishedPage(primarySlug)
-  if (primary.status === 'ok') return primary
-
-  if (parsed.treatment === 'ivf' || parsed.treatment === undefined) {
-    const legacy = await loadPublishedPage(legacyCompareCmsSlug(parsed.entityA, parsed.entityB))
-    if (legacy.status === 'ok') return legacy
-  }
-
-  return primary
-}
 
 export async function CompareDetailContent({ slug }: { slug: string }) {
   const locale = activeLocale
@@ -58,7 +37,7 @@ export async function CompareDetailContent({ slug }: { slug: string }) {
     redirect(`/compare/${parsed.canonicalSlug}/`)
   }
 
-  const cms = await loadCompareCms(parsed)
+  const cms = await loadComparePage(parsed.entityA, parsed.entityB, parsed.treatment)
   if (cms.status !== 'ok') notFound()
 
   const compareData = await getCompare(

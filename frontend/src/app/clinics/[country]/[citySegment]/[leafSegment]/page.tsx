@@ -18,6 +18,7 @@ import { loadGuideArticlesForEntities } from '@/lib/content/guide-display'
 import { primaryTreatmentSlugForCountry } from '@/lib/content/treatments'
 import { canonicalTreatmentSlug } from '@/lib/content/treatment-slugs'
 import { normalizeContentHtml } from '@/lib/content/html-content-images'
+import { enrichClinicDetailFromCms } from '@/lib/clinics/cms-clinic-enrichment'
 import {
   buildClinicMetadataFallback,
   synthesizeClinicAnswer,
@@ -256,14 +257,19 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
 
   const faq = cms.status === 'ok' ? cms.page.faq : undefined
   const cmsAnswer = cms.status === 'ok' ? heroAnswerFromCmsPage(cms.page) : undefined
-  const answer = cmsAnswer ?? synthesizeClinicAnswer(clinic, cityName, countryName)
-  const editorialHtml =
+  const rawEditorialHtml =
     cms.status === 'ok' && cms.page.htmlContent
       ? normalizeContentHtml(cms.page.htmlContent, siteOrigin())
       : null
-  const tableOfContents = cms.status === 'ok' ? cms.page.tableOfContents : undefined
+  const rawTableOfContents = cms.status === 'ok' ? cms.page.tableOfContents : undefined
+  const {
+    clinic: displayClinic,
+    editorialHtml,
+    tableOfContents,
+  } = enrichClinicDetailFromCms(clinic, rawEditorialHtml, rawTableOfContents)
+  const answer = cmsAnswer ?? synthesizeClinicAnswer(displayClinic, cityName, countryName)
   const lastUpdated =
-    (cms.status === 'ok' ? cms.page.updatedAt : null) ?? clinic.updatedAt ?? null
+    (cms.status === 'ok' ? cms.page.updatedAt : null) ?? displayClinic.updatedAt ?? null
 
   const breadcrumbs = [
     { name: 'Home', slug: '/', position: 1 },
@@ -281,7 +287,7 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
   const fallbackSchemas =
     cmsSchemas.length === 0
       ? buildClinicJsonLd({
-          clinic,
+          clinic: displayClinic,
           canonicalUrl,
           faq,
           breadcrumbs,
@@ -298,7 +304,7 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
       <CmsPageJsonLd result={cms} />
       {fallbackSchemas && <JsonLd schema={fallbackSchemas} />}
       <ClinicPdpView
-        clinic={clinic}
+        clinic={displayClinic}
         breadcrumbs={breadcrumbs}
         country={country}
         city={citySegment}

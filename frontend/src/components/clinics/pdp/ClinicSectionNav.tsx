@@ -15,7 +15,7 @@ type ClinicSectionNavProps = {
 }
 
 export function ClinicSectionNav({ sections, className }: ClinicSectionNavProps) {
-  if (sections.length < 4) return null
+  if (sections.length < 2) return null
 
   return (
     <nav

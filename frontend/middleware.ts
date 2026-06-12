@@ -2,9 +2,8 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { DEFAULT_LOCALE, getContentLanguage } from './src/lib/i18n/locales'
 import {
-  canonicalPair,
+  comparePublicRedirect,
   legacyCityToClinic,
-  legacyCompareToNew,
   legacyCostToNew,
   legacyGuideFlatten,
   legacyTreatmentSlugRedirect,
@@ -16,8 +15,8 @@ function legacyRedirect(pathname: string): string | null {
   const cost = legacyCostToNew(normalized)
   if (cost) return cost
 
-  const compare = legacyCompareToNew(normalized)
-  if (compare) return compare
+  const compareCanonical = comparePublicRedirect(normalized)
+  if (compareCanonical) return compareCanonical
 
   const city = legacyCityToClinic(normalized)
   if (city) return city
@@ -27,19 +26,6 @@ function legacyRedirect(pathname: string): string | null {
 
   const treatmentSlug = legacyTreatmentSlugRedirect(normalized)
   if (treatmentSlug) return treatmentSlug
-
-  const compareFor = normalized.match(/^\/compare\/([^/]+)-vs-([^/]+)-ivf\/$/)
-  if (compareFor) {
-    const [a, b] = canonicalPair(compareFor[1], compareFor[2])
-    return `/compare/${a}-vs-${b}-for-ivf/`
-  }
-
-  const reversedCompare = normalized.match(/^\/compare\/([^/]+)-vs-([^/]+)-for-([^/]+)\/$/)
-  if (reversedCompare) {
-    const [, rawA, rawB, treatment] = reversedCompare
-    const [a, b] = canonicalPair(rawA, rawB)
-    if (rawA !== a) return `/compare/${a}-vs-${b}-for-${treatment}/`
-  }
 
   return null
 }

@@ -76,11 +76,20 @@ function buildSectionNav(
   if ((clinic.interviews?.length ?? 0) > 0) {
     sections.push({ id: 'patient-voices', label: copy.patientVoices.title })
   }
+  if ((clinic.googleReviews?.length ?? 0) > 0) {
+    sections.push({ id: 'reviews', label: copy.reviews.title })
+  }
   if (aboutText || editorialHtml) {
     sections.push({ id: 'about', label: copy.about.title })
   }
-  if ((clinic.googleReviews?.length ?? 0) > 0) {
-    sections.push({ id: 'reviews', label: copy.reviews.title })
+  if (
+    clinic.phone ||
+    clinic.email ||
+    clinic.websiteUrl ||
+    clinic.addressLine ||
+    clinic.openingHours
+  ) {
+    sections.push({ id: 'contact', label: en.clinicPdp.sidebar.title })
   }
   if (faq && faq.length > 0) {
     sections.push({ id: 'faq', label: copy.faq.title })
@@ -196,12 +205,12 @@ export function ClinicPdpView({
           />
           <DoctorsGrid clinic={clinic} />
           <PatientVoices clinic={clinic} />
+          <GoogleReviewsSection clinic={clinic} />
           <ClinicAboutSection
             aboutText={aboutText}
             editorialHtml={editorialHtml}
             tableOfContents={tableOfContents}
           />
-          <GoogleReviewsSection clinic={clinic} />
           {faq && faq.length > 0 && (
             <PdpFaqSection eyebrow={faqCopy.eyebrow} title={faqCopy.title} faqs={faq} />
           )}

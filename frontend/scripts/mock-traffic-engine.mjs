@@ -35,7 +35,92 @@ const items = [
     },
   },
   { id: 201, slug: 'costs/spain-ivf-financing-2026', language: 'en', updatedAt: '2026-05-01T10:00:00Z' },
+  {
+    id: 301,
+    slug: 'compare/athens-vs-thessaloniki-for-ivf',
+    language: 'en',
+    updatedAt: '2026-06-01T10:00:00Z',
+    pageType: 'COMPARISON',
+    title: 'Athens vs Thessaloniki for IVF',
+    entities: {
+      treatment: { slug: 'ivf-in-vitro-fertilisation', name: 'IVF — In Vitro Fertilisation' },
+      city: { slug: 'athens', name: 'Athens' },
+    },
+  },
+  {
+    id: 302,
+    slug: 'compare/greece-vs-spain-ivf',
+    language: 'en',
+    updatedAt: '2026-06-01T10:00:00Z',
+    pageType: 'COMPARISON',
+    title: 'Greece vs Spain for IVF (legacy slug)',
+    entities: {
+      treatment: { slug: 'ivf-in-vitro-fertilisation', name: 'IVF — In Vitro Fertilisation' },
+      country: { slug: 'greece', name: 'Greece' },
+    },
+  },
 ]
+
+const taxonomy = {
+  countries: [
+    {
+      slug: 'greece',
+      name: 'Greece',
+      clinicCount: 12,
+      cities: [
+        { slug: 'athens', name: 'Athens', clinicCount: 8 },
+        { slug: 'thessaloniki', name: 'Thessaloniki', clinicCount: 4 },
+      ],
+    },
+    {
+      slug: 'spain',
+      name: 'Spain',
+      clinicCount: 20,
+      cities: [{ slug: 'barcelona', name: 'Barcelona', clinicCount: 10 }],
+    },
+  ],
+  treatments: [
+    {
+      slug: 'ivf-in-vitro-fertilisation',
+      name: 'IVF — In Vitro Fertilisation',
+      clinicCount: 100,
+      countries: ['greece', 'spain'],
+    },
+  ],
+}
+
+function compareEntity(name, slug, clinicCount) {
+  return {
+    name,
+    slug,
+    clinicCount,
+    avgRating: 4.5,
+    priceRange: { min: 3500, max: 6500, currency: 'EUR' },
+    truthScoreAvg: 78,
+    topClinics: [],
+  }
+}
+
+function comparePayload(type, a, b, treatment) {
+  const entityA = compareEntity(
+    a.charAt(0).toUpperCase() + a.slice(1).replace(/-/g, ' '),
+    a,
+    8,
+  )
+  const entityB = compareEntity(
+    b.charAt(0).toUpperCase() + b.slice(1).replace(/-/g, ' '),
+    b,
+    6,
+  )
+  return {
+    type,
+    treatment: treatment
+      ? { slug: treatment, name: treatment.toUpperCase() }
+      : undefined,
+    entityA,
+    entityB,
+  }
+}
 
 function pagePayload(slug) {
   const item = items.find((i) => i.slug === slug)
@@ -94,6 +179,27 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/content/pages') {
     res.writeHead(200)
     res.end(JSON.stringify({ items: filterItems(url) }))
+    return
+  }
+
+  if (url.pathname === '/content/taxonomy') {
+    res.writeHead(200)
+    res.end(JSON.stringify(taxonomy))
+    return
+  }
+
+  if (url.pathname === '/content/compare') {
+    const type = url.searchParams.get('type')
+    const a = url.searchParams.get('a')
+    const b = url.searchParams.get('b')
+    const treatment = url.searchParams.get('treatment')
+    if (!type || !a || !b || ((type === 'city' || type === 'country') && !treatment)) {
+      res.writeHead(400)
+      res.end(JSON.stringify({ message: 'Invalid compare params' }))
+      return
+    }
+    res.writeHead(200)
+    res.end(JSON.stringify(comparePayload(type, a, b, treatment)))
     return
   }
 
