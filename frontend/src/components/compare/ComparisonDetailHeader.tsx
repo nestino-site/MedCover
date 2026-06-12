@@ -1,15 +1,8 @@
-import { countryMeta } from '@/lib/content/hubs'
+'use client'
 
-// Build a flat key→meta lookup (e.g. 'spain' → { flag, name, cost, clinics, tagline })
-const LOCATION_META: Record<
-  string,
-  { flag: string; name: string; cost: string; clinics: string; tagline: string }
-> = Object.fromEntries(
-  Object.entries(countryMeta).map(([slug, meta]) => {
-    const key = slug.replace(/^guides\//, '').replace(/-ivf-guide$/, '')
-    return [key, meta]
-  }),
-)
+import { useEffect } from 'react'
+import { slugToLabel } from '@/lib/routes'
+import { trackCompareView } from '@/lib/analytics'
 
 const KNOWN_TREATMENTS = ['ivf', 'hair-transplant', 'dental', 'hair', 'cosmetic']
 const TREATMENT_LABELS: Record<string, string> = {
@@ -18,6 +11,14 @@ const TREATMENT_LABELS: Record<string, string> = {
   hair: 'Hair Restoration',
   'hair-transplant': 'Hair Transplant',
   cosmetic: 'Cosmetic Surgery',
+}
+
+export type LocationMeta = {
+  flag: string
+  name: string
+  cost: string
+  clinics: string
+  tagline: string
 }
 
 export function parseComparisonSlug(slug: string): {
@@ -48,18 +49,19 @@ export function parseComparisonSlug(slug: string): {
   return { treatment: TREATMENT_LABELS[treatmentKey] ?? 'Treatment', locations }
 }
 
-function locationLabel(key: string) {
-  return LOCATION_META[key]?.name ?? key.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ')
+function locationLabel(key: string, locationMeta: Record<string, LocationMeta>) {
+  return locationMeta[key]?.name ?? slugToLabel(key)
 }
 
 interface LocationCardProps {
   locationKey: string
+  locationMeta: Record<string, LocationMeta>
   isHighlighted?: boolean
 }
 
-function LocationCard({ locationKey, isHighlighted }: LocationCardProps) {
-  const meta = LOCATION_META[locationKey]
-  const name = meta?.name ?? locationLabel(locationKey)
+function LocationCard({ locationKey, locationMeta, isHighlighted }: LocationCardProps) {
+  const meta = locationMeta[locationKey]
+  const name = meta?.name ?? locationLabel(locationKey, locationMeta)
   const flag = meta?.flag ?? '🌍'
 
   return (
@@ -89,39 +91,37 @@ function LocationCard({ locationKey, isHighlighted }: LocationCardProps) {
 }
 
 interface ComparisonDetailHeaderProps {
-  /** The full slug path, e.g. ['compare', 'ivf-spain-vs-greece'] */
   slug: string[]
+  locationMeta: Record<string, LocationMeta>
 }
 
-export function ComparisonDetailHeader({ slug }: ComparisonDetailHeaderProps) {
+export function ComparisonDetailHeader({ slug, locationMeta }: ComparisonDetailHeaderProps) {
   const fullSlug = slug.join('/')
   const { treatment, locations } = parseComparisonSlug(fullSlug)
 
-  const locationLabels = locations.map(locationLabel)
+  useEffect(() => {
+    trackCompareView({ slug: fullSlug })
+  }, [fullSlug])
+
+  const locationLabels = locations.map((key) => locationLabel(key, locationMeta))
   const colsClass =
     locations.length === 3 ? 'grid-cols-3' : locations.length === 2 ? 'grid-cols-2' : 'grid-cols-1'
 
   return (
     <div className="border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-4 pb-10 pt-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
-        {/* Treatment badge */}
         <span className="inline-flex items-center rounded-full bg-[var(--color-primary-100)] px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[var(--color-primary-700)]">
           {treatment} Comparison
         </span>
 
-        {/* Speakable summary */}
         {locations.length >= 2 && (
-          <p
-            className="mt-3 text-sm text-[var(--color-neutral-600)]"
-            data-speakable="true"
-          >
+          <p className="mt-3 text-sm text-[var(--color-neutral-600)]" data-speakable="true">
             Side-by-side comparison of {treatment} treatment in{' '}
             {locationLabels.slice(0, -1).join(', ')} and {locationLabels.at(-1)} — costs,
             clinic quality, and patient outcomes from verified data.
           </p>
         )}
 
-        {/* Location cards */}
         <div className={`mt-6 grid gap-4 ${colsClass}`}>
           {locations.map((key, i) => (
             <div key={key} className="relative">
@@ -135,7 +135,7 @@ export function ComparisonDetailHeader({ slug }: ComparisonDetailHeaderProps) {
                   </span>
                 </div>
               )}
-              <LocationCard locationKey={key} isHighlighted={i === 0} />
+              <LocationCard locationKey={key} locationMeta={locationMeta} isHighlighted={i === 0} />
             </div>
           ))}
         </div>

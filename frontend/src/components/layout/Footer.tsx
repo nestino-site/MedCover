@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { getTaxonomy } from '@/lib/api/catalog'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
-import { hubPath } from '@/lib/content/site-nav'
-import { getFeaturedCountries } from '@/lib/content/hubs'
-import { getExploreHubs } from '@/lib/content/site-nav'
+import { hubPath, getExploreHubs } from '@/lib/content/site-nav'
+import { getFeaturedCountriesFromTaxonomy } from '@/lib/content/hubs'
 
 const companyLinks = [
   { key: 'privacy' as const, href: '/privacy/' },
@@ -28,17 +28,18 @@ type FooterProps = {
   locale: Locale
 }
 
-export function Footer({ locale }: FooterProps) {
+export async function Footer({ locale }: FooterProps) {
   const t = getDictionary(locale)
   const year = 2026
+  const taxonomy = await getTaxonomy()
   const exploreHubs = getExploreHubs()
-  const featured = getFeaturedCountries(locale).slice(0, 5)
+  const featured = getFeaturedCountriesFromTaxonomy(taxonomy, locale).slice(0, 5)
 
   const mobileEssential = [
-    { label: t.nav.countries, href: hubPath('countries', locale) },
-    { label: t.nav.cities, href: hubPath('cities', locale) },
+    { label: t.nav.clinics, href: hubPath('clinics', locale) },
     { label: t.nav.treatments, href: hubPath('treatments', locale) },
     { label: t.nav.guides, href: hubPath('guides', locale) },
+    { label: t.nav.costs, href: hubPath('costs', locale) },
     { label: t.footer.links.privacy, href: localizedPath('/privacy', locale) },
   ]
 
@@ -140,7 +141,7 @@ export function Footer({ locale }: FooterProps) {
                 ))}
                 <li>
                   <Link
-                    href={hubPath('countries', locale)}
+                    href={hubPath('clinics', locale)}
                     className="text-sm font-medium text-[var(--color-accent-400)] hover:text-[var(--color-accent-300)]"
                   >
                     {t.footer.allCountries} →

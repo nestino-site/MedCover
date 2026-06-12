@@ -1,91 +1,42 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
+import { getTaxonomy } from '@/lib/api/catalog'
+import { loadPublishedPage } from '@/lib/api/content'
 import { HubHero } from '@/components/hubs/HubHero'
 import { HubPageLayout } from '@/components/hubs/HubPageLayout'
 import { GuidePostsList, GuidePostsListSkeleton } from '@/components/hubs/GuidePostsList'
 import { TreatmentsList, TreatmentsListSkeleton } from '@/components/hubs/TreatmentsList'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
-import { JsonLd } from '@/components/shared/JsonLd'
+import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
 import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
-import { buildCollectionPage } from '@/lib/schema/hub-collection'
+import { cmsPageSlug } from '@/lib/routes'
+import { cmsMetadataForSlug, hubCopyFromCmsPage } from '@/lib/seo/cms-seo'
 import type { FaqItem } from '@/lib/api/types'
 
 const locale = activeLocale
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = getDictionary(locale)
-  return {
-    title: t.meta.treatments.title,
-    description: t.meta.treatments.description,
-    alternates: { canonical: `${SITE_URL}/treatments/` },
-    openGraph: {
-      title: t.meta.treatments.title,
-      description: t.meta.treatments.description,
-      url: `${SITE_URL}/treatments/`,
-      type: 'website',
-    },
-  }
+  return cmsMetadataForSlug(cmsPageSlug('treatments'))
 }
 
-const treatmentFaqs: FaqItem[] = [
-  {
-    question: 'Which medical treatments are available abroad through MedCover?',
-    answer:
-      'MedCover currently has fully active guides for IVF (in vitro fertilisation), covering 6 countries, 20+ cities, and 80+ verified clinics. Dental treatment, hair transplant, and oncology guides are in development. All published guides are sourced from direct patient interviews — not clinic submissions.',
-  },
-  {
-    question: 'Why do people travel abroad for IVF?',
-    answer:
-      'The main reasons are cost, waiting times, and treatment access. IVF in European destination countries costs €1,900–€3,500, compared to £5,000–£8,000 in the UK or $15,000–$25,000 in the US. Some patients also travel to access donor egg treatment, which is restricted or unavailable in their home country.',
-  },
-  {
-    question: 'How does MedCover verify patient data?',
-    answer:
-      'MedCover collects data through direct patient interviews — not clinic-provided statistics or review platforms that clinics can influence. Patients verify their treatment, clinic, and cost details. Truth Scores reflect aggregated patient feedback on cost transparency, communication quality, clinical outcome, and aftercare.',
-  },
-  {
-    question: 'What treatments are coming to MedCover next?',
-    answer:
-      'After IVF, MedCover is building verified guides for dental treatment abroad, hair transplant procedures, and oncology second opinions. Each new category will follow the same methodology: direct patient interviews before any clinic information is published.',
-  },
-  {
-    question: 'How do I know if a treatment abroad is right for me?',
-    answer:
-      'Start by reading country and city guides for your treatment on MedCover to understand real costs, common patient experiences, and what to watch out for. Then compare clinics by Truth Score, not price alone. For complex treatments like IVF, speak to your home consultant about protocol options before committing to a clinic abroad.',
-  },
-]
-
-export default function TreatmentsHubPage() {
+export default async function TreatmentsHubPage() {
   const t = getDictionary(locale)
-
-  const schema = buildCollectionPage({
-    url: `${SITE_URL}/treatments/`,
-    name: t.meta.treatments.title,
-    description: t.meta.treatments.description,
-    items: [
-      {
-        name: 'IVF abroad',
-        url: `${SITE_URL}/treatments/ivf/`,
-        description: 'IVF (in vitro fertilisation) abroad — 6 countries, 20+ cities, 80+ verified clinics',
-      },
-    ],
-    faqs: treatmentFaqs,
-    breadcrumbs: [
-      { name: 'Home', slug: '/', position: 1 },
-      { name: 'Treatments', slug: '/treatments/', position: 2 },
-    ],
-  })
+  const [taxonomy, cms] = await Promise.all([
+    getTaxonomy(),
+    loadPublishedPage('/treatments'),
+  ])
+  const hubFaqs: FaqItem[] = cms.status === 'ok' ? cms.page.faq : []
+  const hubCopy = cms.status === 'ok' ? hubCopyFromCmsPage(cms.page) : {}
 
   return (
     <>
-      <JsonLd schema={schema} />
+      <CmsPageJsonLd result={cms} />
       <HubHero
         variant="compact"
         eyebrow={t.hubs.treatments.hero.eyebrow}
-        title={t.hubs.treatments.hero.title}
-        subtitle={t.hubs.treatments.hero.subtitle}
+        title={hubCopy.title ?? t.hubs.treatments.hero.title}
+        subtitle={hubCopy.description ?? t.hubs.treatments.hero.subtitle}
       />
       <HubPageLayout
         locale={locale}
@@ -102,9 +53,11 @@ export default function TreatmentsHubPage() {
           <TreatmentsList locale={locale} />
         </Suspense>
 
-        <div className="mt-14 border-t border-[var(--color-border)] pt-8">
-          <FaqAccordion faqs={treatmentFaqs} title="Medical treatment abroad — common questions" />
-        </div>
+        {hubFaqs.length > 0 && (
+          <div className="mt-14 border-t border-[var(--color-border)] pt-8">
+            <FaqAccordion faqs={hubFaqs} title="Medical treatment abroad — common questions" />
+          </div>
+        )}
       </HubPageLayout>
     </>
   )

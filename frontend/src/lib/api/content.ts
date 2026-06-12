@@ -3,7 +3,7 @@ import { cacheLife, cacheTag } from 'next/cache'
 import { isTrafficEngineUnreachable, trafficEngineFetch } from './client'
 import { normalizePagePayload } from './normalize-page-payload'
 import {
-  ContentPageSchema,
+  ContentPageSchemaV22,
   ContentListResponseSchema,
   type ContentPage,
   type ContentListItem,
@@ -41,7 +41,7 @@ async function parsePageResponse(
   }
 
   const json = await res.json()
-  const parsed = ContentPageSchema.safeParse(normalizePagePayload(json))
+  const parsed = ContentPageSchemaV22.safeParse(normalizePagePayload(json))
   if (!parsed.success) {
     console.error(
       `[Traffic Engine] invalid page payload for ${label}:`,

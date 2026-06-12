@@ -2,13 +2,13 @@ import 'server-only'
 import type { ContentListItem } from '@/lib/api/types'
 import { canonicalSlugPath } from '@/lib/api/content'
 import { localizedPath, type Locale } from '@/lib/i18n'
+import type { Taxonomy } from '@/lib/api/types'
 import {
-  countryMeta,
   filterPagesByHub,
-  getFeaturedCountries,
+  getCountryDisplayFromTaxonomy,
   pageTitleFromSlug,
-  slugToLabel,
 } from '@/lib/content/hubs'
+import { slugToLabel } from '@/lib/routes'
 import { findCanonicalCostSlug, parseCostTail } from '@/lib/content/slug-canonical'
 import { loadGuideSummaries } from '@/lib/content/guide-display'
 
@@ -51,8 +51,9 @@ export function parseCostSlug(fullSlug: string): ParsedCostSlug | null {
   return null
 }
 
-function countryMetaForKey(countryKey: string) {
-  return countryMeta[`guides/${countryKey}-ivf-guide`]
+function countryDisplayForKey(countryKey: string, taxonomy?: Taxonomy) {
+  if (!taxonomy) return null
+  return getCountryDisplayFromTaxonomy(countryKey, taxonomy)
 }
 
 function isCanonicalCostPage(slug: string, publishedSlugs: string[]): boolean {
@@ -81,11 +82,12 @@ export function getRelatedCostSlugs(
   currentSlug: string,
   allCostPages: ContentListItem[],
   maxItems = 6,
+  taxonomy?: Taxonomy,
 ): string[] {
   const normalized = currentSlug.replace(/^\//, '')
   const parsed = parseCostSlug(normalized)
   const slugs: string[] = []
-  const featuredOrder = getFeaturedCountries().map((c) => c.slug.replace(/^guides\//, '').replace(/-ivf-guide$/, ''))
+  const featuredOrder = taxonomy?.countries.map((c) => c.slug) ?? []
 
   const pushUnique = (slug: string) => {
     const s = slug.replace(/^\//, '')
@@ -139,15 +141,16 @@ function buildCostArticleItem(
   page: ContentListItem,
   locale: Locale,
   summaries: Map<string, { title: string; description: string }>,
+  taxonomy?: Taxonomy,
 ): CostArticleItem | null {
   const slug = page.slug.replace(/^\//, '')
   const parsed = parseCostSlug(slug)
   if (!parsed) return null
 
-  const meta = countryMetaForKey(parsed.countryKey)
+  const display = countryDisplayForKey(parsed.countryKey, taxonomy)
   const seo = summaries.get(slug)
   const title = seo?.title?.trim() || pageTitleFromSlug(slug)
-  const description = seo?.description?.trim() || meta?.tagline || parsed.label
+  const description = seo?.description?.trim() || display?.tagline || parsed.label
 
   return {
     slug,
@@ -156,9 +159,9 @@ function buildCostArticleItem(
     description,
     updatedAt: page.updatedAt,
     countryKey: parsed.countryKey,
-    countryName: meta?.name ?? slugToLabel(parsed.countryKey),
-    flag: meta?.flag ?? '🌍',
-    costEstimate: meta?.cost ?? '',
+    countryName: display?.name ?? slugToLabel(parsed.countryKey),
+    flag: display?.flag ?? '🌍',
+    costEstimate: display?.cost ?? '',
     treatmentId: parsed.treatmentId,
     label: parsed.label,
   }
@@ -168,6 +171,7 @@ export async function loadCostArticlesBySlugs(
   slugs: string[],
   pages: ContentListItem[],
   locale: Locale,
+  taxonomy?: Taxonomy,
 ): Promise<CostArticleItem[]> {
   const normalized = [...new Set(slugs.map((s) => s.replace(/^\//, '')))]
   if (normalized.length === 0) return []
@@ -183,7 +187,7 @@ export async function loadCostArticlesBySlugs(
         language: locale,
         updatedAt: '',
       }
-      return buildCostArticleItem(page, locale, summaries)
+      return buildCostArticleItem(page, locale, summaries, taxonomy)
     })
     .filter((item): item is CostArticleItem => item != null)
 }
@@ -193,8 +197,9 @@ export async function loadRelatedCostArticles(
   locale: Locale,
   pages: ContentListItem[],
   maxItems = 6,
+  taxonomy?: Taxonomy,
 ): Promise<CostArticleItem[]> {
   const costPages = getPublishedCostPages(pages, locale)
-  const relatedSlugs = getRelatedCostSlugs(currentSlugPath, costPages, maxItems)
-  return loadCostArticlesBySlugs(relatedSlugs, pages, locale)
+  const relatedSlugs = getRelatedCostSlugs(currentSlugPath, costPages, maxItems, taxonomy)
+  return loadCostArticlesBySlugs(relatedSlugs, pages, locale, taxonomy)
 }

@@ -10,6 +10,8 @@ import {
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 import { hubPath } from '@/lib/content/site-nav'
+import { SearchTriggerButton } from '@/components/search/SearchModal'
+import { Button } from '@/components/ui/Button'
 
 type HeaderProps = {
   locale: Locale
@@ -36,16 +38,11 @@ export function Header({ locale }: HeaderProps) {
         </nav>
 
         <div className="flex items-center gap-3">
+          <SearchTriggerButton />
           <LanguageSwitcher />
-          <Link
-            href={hubPath('clinics', locale)}
-            className="hidden items-center gap-2 rounded-xl bg-[var(--color-primary-900)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-800)] md:inline-flex"
-          >
+          <Button href={hubPath('clinics', locale)} variant="primary" size="md" className="hidden md:inline-flex">
             {t.nav.matchClinic}
-            <span className="rounded-md bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
-              {t.nav.soon}
-            </span>
-          </Link>
+          </Button>
           <Suspense fallback={<HeaderMobileMenuFallback locale={locale} />}>
             <HeaderMobileMenu locale={locale} />
           </Suspense>

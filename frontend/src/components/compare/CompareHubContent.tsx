@@ -1,20 +1,15 @@
 import Link from 'next/link'
 import { cacheLife, cacheTag } from 'next/cache'
+import { getTaxonomy } from '@/lib/api/catalog'
 import { listPublishedPagesSafe } from '@/lib/api/content'
-import { filterPagesByHub } from '@/lib/content/hubs'
+import { filterPagesByHub, getCountryDisplayFromTaxonomy } from '@/lib/content/hubs'
 import { cacheTags } from '@/lib/cache/tags'
-import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
-import { countryMeta } from '@/lib/content/hubs'
-
-// Map flat country key → metadata (e.g. 'spain' → { flag, name, cost, ... })
-const LOCATION_META: Record<string, { flag: string; name: string; cost: string; clinics: string }> =
-  Object.fromEntries(
-    Object.entries(countryMeta).map(([slug, meta]) => {
-      // slug like 'guides/spain-ivf-guide' → key 'spain'
-      const key = slug.replace(/^guides\//, '').replace(/-ivf-guide$/, '')
-      return [key, meta]
-    }),
-  )
+import { getDictionary, type Locale } from '@/lib/i18n'
+import {
+  clinicsHubPath,
+  costHubPath,
+  countriesHubPath,
+} from '@/lib/routes'
 
 const KNOWN_TREATMENTS = ['ivf', 'hair-transplant', 'dental', 'hair', 'cosmetic']
 
@@ -41,7 +36,6 @@ function parseComparisonSlug(slug: string): {
 } {
   const normalized = slug.replace(/^\//, '')
   const segment = normalized.split('/').pop() ?? normalized
-  // strip trailing year like -2026
   const cleaned = segment.replace(/-\d{4}$/, '')
   const vsParts = cleaned.split('-vs-')
 
@@ -68,9 +62,15 @@ function parseComparisonSlug(slug: string): {
   }
 }
 
-function LocationChip({ locationKey }: { locationKey: string }) {
-  const meta = LOCATION_META[locationKey]
-  const display = meta?.name ?? locationKey.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
+function LocationChip({
+  locationKey,
+  locationMeta,
+}: {
+  locationKey: string
+  locationMeta: Record<string, { flag: string; name: string; cost: string }>
+}) {
+  const meta = locationMeta[locationKey]
+  const display = meta?.name ?? locationKey.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ')
   const flag = meta?.flag ?? '🌍'
   return (
     <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary-900)]">
@@ -84,18 +84,20 @@ function ComparisonCard({
   slug,
   locale,
   t,
+  locationMeta,
 }: {
   slug: string
   locale: Locale
   t: ReturnType<typeof getDictionary>
+  locationMeta: Record<string, { flag: string; name: string; cost: string }>
 }) {
   const normalizedSlug = slug.replace(/^\//, '')
-  const href = localizedPath(`/${normalizedSlug}`, locale)
+  const href = `/${normalizedSlug}`
   const { treatment, treatmentKey, locations } = parseComparisonSlug(slug)
   const badgeClass = TREATMENT_BADGE_CLASS[treatmentKey] ?? TREATMENT_BADGE_CLASS.ivf
 
-  const locationsMeta = locations.map((key) => LOCATION_META[key])
-  const costs = locationsMeta.filter(Boolean).map((m) => m!.cost)
+  const locationsMeta = locations.map((key) => locationMeta[key])
+  const costs = locationsMeta.filter(Boolean).map((m) => m!.cost).filter(Boolean)
   const costRange =
     costs.length >= 2 ? `${costs[0]} — ${costs[costs.length - 1]}` : costs[0] ?? null
 
@@ -115,7 +117,7 @@ function ComparisonCard({
                 {t.hubs.compareHub.vsLabel}
               </span>
             )}
-            <LocationChip locationKey={key} />
+            <LocationChip locationKey={key} locationMeta={locationMeta} />
           </span>
         ))}
       </div>
@@ -142,22 +144,22 @@ function EmptyState({ locale, t }: { locale: Locale; t: ReturnType<typeof getDic
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Link
-          href={localizedPath('/costs/', locale)}
+          href={costHubPath(locale)}
           className="rounded-full border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-medium text-[var(--color-primary-900)] transition hover:border-[var(--color-primary-300)] hover:bg-[var(--color-primary-50)]"
         >
           Cost guides →
         </Link>
         <Link
-          href={localizedPath('/countries/', locale)}
+          href={countriesHubPath(locale)}
           className="rounded-full border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-medium text-[var(--color-primary-900)] transition hover:border-[var(--color-primary-300)] hover:bg-[var(--color-primary-50)]"
         >
           Country guides →
         </Link>
         <Link
-          href={localizedPath('/cities/', locale)}
+          href={clinicsHubPath(locale)}
           className="rounded-full border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-medium text-[var(--color-primary-900)] transition hover:border-[var(--color-primary-300)] hover:bg-[var(--color-primary-50)]"
         >
-          City guides →
+          Clinic directory →
         </Link>
       </div>
     </div>
@@ -170,14 +172,20 @@ export async function CompareHubContent({ locale }: { locale: Locale }) {
   cacheTag(cacheTags.publishedPages, cacheTags.hub('compare'))
 
   const t = getDictionary(locale)
-  const pages = await listPublishedPagesSafe()
+  const [taxonomy, pages] = await Promise.all([getTaxonomy(), listPublishedPagesSafe()])
   const items = filterPagesByHub(pages, 'compare', locale)
+
+  const locationMeta = Object.fromEntries(
+    taxonomy.countries.map((country) => {
+      const display = getCountryDisplayFromTaxonomy(country.slug, taxonomy, locale)
+      return [country.slug, { flag: display.flag, name: display.name, cost: display.cost }]
+    }),
+  )
 
   if (items.length === 0) {
     return <EmptyState locale={locale} t={t} />
   }
 
-  // Group by treatment
   const groups: Record<string, typeof items> = {}
   for (const page of items) {
     const { treatmentKey } = parseComparisonSlug(page.slug)
@@ -199,6 +207,7 @@ export async function CompareHubContent({ locale }: { locale: Locale }) {
                 slug={page.slug}
                 locale={locale}
                 t={t}
+                locationMeta={locationMeta}
               />
             ))}
           </div>

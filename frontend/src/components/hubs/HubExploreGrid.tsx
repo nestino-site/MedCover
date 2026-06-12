@@ -1,8 +1,8 @@
 import Link from 'next/link'
+import { getTaxonomy } from '@/lib/api/catalog'
 import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, type Locale } from '@/lib/i18n'
-import { partitionGuides } from '@/lib/content/hubs'
-import { getFeaturedCountries } from '@/lib/content/hubs'
+import { partitionGuides, getFeaturedCountriesFromTaxonomy } from '@/lib/content/hubs'
 import {
   getExploreHubs,
   hubPath,
@@ -101,9 +101,9 @@ function HubCard({ hub, locale, description }: { hub: SiteHub; locale: Locale; d
 
 export async function HubExploreGrid({ locale }: { locale: Locale }) {
   const t = getDictionary(locale)
-  const pages = await listPublishedPagesSafe()
+  const [taxonomy, pages] = await Promise.all([getTaxonomy(), listPublishedPagesSafe()])
   const { countries, cities } = partitionGuides(pages, locale)
-  const countryCount = countries.length || getFeaturedCountries(locale).length
+  const countryCount = countries.length || getFeaturedCountriesFromTaxonomy(taxonomy, locale).length
   const cityCount = cities.length
 
   const hubs = getExploreHubs()

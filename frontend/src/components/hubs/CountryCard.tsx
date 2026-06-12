@@ -1,7 +1,10 @@
+'use client'
+
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import type { getDictionary } from '@/lib/i18n'
 import type { CityDisplay } from '@/lib/content/hubs'
+import { trackCardClick } from '@/lib/analytics'
 
 export interface TreatmentTag {
   id: string
@@ -60,7 +63,7 @@ export function CountryCard({
 }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-white transition-colors hover:border-[var(--color-primary-200)]">
-      <Link href={data.href} className="flex flex-col px-4 pt-4 pb-3">
+      <Link href={data.href} onClick={() => trackCardClick({ content_type: 'country', item_id: data.slug, item_name: data.name })} className="flex flex-col px-4 pt-4 pb-3">
         <div className="flex items-center gap-3">
           <span className="text-3xl leading-none" role="img" aria-label={data.name}>
             {data.flag}

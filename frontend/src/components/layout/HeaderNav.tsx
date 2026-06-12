@@ -1,13 +1,15 @@
 import { listPublishedPagesSafe } from '@/lib/api/content'
 import { loadGuideGroupsForPages, limitGuideGroupsForNav } from '@/lib/content/guide-display'
-import { getFeaturedCountries, type GuideCountryGroup } from '@/lib/content/hubs'
+import { getFeaturedCountriesFromTaxonomy, type GuideCountryGroup } from '@/lib/content/hubs'
+import { getTaxonomy } from '@/lib/api/catalog'
+import { treatmentsForDisplay } from '@/lib/content/treatments'
 import { type Dictionary, type Locale } from '@/lib/i18n'
 import { MobileMenu } from './MobileMenu'
 import { NavMegaMenu } from './NavMegaMenu'
 
 async function loadGuideGroups(locale: Locale): Promise<GuideCountryGroup[]> {
-  const pages = await listPublishedPagesSafe()
-  const groups = await loadGuideGroupsForPages(pages, locale)
+  const [pages, taxonomy] = await Promise.all([listPublishedPagesSafe(), getTaxonomy()])
+  const groups = await loadGuideGroupsForPages(pages, locale, taxonomy)
   return limitGuideGroupsForNav(groups, 12)
 }
 
@@ -17,8 +19,10 @@ type HeaderMenuProps = {
 }
 
 export async function HeaderMegaMenu({ locale, t }: HeaderMenuProps) {
-  const featuredCountries = getFeaturedCountries(locale)
+  const taxonomy = await getTaxonomy()
+  const featuredCountries = getFeaturedCountriesFromTaxonomy(taxonomy, locale)
   const guideGroups = await loadGuideGroups(locale)
+  const treatments = treatmentsForDisplay(taxonomy)
 
   return (
     <NavMegaMenu
@@ -26,6 +30,7 @@ export async function HeaderMegaMenu({ locale, t }: HeaderMenuProps) {
       t={t}
       featuredCountries={featuredCountries}
       guideGroups={guideGroups}
+      treatments={treatments}
     />
   )
 }
@@ -35,17 +40,36 @@ export function HeaderMegaMenuFallback({ locale, t }: HeaderMenuProps) {
     <NavMegaMenu
       locale={locale}
       t={t}
-      featuredCountries={getFeaturedCountries(locale)}
+      featuredCountries={[]}
       guideGroups={[]}
+      treatments={[]}
     />
   )
 }
 
 export async function HeaderMobileMenu({ locale }: Pick<HeaderMenuProps, 'locale'>) {
+  const taxonomy = await getTaxonomy()
+  const featuredCountries = getFeaturedCountriesFromTaxonomy(taxonomy, locale)
   const guideGroups = await loadGuideGroups(locale)
-  return <MobileMenu locale={locale} guideGroups={guideGroups} />
+  const treatments = treatmentsForDisplay(taxonomy)
+
+  return (
+    <MobileMenu
+      locale={locale}
+      guideGroups={guideGroups}
+      featuredCountries={featuredCountries}
+      treatments={treatments}
+    />
+  )
 }
 
 export function HeaderMobileMenuFallback({ locale }: Pick<HeaderMenuProps, 'locale'>) {
-  return <MobileMenu locale={locale} guideGroups={[]} />
+  return (
+    <MobileMenu
+      locale={locale}
+      guideGroups={[]}
+      featuredCountries={[]}
+      treatments={[]}
+    />
+  )
 }

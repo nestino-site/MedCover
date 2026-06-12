@@ -2,200 +2,158 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { getContentListSafe, getPageBySlug, listPublishedPagesSafe } from '@/lib/api/content'
+import { getTaxonomy } from '@/lib/api/catalog'
+import { getContentListSafe, getPageBySlug, listPublishedPagesSafe, loadPublishedPage } from '@/lib/api/content'
+import { PublishedArticleView } from '@/lib/content/published-page-route'
+import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
+import { cmsMetadataForSlug, heroAnswerFromCmsPage } from '@/lib/seo/cms-seo'
 import {
-  getPublishedPageMetadata,
-  PublishedArticleView,
-} from '@/lib/content/published-page-route'
-import { buildTreatmentPageSchemas } from '@/lib/schema/treatment-page'
-import { treatmentCategories } from '@/lib/content/treatments'
+  treatmentsFromTaxonomy,
+  countryHasTreatment,
+} from '@/lib/content/treatments'
 import {
-  countryMeta,
-  getFeaturedCountries,
+  getFeaturedCountriesFromTaxonomy,
   getCitiesForCountry,
-  getCountryLandingPath,
   getRelatedGuideSlugsForTreatment,
   partitionGuides,
 } from '@/lib/content/hubs'
+import { getTreatmentTagsForCountry } from '@/lib/content/treatments'
 import { loadGuideArticlesBySlugs } from '@/lib/content/guide-posts'
-import { JsonLd } from '@/components/shared/JsonLd'
-import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
-import { SpeakableSummary } from '@/components/shared/SpeakableSummary'
+import { EntityHero } from '@/components/shared/EntityHero'
 import { RelatedArticles } from '@/components/shared/RelatedArticles'
+import { Button } from '@/components/ui/Button'
+import { SectionHeading } from '@/components/ui/SectionHeading'
+import { CountryCard, type CountryCardData } from '@/components/hubs/CountryCard'
 import { getDictionary, localizedPath } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 import { en } from '@/lib/i18n/en'
+import { costTreatmentPath } from '@/lib/routes'
 import type { FaqItem } from '@/lib/api/types'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
-const locale = activeLocale
 
 type Params = Promise<{ treatment: string }>
 
 export async function generateStaticParams() {
-  const pages = await listPublishedPagesSafe()
+  const [pages, taxonomy] = await Promise.all([listPublishedPagesSafe(), getTaxonomy()])
   const fromApi = pages
     .map((page) => page.slug.replace(/^\//, ''))
     .filter((slug) => /^treatments\/[^/]+$/.test(slug))
     .map((slug) => ({ treatment: slug.replace(/^treatments\//, '') }))
 
-  const fromCategories = treatmentCategories
-    .filter((category) => category.status === 'active')
-    .map((category) => ({ treatment: category.id }))
+  const fromCategories = treatmentsFromTaxonomy(taxonomy).map((category) => ({
+    treatment: category.id,
+  }))
 
   const seen = new Set<string>()
-  return [...fromApi, ...fromCategories].filter(({ treatment }) => {
+  const params = [...fromApi, ...fromCategories].filter(({ treatment }) => {
     if (seen.has(treatment)) return false
     seen.add(treatment)
     return true
   })
-}
-
-function getTreatmentBySlug(slug: string) {
-  return treatmentCategories.find((c) => c.id === slug) ?? null
-}
-
-const TREATMENT_FAQS: Record<string, FaqItem[]> = {
-  ivf: [
-    {
-      question: 'Which country is cheapest for IVF in Europe?',
-      answer:
-        'North Macedonia has the lowest IVF costs in Europe, starting from €1,900. Czech Republic and Turkey also offer competitive pricing from €2,400–€2,600.',
-    },
-    {
-      question: 'Is IVF abroad safe?',
-      answer:
-        'Yes — when choosing internationally accredited clinics with verified patient reviews. MedCover Truth Scores help you compare clinic quality across countries.',
-    },
-    {
-      question: 'How long do I need to stay for IVF abroad?',
-      answer:
-        'Most IVF cycles require 2–3 visits: initial consultations (often remote), stimulation monitoring (7–10 days), and embryo transfer. Many patients combine monitoring with their home clinic.',
-    },
-    {
-      question: 'What is included in the IVF price abroad?',
-      answer:
-        'Base prices usually cover egg retrieval, fertilisation, and one embryo transfer. Medications (€500–€2,000), genetic testing (PGT-A), and donor eggs are typically additional.',
-    },
-    {
-      question: 'Can I use donor eggs abroad?',
-      answer:
-        'Yes — Spain, Greece, and Czech Republic are especially popular for donor egg IVF due to strong regulatory frameworks, experienced donors, and transparent consent processes.',
-    },
-  ],
+  return params.length > 0 ? params : [{ treatment: 'ivf' }]
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { treatment } = await params
-  const slugPath = `/treatments/${treatment}`
-  const backendPage = await getPageBySlug(slugPath)
-
-  if (backendPage) {
-    return getPublishedPageMetadata({ status: 'ok', page: backendPage }, slugPath)
-  }
-
-  const cat = getTreatmentBySlug(treatment)
-  if (!cat) return { title: 'Treatment | MedCover' }
-
-  const title = `${cat.name} Abroad: Countries, Costs & Clinics | MedCover`
-  const description = `Compare ${cat.name} destinations abroad — verified patient data, real costs, and clinic Truth Scores across ${Object.keys(countryMeta).length} countries.`
-  const canonicalUrl = `${SITE_URL}/treatments/${treatment}/`
-
-  return {
-    title,
-    description,
-    alternates: { canonical: canonicalUrl },
-    openGraph: { title, description, url: canonicalUrl, type: 'website', siteName: 'MedCover' },
-    twitter: { card: 'summary_large_image', title, description },
-  }
+  return cmsMetadataForSlug(`/treatments/${treatment}`)
 }
 
 async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }) {
+  const locale = activeLocale
   const t = getDictionary(locale)
-  const cat = getTreatmentBySlug(treatmentSlug)
+  const taxonomy = await getTaxonomy()
+  const cat = treatmentsFromTaxonomy(taxonomy).find((c) => c.id === treatmentSlug)
   if (!cat) notFound()
 
   const allPages = await getContentListSafe()
   const { countries: countryPages, cities: cityPages } = partitionGuides(allPages, locale)
-  const relatedSlugs = getRelatedGuideSlugsForTreatment(countryPages, cityPages, locale)
-  const relatedArticles = await loadGuideArticlesBySlugs(relatedSlugs, allPages, locale)
+  const relatedSlugs = getRelatedGuideSlugsForTreatment(countryPages, cityPages)
+  const relatedArticles = await loadGuideArticlesBySlugs(relatedSlugs, allPages, locale, taxonomy)
   const th = en.treatmentHub
 
-  const countryDisplays =
-    countryPages.length > 0
-      ? countryPages.map((p) => {
-          const slug = p.slug.replace(/^\//, '')
-          const meta = countryMeta[slug]
-          if (!meta) return null
-          const key = slug.replace(/^guides\//, '').replace(/-ivf-guide$/, '')
-          return { key, meta, href: getCountryLandingPath(key, locale) }
-        }).filter((c): c is NonNullable<typeof c> => c !== null)
-      : getFeaturedCountries(locale).map((d) => {
-          const key = d.slug.replace(/^guides\//, '').replace(/-ivf-guide$/, '')
-          return { key, meta: d, href: getCountryLandingPath(key, locale) }
-        })
+  const countryCards: CountryCardData[] = getFeaturedCountriesFromTaxonomy(taxonomy, locale)
+    .filter((d) => {
+      const key = d.slug.replace(/^guides\//, '').replace(/-ivf-guide$/, '')
+      return countryHasTreatment(taxonomy, key, treatmentSlug)
+    })
+    .map((d) => {
+      const key = d.slug.replace(/^guides\//, '').replace(/-ivf-guide$/, '')
+      return {
+        slug: d.slug,
+        countryKey: key,
+        href: d.href,
+        guideHref: d.guideHref,
+        name: d.name,
+        flag: d.flag,
+        tagline: d.tagline,
+        cost: d.cost,
+        clinics: d.clinics,
+        cities: getCitiesForCountry(key, cityPages, locale, taxonomy),
+        treatments: getTreatmentTagsForCountry(taxonomy, key),
+        costNumeric: 0,
+        clinicsNumeric: 0,
+      }
+    })
 
-  const faqs = TREATMENT_FAQS[treatmentSlug] ?? []
-  const canonicalUrl = `${SITE_URL}/treatments/${treatmentSlug}/`
+  const cms = await loadPublishedPage(`/treatments/${treatmentSlug}`)
+  const faqs: FaqItem[] = cms.status === 'ok' ? cms.page.faq : []
+  const cmsAnswer = cms.status === 'ok' ? heroAnswerFromCmsPage(cms.page) : undefined
 
-  const breadcrumbs = [
-    { name: t.breadcrumb.home, slug: '/', position: 1 },
-    { name: t.nav.treatments, slug: '/treatments', position: 2 },
-    { name: cat.name, slug: `/treatments/${treatmentSlug}`, position: 3 },
-  ]
-
-  const schemas = buildTreatmentPageSchemas({
-    treatmentId: treatmentSlug,
-    canonicalUrl,
-    metaTitle: `${cat.name} Abroad: Countries, Costs & Clinics | MedCover`,
-    metaDescription: `Compare ${cat.name} destinations — verified patient data and real costs.`,
-    countries: countryDisplays.map((c) => ({
-      name: c.meta.name,
-      href: c.href,
-      countryKey: c.key,
-    })),
-    faqs,
-  })
+  const breadcrumbs =
+    cms.status === 'ok' && cms.page.breadcrumbs.length > 0
+      ? cms.page.breadcrumbs
+      : [
+          { name: t.breadcrumb.home, slug: '/', position: 1 },
+          { name: t.nav.treatments, slug: '/treatments', position: 2 },
+          { name: cat.name, slug: `/treatments/${treatmentSlug}`, position: 3 },
+        ]
 
   return (
     <>
-      <JsonLd schema={schemas} />
-      <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6 lg:px-8">
-        <Breadcrumb items={breadcrumbs.slice(1)} homeHref={localizedPath('/', locale)} />
-
-        <div className="mt-6 space-y-12">
-          {/* Hero */}
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-accent-600)]">
-              Treatment Guide
-            </p>
-            <h1 className="mt-2 text-4xl font-bold tracking-tight text-[var(--color-primary-950)]">
-              {cat.name} Abroad
-            </h1>
-            <SpeakableSummary label="Quick Summary">
-              <p className="text-lg text-[var(--color-neutral-600)]">
-                {cat.name} abroad starts from €1,900 across {countryDisplays.length} verified destinations.
-                Compare clinics, real costs, and patient experiences before you decide.
-              </p>
-            </SpeakableSummary>
-
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Link
-                href={`/treatments/${treatmentSlug}/costs`}
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary-600)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)]"
-              >
-                Compare costs →
-              </Link>
-              <Link
-                href={`/countries/?treatment=${treatmentSlug}`}
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-5 py-2.5 text-sm font-semibold text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-100)]"
-              >
-                Browse countries
-              </Link>
-            </div>
+      <CmsPageJsonLd result={cms} />
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <EntityHero
+          breadcrumbs={breadcrumbs.slice(1)}
+          eyebrow="Treatment Guide"
+          title={`${cat.name} Abroad`}
+          answer={cmsAnswer}
+          answerLabel="Quick Summary"
+        >
+          <div className="flex flex-wrap gap-3">
+            <Button href={costTreatmentPath(treatmentSlug, locale)} variant="primary">
+              Compare costs →
+            </Button>
+            <Button
+              href={localizedPath(`/countries/?treatment=${treatmentSlug}`, locale)}
+              variant="ghost"
+            >
+              Browse countries
+            </Button>
           </div>
+        </EntityHero>
+
+        <div className="space-y-12">
+          <section aria-labelledby="countries-heading">
+            <SectionHeading
+              title={`Destinations offering ${cat.name}`}
+              action={
+                <Link
+                  href={localizedPath('/guides/', locale)}
+                  className="text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
+                >
+                  All guides →
+                </Link>
+              }
+            />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {countryCards.map((card) => (
+                <CountryCard key={card.countryKey} data={card} t={t} />
+              ))}
+            </div>
+          </section>
 
           <RelatedArticles
             eyebrow={th.relatedArticles.eyebrow}
@@ -204,86 +162,6 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
             emptyMessage={th.relatedArticles.empty}
           />
 
-          <section aria-labelledby="countries-heading">
-            <h2
-              id="countries-heading"
-              className="mb-4 text-xl font-bold tracking-tight text-[var(--color-primary-950)]"
-            >
-              Destinations offering {cat.name}
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {countryDisplays.map((c) => {
-                const cities = getCitiesForCountry(c.key, cityPages, locale)
-                const guideHref = `/guides/${c.key}-ivf-guide`
-                return (
-                  <article
-                    key={c.key}
-                    className="flex flex-col rounded-xl border border-[var(--color-border)] bg-white"
-                  >
-                    <div className="flex items-center gap-3 px-4 py-4">
-                      <span className="text-2xl leading-none" role="img" aria-label={c.meta.name}>
-                        {c.meta.flag}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-[var(--color-primary-950)]">{c.meta.name}</p>
-                        <p className="text-xs text-[var(--color-neutral-500)]">
-                          {c.meta.cost} · {c.meta.clinics}
-                        </p>
-                      </div>
-                    </div>
-                    {cities.length > 0 && (
-                      <ul className="flex flex-wrap gap-x-2 gap-y-1 px-4 pb-3 text-xs">
-                        {cities.map((city) => (
-                          <li key={city.cityKey}>
-                            <Link
-                              href={city.href}
-                              className="text-[var(--color-primary-700)] hover:text-[var(--color-accent-600)] hover:underline"
-                            >
-                              {city.cityName}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <div className="flex items-center gap-3 border-t border-[var(--color-border)] px-4 py-2.5 text-xs">
-                      <Link
-                        href={guideHref}
-                        className="font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
-                      >
-                        Read guide →
-                      </Link>
-                      <span className="text-[var(--color-neutral-300)]" aria-hidden="true">
-                        ·
-                      </span>
-                      <Link
-                        href={c.href}
-                        className="text-[var(--color-neutral-500)] hover:text-[var(--color-primary-800)]"
-                      >
-                        {th.viewCountryHub}
-                      </Link>
-                    </div>
-                  </article>
-                )
-              })}
-            </div>
-          </section>
-
-          <div className="flex flex-wrap gap-3 text-sm">
-            <Link
-              href={`/treatments/${treatmentSlug}/costs`}
-              className="font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
-            >
-              Cost comparison →
-            </Link>
-            <Link
-              href="/guides/"
-              className="text-[var(--color-neutral-500)] hover:text-[var(--color-primary-800)]"
-            >
-              All guides →
-            </Link>
-          </div>
-
-          {/* FAQ */}
           {faqs.length > 0 && (
             <section aria-labelledby="faq-heading">
               <h2
@@ -293,7 +171,7 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
                 Frequently asked questions
               </h2>
               <div data-speakable="true">
-                <FaqAccordion faqs={faqs} />
+                <FaqAccordion faqs={faqs} title="" defaultOpen={false} />
               </div>
             </section>
           )}
@@ -309,6 +187,7 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
 }
 
 export default async function TreatmentPage({ params }: { params: Params }) {
+  const locale = activeLocale
   const { treatment } = await params
   const slugPath = `/treatments/${treatment}`
   const backendPage = await getPageBySlug(slugPath)

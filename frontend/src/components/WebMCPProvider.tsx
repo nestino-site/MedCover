@@ -34,7 +34,7 @@ export function WebMCPProvider() {
             name: 'navigate',
             title: 'Navigate to page',
             description:
-              'Navigate the browser to a page on MedCover. Use this to take the user to a specific section such as treatments, destinations, cost guides, or clinics.',
+              'Navigate the browser to a page on MedCover. Use this to take the user to a specific section such as treatments, clinics, cost guides, compare, or guides.',
             inputSchema: {
               type: 'object',
               required: ['path'],
@@ -42,7 +42,7 @@ export function WebMCPProvider() {
                 path: {
                   type: 'string',
                   description:
-                    'Relative path to navigate to, e.g. "/treatments", "/costs", "/countries", "/guides", "/cities". May include a slug, e.g. "/costs/ivf".',
+                    'Relative path to navigate to, e.g. "/treatments", "/cost", "/clinics", "/countries", "/guides", "/compare". May include a slug, e.g. "/cost/ivf/spain".',
                 },
               },
             },
@@ -67,7 +67,7 @@ export function WebMCPProvider() {
                 path: {
                   type: 'string',
                   description:
-                    'Relative path of the page to read, e.g. "/treatments", "/costs/ivf", "/countries/spain".',
+                    'Relative path of the page to read, e.g. "/treatments", "/cost/ivf", "/clinics/spain", "/countries/spain".',
                 },
               },
             },
@@ -84,35 +84,54 @@ export function WebMCPProvider() {
             name: 'list-treatments',
             title: 'List available treatments',
             description:
-              'Returns the medical treatment categories available on MedCover along with their status.',
+              'Returns the medical treatment categories available on MedCover from the live taxonomy.',
             inputSchema: { type: 'object', properties: {} },
             annotations: { readOnlyHint: true },
-            execute: async () => ({
-              treatments: [
-                { id: 'ivf', name: 'IVF & Fertility', status: 'active', path: '/treatments/ivf' },
-                { id: 'dental', name: 'Dental', status: 'coming_soon' },
-                { id: 'hair', name: 'Hair Transplant', status: 'coming_soon' },
-                { id: 'cosmetic', name: 'Cosmetic Surgery', status: 'coming_soon' },
-              ],
-            }),
+            execute: async () => {
+              const res = await fetch('/api/taxonomy')
+              if (!res.ok) return { treatments: [] }
+              const taxonomy = await res.json()
+              return {
+                treatments: (taxonomy.treatments ?? []).map(
+                  (t: { slug: string; name: string; clinicCount: number }) => ({
+                    id: t.slug,
+                    name: t.name,
+                    clinicCount: t.clinicCount,
+                    path: `/treatments/${t.slug}`,
+                  }),
+                ),
+              }
+            },
           },
           {
             name: 'list-destinations',
-            title: 'List IVF destinations',
+            title: 'List medical travel destinations',
             description:
-              'Returns the available medical tourism destination countries on MedCover, with indicative costs and clinic counts for IVF treatment.',
+              'Returns destination countries on MedCover with clinic counts from the live taxonomy.',
             inputSchema: { type: 'object', properties: {} },
             annotations: { readOnlyHint: true },
-            execute: async () => ({
-              destinations: [
-                { country: 'Spain', slug: 'spain', flag: '🇪🇸', ivfFrom: '€3,200', clinics: 12, path: '/countries/spain' },
-                { country: 'Greece', slug: 'greece', flag: '🇬🇷', ivfFrom: '€2,800', clinics: 8, path: '/countries/greece' },
-                { country: 'Czech Republic', slug: 'czech-republic', flag: '🇨🇿', ivfFrom: '€2,400', clinics: 4, path: '/countries/czech-republic' },
-                { country: 'Turkey', slug: 'turkey', flag: '🇹🇷', ivfFrom: '€2,600', clinics: 6, path: '/countries/turkey' },
-                { country: 'Portugal', slug: 'portugal', flag: '🇵🇹', ivfFrom: '€3,000', clinics: 5, path: '/countries/portugal' },
-                { country: 'North Macedonia', slug: 'north-macedonia', flag: '🇲🇰', ivfFrom: '€2,200', clinics: 3, path: '/countries/north-macedonia' },
-              ],
-            }),
+            execute: async () => {
+              const res = await fetch('/api/taxonomy')
+              if (!res.ok) return { destinations: [] }
+              const taxonomy = await res.json()
+              return {
+                destinations: (taxonomy.countries ?? []).map(
+                  (c: {
+                    slug: string
+                    name: string
+                    flagEmoji?: string
+                    clinicCount: number
+                  }) => ({
+                    country: c.name,
+                    slug: c.slug,
+                    flag: c.flagEmoji ?? '',
+                    clinics: c.clinicCount,
+                    path: `/clinics/${c.slug}`,
+                    countryLandingPath: `/countries/${c.slug}`,
+                  }),
+                ),
+              }
+            },
           },
         ],
       },

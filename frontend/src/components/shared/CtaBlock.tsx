@@ -1,6 +1,9 @@
-import Link from 'next/link'
+'use client'
+
 import { ArrowRight } from 'lucide-react'
 import { en } from '@/lib/i18n/en'
+import { Button } from '@/components/ui/Button'
+import { trackCtaClick } from '@/lib/analytics'
 
 interface CtaBlockProps {
   headline?: string
@@ -31,19 +34,13 @@ export function CtaBlock({
           <p className="mt-2 text-sm text-[var(--color-neutral-600)] sm:text-base">{description}</p>
 
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href={primaryHref}
-              className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary-800)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-700)]"
-            >
+            <Button href={primaryHref} variant="primary" size="md" onClick={() => trackCtaClick({ label: primaryLabel, location: 'cta_compact' })}>
               {primaryLabel}
               <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-            <Link
-              href={secondaryHref}
-              className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-primary-300)] bg-white px-5 py-2.5 text-sm font-medium text-[var(--color-primary-700)] transition-colors hover:border-[var(--color-primary-400)] hover:bg-white"
-            >
+            </Button>
+            <Button href={secondaryHref} variant="ghost" size="md" onClick={() => trackCtaClick({ label: secondaryLabel, location: 'cta_compact' })}>
               {secondaryLabel}
-            </Link>
+            </Button>
           </div>
         </div>
       </section>
@@ -59,19 +56,13 @@ export function CtaBlock({
         <p className="mt-3 text-[var(--color-primary-200)]">{description}</p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            href={primaryHref}
-            className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-trust-500)] px-7 py-3.5 text-sm font-semibold text-white shadow-lg hover:bg-[var(--color-trust-400)] transition-colors"
-          >
+          <Button href={primaryHref} variant="accent" size="lg" onClick={() => trackCtaClick({ label: primaryLabel, location: 'cta_default' })}>
             {primaryLabel}
             <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-          <Link
-            href={secondaryHref}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-7 py-3.5 text-sm font-medium text-[var(--color-primary-100)] hover:border-white/40 hover:text-white transition-colors"
-          >
+          </Button>
+          <Button href={secondaryHref} variant="ghostOnDark" size="lg" onClick={() => trackCtaClick({ label: secondaryLabel, location: 'cta_default' })}>
             {secondaryLabel}
-          </Link>
+          </Button>
         </div>
       </div>
     </section>

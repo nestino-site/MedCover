@@ -1,9 +1,19 @@
 import {
-  countryMeta,
   getCitiesForCountry,
+  getCountryDisplayFromTaxonomy,
   getCountryLandingPath,
 } from '@/lib/content/hubs'
+import type { Taxonomy } from '@/lib/api/types'
 import { localizedPath, type Locale } from '@/lib/i18n'
+import {
+  clinicCountryPath,
+  costHubPath,
+  compareHubPath,
+  guidesHubPath,
+  startPath,
+  treatmentsHubPath,
+  countriesHubPath,
+} from '@/lib/routes'
 
 export interface HomeCityLink {
   name: string
@@ -42,37 +52,37 @@ function parseCostNumeric(cost: string): number {
   return isNaN(n) ? 99999 : n
 }
 
-export function buildHomeLinkGraph(locale: Locale): HomeLinkGraph {
-  const countries = Object.entries(countryMeta)
-    .map(([slug, meta]) => {
-      const key = slug.replace(/^guides\//, '').replace(/-ivf-guide$/, '')
-      const cityDisplays = getCitiesForCountry(key, [], locale)
+export function buildHomeLinkGraph(taxonomy: Taxonomy, locale: Locale): HomeLinkGraph {
+  const countries = taxonomy.countries
+    .map((country) => {
+      const display = getCountryDisplayFromTaxonomy(country.slug, taxonomy, locale)
+      const cityDisplays = getCitiesForCountry(country.slug, [], locale, taxonomy)
 
       return {
-        key,
-        slug,
-        name: meta.name,
-        flag: meta.flag,
-        cost: meta.cost,
-        tagline: meta.tagline,
-        clinics: meta.clinics,
-        landingHref: getCountryLandingPath(key, locale),
-        guideHref: localizedPath(`/${slug}`, locale),
-        citiesIndexHref: localizedPath(`/countries/${key}/cities`, locale),
+        key: country.slug,
+        slug: display.slug,
+        name: display.name,
+        flag: display.flag,
+        cost: display.cost,
+        tagline: display.tagline,
+        clinics: display.clinics,
+        landingHref: getCountryLandingPath(country.slug, locale),
+        guideHref: display.guideHref,
+        citiesIndexHref: clinicCountryPath(country.slug, locale),
         cities: cityDisplays.map((c) => ({ name: c.cityName, href: c.href })),
-        costNumeric: parseCostNumeric(meta.cost),
+        costNumeric: parseCostNumeric(display.cost),
       }
     })
     .sort((a, b) => a.name.localeCompare(b.name))
 
   return {
     hubs: {
-      treatments: localizedPath('/treatments', locale),
-      countries: localizedPath('/countries', locale),
-      costs: localizedPath('/costs', locale),
-      compare: localizedPath('/compare', locale),
-      guides: localizedPath('/guides', locale),
-      start: localizedPath('/start', locale),
+      treatments: treatmentsHubPath(locale),
+      countries: countriesHubPath(locale),
+      costs: costHubPath(locale),
+      compare: compareHubPath(locale),
+      guides: guidesHubPath(locale),
+      start: startPath(locale),
     },
     countries,
   }

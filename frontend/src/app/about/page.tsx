@@ -5,21 +5,13 @@ import { HubPageLayout } from '@/components/hubs/HubPageLayout'
 import { getDictionary, localizedPath } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 import { hubPath } from '@/lib/content/site-nav'
+import { cmsPageSlug } from '@/lib/routes'
+import { cmsMetadataForSlug } from '@/lib/seo/cms-seo'
 
 const locale = activeLocale
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = getDictionary(locale)
-  return {
-    title: t.meta.about.title,
-    description: t.meta.about.description,
-    openGraph: {
-      title: t.meta.about.title,
-      description: t.meta.about.description,
-      url: localizedPath('/about', locale),
-      type: 'website',
-    },
-  }
+  return cmsMetadataForSlug(cmsPageSlug('about'))
 }
 
 export default function AboutPage() {

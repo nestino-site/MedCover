@@ -1,14 +1,19 @@
 import Link from 'next/link'
-import { treatmentCategories } from '@/lib/content/treatments'
-import { localizedPath } from '@/lib/i18n'
+import type { TreatmentCategoryDisplay } from '@/lib/content/treatments'
+import { localizedPath, type Locale } from '@/lib/i18n'
 import { en } from '@/lib/i18n/en'
 
 interface CountryTreatmentsSectionProps {
   countryName: string
-  countryKey?: string
+  treatments: TreatmentCategoryDisplay[]
+  locale?: Locale
 }
 
-export function CountryTreatmentsSection({ countryName }: CountryTreatmentsSectionProps) {
+export function CountryTreatmentsSection({
+  countryName,
+  treatments,
+  locale = 'en' as Locale,
+}: CountryTreatmentsSectionProps) {
   const t = en.countryLanding.treatmentsSection
 
   return (
@@ -23,7 +28,7 @@ export function CountryTreatmentsSection({ countryName }: CountryTreatmentsSecti
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {treatmentCategories.map((treatment) => {
+        {treatments.map((treatment) => {
           const isActive = treatment.status === 'active'
           return (
             <div
@@ -52,7 +57,7 @@ export function CountryTreatmentsSection({ countryName }: CountryTreatmentsSecti
               {isActive && (
                 <div className="mt-4">
                   <Link
-                    href={localizedPath(`/treatments/${treatment.id}`, 'en')}
+                    href={localizedPath(`/treatments/${treatment.id}`, locale)}
                     className="inline-flex rounded-lg border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-4 py-2 text-sm font-semibold text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-100)]"
                   >
                     {t.viewTreatmentHub} →

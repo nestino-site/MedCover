@@ -64,3 +64,34 @@ export function buildCollectionPage(params: {
 
   return schemas
 }
+
+export function buildHubCollectionSchema(params: {
+  name: string
+  description: string
+  url: string
+}): object[] {
+  return buildCollectionPage({
+    url: params.url,
+    name: params.name,
+    description: params.description,
+    items: [],
+  })
+}
+
+export function buildCollectionPageSchema(params: {
+  name: string
+  description: string
+  url: string
+  items: Array<{ name: string; url: string }>
+}): object[] {
+  const origin = SITE_URL.replace(/\/+$/, '')
+  return buildCollectionPage({
+    url: params.url.startsWith('http') ? params.url : `${origin}${params.url}`,
+    name: params.name,
+    description: params.description,
+    items: params.items.map((item) => ({
+      name: item.name,
+      url: item.url.startsWith('http') ? item.url : `${origin}${item.url}`,
+    })),
+  })
+}

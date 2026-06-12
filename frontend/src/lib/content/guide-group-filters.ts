@@ -1,20 +1,22 @@
-import { countryMeta } from '@/lib/content/hubs'
 import type { GuideCountryGroup } from '@/lib/content/hubs'
+import type { Taxonomy } from '@/lib/api/types'
 
-const FEATURED_COUNTRY_ORDER = Object.keys(countryMeta).map((slug) =>
-  slug.replace(/^guides\//, '').replace(/-ivf-guide$/, ''),
-)
+function featuredCountryOrder(taxonomy: Taxonomy): string[] {
+  return taxonomy.countries.map((c) => c.slug)
+}
 
-function countrySortIndex(countryKey: string): number {
-  const idx = FEATURED_COUNTRY_ORDER.indexOf(countryKey)
-  return idx === -1 ? FEATURED_COUNTRY_ORDER.length : idx
+function countrySortIndex(countryKey: string, order: string[]): number {
+  const idx = order.indexOf(countryKey)
+  return idx === -1 ? order.length : idx
 }
 
 export function filterGuideGroups(
   groups: GuideCountryGroup[],
   options: { q?: string; sort?: string },
+  taxonomy?: Taxonomy,
 ): GuideCountryGroup[] {
   let result = groups
+  const order = taxonomy ? featuredCountryOrder(taxonomy) : []
 
   if (options.q) {
     const lq = options.q.toLowerCase()
@@ -51,12 +53,14 @@ export function filterGuideGroups(
       )
       return bDate - aDate
     })
-  } else {
+  } else if (order.length > 0) {
     result = [...result].sort(
       (a, b) =>
-        countrySortIndex(a.countryKey) - countrySortIndex(b.countryKey) ||
+        countrySortIndex(a.countryKey, order) - countrySortIndex(b.countryKey, order) ||
         a.countryName.localeCompare(b.countryName),
     )
+  } else {
+    result = [...result].sort((a, b) => a.countryName.localeCompare(b.countryName))
   }
 
   return result

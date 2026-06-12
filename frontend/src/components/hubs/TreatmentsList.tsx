@@ -1,18 +1,24 @@
 import Link from 'next/link'
+import { getTaxonomy } from '@/lib/api/catalog'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import { hubPath } from '@/lib/content/site-nav'
-import { treatmentCategories, type TreatmentCategory } from '@/lib/content/treatments'
+import {
+  treatmentsForDisplay,
+  countryHasTreatment,
+  type TreatmentCategoryDisplay,
+} from '@/lib/content/treatments'
 import { getContentListSafe } from '@/lib/api/content'
 import {
-  getFeaturedCountries,
-  getCountryDisplay,
+  getFeaturedCountriesFromTaxonomy,
+  getCountryDisplayFromTaxonomy,
   partitionGuides,
   parseCitySlug,
-  staticCitiesPerCountry,
-  slugToLabel,
   getCityHubPath,
+  getCountryKeyFromSlug,
 } from '@/lib/content/hubs'
+import { treatmentPath } from '@/lib/routes'
 import type { ContentListItem } from '@/lib/api/types'
+import type { Taxonomy } from '@/lib/api/types'
 
 interface CountryPill {
   slug: string
@@ -29,24 +35,28 @@ interface CityInfo {
 }
 
 function getCountriesForTreatment(
-  cat: TreatmentCategory,
-  allCountryDisplays: ReturnType<typeof getCountryDisplay>[],
+  cat: TreatmentCategoryDisplay,
+  taxonomy: Taxonomy,
+  locale: Locale,
 ): CountryPill[] {
   if (cat.status !== 'active') return []
-  return allCountryDisplays.map((d) => {
-    const countryKey = d.slug.replace(/^guides\//, '').replace(/-ivf-guide$/, '')
-    return {
-      slug: d.slug,
-      countryKey,
-      name: d.name,
-      flag: d.flag,
-      hubHref: d.href,
-    }
-  })
+  return getFeaturedCountriesFromTaxonomy(taxonomy, locale)
+    .filter((d) => countryHasTreatment(taxonomy, getCountryKeyFromSlug(d.slug) ?? '', cat.id))
+    .map((d) => {
+      const countryKey = d.slug.replace(/^guides\//, '').replace(/-ivf-guide$/, '')
+      return {
+        slug: d.slug,
+        countryKey,
+        name: d.name,
+        flag: d.flag,
+        hubHref: d.href,
+      }
+    })
 }
 
 function getCitiesForTreatment(
-  cat: TreatmentCategory,
+  cat: TreatmentCategoryDisplay,
+  taxonomy: Taxonomy,
   cityPages: ContentListItem[],
   locale: Locale,
 ): CityInfo[] {
@@ -56,7 +66,7 @@ function getCitiesForTreatment(
     return cityPages
       .map((p) => {
         const parsed = parseCitySlug(p.slug)
-        if (!parsed) return null
+        if (!parsed || !countryHasTreatment(taxonomy, parsed.countryKey, cat.id)) return null
         const cityKey = p.slug.match(/^guides\/[^/]+\/(.+)-ivf-guide$/)?.[1] ?? ''
         return {
           cityName: parsed.cityName,
@@ -69,12 +79,14 @@ function getCitiesForTreatment(
   }
 
   const result: CityInfo[] = []
-  for (const [countryKey, citySlugs] of Object.entries(staticCitiesPerCountry)) {
-    for (const citySlug of citySlugs.slice(0, 1)) {
+  for (const country of taxonomy.countries) {
+    if (!countryHasTreatment(taxonomy, country.slug, cat.id)) continue
+    const display = getCountryDisplayFromTaxonomy(country.slug, taxonomy, locale)
+    for (const city of country.cities.slice(0, 1)) {
       result.push({
-        cityName: slugToLabel(citySlug),
-        countryName: slugToLabel(countryKey),
-        hubHref: getCityHubPath(countryKey, citySlug, locale),
+        cityName: city.name,
+        countryName: display.name,
+        hubHref: getCityHubPath(country.slug, city.slug, locale),
       })
     }
     if (result.length >= 8) break
@@ -89,22 +101,16 @@ export interface TreatmentsListProps {
 
 export async function TreatmentsList({ locale }: TreatmentsListProps) {
   const t = getDictionary(locale)
-  const pages = await getContentListSafe()
-  const { countries: countryPages, cities: cityPages } = partitionGuides(pages, locale)
-
-  const allCountryDisplays =
-    countryPages.length > 0
-      ? countryPages.map((p) => getCountryDisplay(p.slug, locale))
-      : getFeaturedCountries(locale)
-
-  const visibleCategories = treatmentCategories
+  const [taxonomy, pages] = await Promise.all([getTaxonomy(), getContentListSafe()])
+  const { cities: cityPages } = partitionGuides(pages, locale)
+  const visibleCategories = treatmentsForDisplay(taxonomy)
 
   return (
     <div className="space-y-4">
       {visibleCategories.map((cat) => {
         const isActive = cat.status === 'active'
-        const countries = getCountriesForTreatment(cat, allCountryDisplays)
-        const cities = getCitiesForTreatment(cat, cityPages, locale)
+        const countries = getCountriesForTreatment(cat, taxonomy, locale)
+        const cities = getCitiesForTreatment(cat, taxonomy, cityPages, locale)
 
         if (isActive) {
           return (
@@ -155,7 +161,7 @@ export async function TreatmentsList({ locale }: TreatmentsListProps) {
 
               <div className="mt-4 flex flex-wrap gap-3 text-sm">
                 <Link
-                  href={`/treatments/${cat.id}`}
+                  href={treatmentPath(cat.id, locale)}
                   className="font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
                 >
                   Explore {cat.name} →

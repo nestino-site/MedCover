@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { getTaxonomy } from '@/lib/api/catalog'
 import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import { buildCityCards } from '@/components/hubs/build-city-cards'
@@ -12,8 +13,8 @@ export interface CitiesListProps {
 
 export async function CitiesList({ locale, country }: CitiesListProps) {
   const t = getDictionary(locale)
-  const pages = await listPublishedPagesSafe()
-  let items = buildCityCards(pages, locale)
+  const [taxonomy, pages] = await Promise.all([getTaxonomy(), listPublishedPagesSafe()])
+  let items = buildCityCards(pages, locale, taxonomy)
   if (country) {
     items = items.filter((c) => c.countryKey === country)
   }
@@ -24,7 +25,7 @@ export async function CitiesList({ locale, country }: CitiesListProps) {
 
   return (
     <Suspense fallback={<CitiesListSkeleton />}>
-      <CitiesListView items={items} locale={locale} />
+      <CitiesListView items={items} locale={locale} taxonomy={taxonomy} />
     </Suspense>
   )
 }

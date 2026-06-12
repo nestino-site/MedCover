@@ -1,10 +1,12 @@
 import { Suspense } from 'react'
+import { getTaxonomy } from '@/lib/api/catalog'
 import { getContentListSafe } from '@/lib/api/content'
 import {
   getPublishedCostPages,
   loadCostArticlesBySlugs,
   parseCostSlug,
 } from '@/lib/content/cost-display'
+import { treatmentsForDisplay } from '@/lib/content/treatments'
 import type { Locale } from '@/lib/i18n'
 import {
   CostGuidesListView,
@@ -18,10 +20,10 @@ export interface CostGuidesListProps {
 }
 
 export async function CostGuidesList({ locale, defaultTreatment }: CostGuidesListProps) {
-  const pages = await getContentListSafe()
+  const [taxonomy, pages] = await Promise.all([getTaxonomy(), getContentListSafe()])
   const costPages = getPublishedCostPages(pages, locale)
   const slugs = costPages.map((g) => g.slug.replace(/^\//, ''))
-  const articleItems = await loadCostArticlesBySlugs(slugs, pages, locale)
+  const articleItems = await loadCostArticlesBySlugs(slugs, pages, locale, taxonomy)
   const articleBySlug = new Map(articleItems.map((item) => [item.slug, item]))
 
   const guides = costPages.flatMap((page): CostGuideItem[] => {
@@ -44,7 +46,12 @@ export async function CostGuidesList({ locale, defaultTreatment }: CostGuidesLis
 
   return (
     <Suspense fallback={<CostGuidesListSkeleton />}>
-      <CostGuidesListView guides={guides} locale={locale} defaultTreatment={defaultTreatment} />
+      <CostGuidesListView
+        guides={guides}
+        locale={locale}
+        defaultTreatment={defaultTreatment}
+        treatments={treatmentsForDisplay(taxonomy)}
+      />
     </Suspense>
   )
 }

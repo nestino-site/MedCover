@@ -6,6 +6,8 @@ import { TableOfContents } from '@/components/layout/TableOfContents'
 import { ContentHtml } from '@/components/shared/ContentHtml'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
+import { RelatedLandingsGrid, type RelatedLanding } from '@/components/shared/RelatedLandingsGrid'
+import { CrossHubNav } from '@/components/hubs/CrossHubNav'
 import { isNextImageOptimizable } from '@/lib/content/hero-image'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
@@ -25,6 +27,10 @@ interface GuideArticleLayoutProps {
   hero: ResolvedHero | null
   updatedAt?: string
   locale: Locale
+  /** "Plan your trip" links back to clinic/cost/country landings + sibling guides. */
+  related?: { landings: RelatedLanding[]; guides: RelatedLanding[] } | null
+  /** Guide slug (no leading slash) used for the cross-hub footer nav. */
+  guideSlug?: string
 }
 
 function HeroImage({ hero }: { hero: ResolvedHero }) {
@@ -127,9 +133,12 @@ export function GuideArticleLayout({
   hero,
   updatedAt,
   locale,
+  related,
+  guideSlug,
 }: GuideArticleLayoutProps) {
   const t = getDictionary(locale)
   const hasSidebar = tableOfContents.some((item) => item.level === 2)
+  const planItems = related ? [...related.landings, ...related.guides] : []
 
   return (
     <div
@@ -145,6 +154,12 @@ export function GuideArticleLayout({
         <ArticleColumn hero={hero} htmlContent={htmlContent} hasSidebar={hasSidebar} />
       </ArticleShell>
 
+      {planItems.length > 0 && (
+        <div className="mt-12">
+          <RelatedLandingsGrid title="Plan your trip" items={planItems} />
+        </div>
+      )}
+
       {faqs.length > 0 && (
         <div className="mt-12 rounded-xl bg-[var(--color-surface-subtle)] px-5 sm:px-6">
           <FaqAccordion faqs={faqs} variant="compact" />
@@ -152,6 +167,8 @@ export function GuideArticleLayout({
       )}
 
       <CtaBlock variant="compact" />
+
+      {guideSlug && <CrossHubNav locale={locale} guideSlug={guideSlug} className="mt-12" />}
     </div>
   )
 }

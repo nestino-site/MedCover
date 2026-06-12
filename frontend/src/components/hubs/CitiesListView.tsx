@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useMemo } from 'react'
 import { getDictionary, type Locale } from '@/lib/i18n'
-import { treatmentCategories } from '@/lib/content/treatments'
-import { countryMatchesTreatmentFilter } from '@/lib/content/country-treatments'
+import type { Taxonomy } from '@/lib/api/types'
+import { countryMatchesTreatmentFilter, treatmentsForDisplay } from '@/lib/content/treatments'
 import { useHubFilters } from '@/components/filters/use-hub-filters'
 import { CityCard, type CityCardData } from '@/components/hubs/CityCard'
 
@@ -21,15 +21,20 @@ export type { CityCardData }
 export function CitiesListView({
   items,
   locale,
+  taxonomy,
 }: {
   items: CityCardData[]
   locale: Locale
+  taxonomy: Taxonomy
 }) {
   const t = getDictionary(locale)
   const { country, sort, q, treatment } = useHubFilters()
+  const treatmentCategories = treatmentsForDisplay(taxonomy)
 
   const groups = useMemo(() => {
-    let parsed = items.filter((c) => countryMatchesTreatmentFilter(c.countryKey, treatment))
+    let parsed = items.filter((c) =>
+      countryMatchesTreatmentFilter(taxonomy, c.countryKey, treatment),
+    )
 
     if (country) {
       parsed = parsed.filter((c) => c.countryKey === country)
@@ -66,7 +71,7 @@ export function CitiesListView({
       groupMap.get(city.countryName)!.cities.push(city)
     }
     return [...groupMap.values()]
-  }, [items, country, sort, q, treatment])
+  }, [items, country, sort, q, treatment, taxonomy])
 
   if (groups.length === 0) {
     const selectedTreatment = treatmentCategories.find((c) => c.id === treatment)

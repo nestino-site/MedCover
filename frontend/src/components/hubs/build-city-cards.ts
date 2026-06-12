@@ -1,19 +1,21 @@
-import type { ContentListItem } from '@/lib/api/types'
+import type { ContentListItem, Taxonomy } from '@/lib/api/types'
 import { localizedPath, type Locale } from '@/lib/i18n'
 import {
   parseCitySlug,
   partitionGuides,
-  countryMeta,
-  staticCitiesPerCountry,
   getCountryLandingPath,
   getCityHubPath,
   getCountryGuideHref,
-  slugToLabel,
+  getCountryDisplayFromTaxonomy,
 } from '@/lib/content/hubs'
-import { getTreatmentTagsForCountry } from '@/lib/content/country-treatments'
+import { getTreatmentTagsForCountry } from '@/lib/content/treatments'
 import type { CityCardData } from '@/components/hubs/CityCard'
 
-export function buildCityCards(pages: ContentListItem[], locale: Locale): CityCardData[] {
+export function buildCityCards(
+  pages: ContentListItem[],
+  locale: Locale,
+  taxonomy: Taxonomy,
+): CityCardData[] {
   const { cities: cityPages } = partitionGuides(pages, locale)
   const publishedByKey = new Map<string, ContentListItem>()
 
@@ -27,28 +29,25 @@ export function buildCityCards(pages: ContentListItem[], locale: Locale): CityCa
 
   const cards: CityCardData[] = []
 
-  for (const [countryKey, cityKeys] of Object.entries(staticCitiesPerCountry)) {
-    const countrySlug = `guides/${countryKey}-ivf-guide`
-    const meta = countryMeta[countrySlug]
-    if (!meta) continue
+  for (const country of taxonomy.countries) {
+    const display = getCountryDisplayFromTaxonomy(country.slug, taxonomy, locale)
+    const treatments = getTreatmentTagsForCountry(taxonomy, country.slug)
 
-    const treatments = getTreatmentTagsForCountry(countryKey)
-
-    for (const cityKey of cityKeys) {
-      const guideSlug = `guides/${countryKey}/${cityKey}-ivf-guide`
+    for (const city of country.cities) {
+      const guideSlug = `guides/${country.slug}/${city.slug}-ivf-guide`
       cards.push({
         slug: guideSlug,
-        href: getCityHubPath(countryKey, cityKey, locale),
+        href: getCityHubPath(country.slug, city.slug, locale),
         guideHref: localizedPath(`/${guideSlug}`, locale),
-        cityName: slugToLabel(cityKey),
-        cityKey,
-        countryKey,
-        countryName: meta.name,
-        countryFlag: meta.flag,
-        countryHubHref: getCountryLandingPath(countryKey, locale),
-        countryGuideHref: getCountryGuideHref(countryKey, locale),
+        cityName: city.name,
+        cityKey: city.slug,
+        countryKey: country.slug,
+        countryName: display.name,
+        countryFlag: display.flag,
+        countryHubHref: getCountryLandingPath(country.slug, locale),
+        countryGuideHref: getCountryGuideHref(country.slug, locale),
         treatments,
-        hasPublishedGuide: publishedByKey.has(`${countryKey}/${cityKey}`),
+        hasPublishedGuide: publishedByKey.has(`${country.slug}/${city.slug}`),
       })
     }
   }

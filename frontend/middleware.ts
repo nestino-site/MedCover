@@ -1,9 +1,54 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { DEFAULT_LOCALE, getContentLanguage } from './src/lib/i18n/locales'
+import {
+  canonicalPair,
+  legacyCityToClinic,
+  legacyCompareToNew,
+  legacyCostToNew,
+  legacyGuideFlatten,
+} from './src/lib/routes'
+
+function legacyRedirect(pathname: string): string | null {
+  const normalized = pathname.endsWith('/') ? pathname : `${pathname}/`
+
+  const cost = legacyCostToNew(normalized)
+  if (cost) return cost
+
+  const compare = legacyCompareToNew(normalized)
+  if (compare) return compare
+
+  const city = legacyCityToClinic(normalized)
+  if (city) return city
+
+  const guide = legacyGuideFlatten(normalized)
+  if (guide) return guide
+
+  const compareFor = normalized.match(/^\/compare\/([^/]+)-vs-([^/]+)-ivf\/$/)
+  if (compareFor) {
+    const [a, b] = canonicalPair(compareFor[1], compareFor[2])
+    return `/compare/${a}-vs-${b}-for-ivf/`
+  }
+
+  const reversedCompare = normalized.match(/^\/compare\/([^/]+)-vs-([^/]+)-for-([^/]+)\/$/)
+  if (reversedCompare) {
+    const [, rawA, rawB, treatment] = reversedCompare
+    const [a, b] = canonicalPair(rawA, rawB)
+    if (rawA !== a) return `/compare/${a}-vs-${b}-for-${treatment}/`
+  }
+
+  return null
+}
 
 export function middleware(request: NextRequest): NextResponse {
   const { pathname, search } = request.nextUrl
+
+  const legacy = legacyRedirect(pathname)
+  if (legacy) {
+    const url = request.nextUrl.clone()
+    url.pathname = legacy
+    return NextResponse.redirect(url, 301)
+  }
   const accept = request.headers.get('accept') ?? ''
   const isInternal = request.headers.get('x-md-internal') === '1'
   const isApiOrStatic =

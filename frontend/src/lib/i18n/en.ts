@@ -28,6 +28,7 @@ export const en = {
       featuredIvf: 'Featured IVF destinations',
     },
     triggers: {
+      clinics: 'Clinics',
       destinations: 'Destinations',
       treatments: 'Treatments',
       guides: 'Guides',
@@ -91,7 +92,7 @@ export const en = {
     costs: {
       title: 'IVF Treatment Costs Abroad — What Patients Pay',
       description:
-        'Verified IVF cost ranges across 6 European countries. Real prices from patient data — North Macedonia from €1,900 to Spain from €3,200.',
+        'Verified IVF cost ranges by country and city. Real prices from patient data — not clinic brochure estimates.',
     },
     compare: {
       title: 'Compare IVF Destinations Abroad — Side-by-Side Patient Data',
@@ -262,7 +263,7 @@ export const en = {
         ctaSecondary: 'Browse all destinations',
         trust: 'Independent · No clinic sponsorships · Verified patient data',
         highlights: [
-          'IVF live from €1,900 in North Macedonia to €3,200+ in Spain',
+          'Verified cost ranges from real patient invoices — not clinic brochures',
           'Truth Scores built from real patient interviews — not clinic self-reporting',
           'More treatment categories launching over time',
         ],
@@ -328,7 +329,7 @@ export const en = {
         ctaSecondary: 'See all destinations',
         trust: 'Independent · No referral fees · Verified patient interviews only',
         highlights: [
-          'IVF: fully live — 6 countries, 20+ cities, 80+ verified clinics',
+          'Live treatment guides with verified clinic and cost data from patient interviews',
           'Dental, hair transplant, and oncology guides in development',
           'All data sourced from direct patient interviews — not clinic submissions',
         ],

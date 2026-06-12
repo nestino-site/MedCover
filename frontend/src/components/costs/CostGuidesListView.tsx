@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useMemo } from 'react'
-import { treatmentCategories } from '@/lib/content/treatments'
+import type { TreatmentCategoryDisplay } from '@/lib/content/treatments'
 import { localizedPath, type Locale } from '@/lib/i18n'
 import { useHubFilters } from '@/components/filters/use-hub-filters'
 import { CostGuideCard } from '@/components/costs/CostGuideCard'
@@ -20,14 +20,21 @@ export function CostGuidesListView({
   guides,
   locale,
   defaultTreatment,
+  treatments,
 }: {
   guides: CostGuideItem[]
   locale: Locale
   defaultTreatment?: string
+  treatments: TreatmentCategoryDisplay[]
 }) {
   return (
     <Suspense fallback={null}>
-      <CostGuidesListViewInner guides={guides} locale={locale} defaultTreatment={defaultTreatment} />
+      <CostGuidesListViewInner
+        guides={guides}
+        locale={locale}
+        defaultTreatment={defaultTreatment}
+        treatments={treatments}
+      />
     </Suspense>
   )
 }
@@ -36,10 +43,12 @@ function CostGuidesListViewInner({
   guides,
   locale,
   defaultTreatment,
+  treatments,
 }: {
   guides: CostGuideItem[]
   locale: Locale
   defaultTreatment?: string
+  treatments: TreatmentCategoryDisplay[]
 }) {
   const { treatment: treatmentParam, country } = useHubFilters()
   const treatment = treatmentParam ?? defaultTreatment
@@ -58,8 +67,8 @@ function CostGuidesListViewInner({
   }, [guides, country])
 
   const visibleTreatments = treatment
-    ? treatmentCategories.filter((t) => t.id === treatment)
-    : treatmentCategories
+    ? treatments.filter((t) => t.id === treatment)
+    : treatments
 
   return (
     <section aria-labelledby="cost-guides-heading">

@@ -2,49 +2,56 @@
 
 import Link from 'next/link'
 import { Suspense, useMemo } from 'react'
-import { countryMeta } from '@/lib/content/hubs'
 import { localizedPath, type Locale } from '@/lib/i18n'
 import { useHubFilters } from '@/components/filters/use-hub-filters'
 
-export interface CostComparisonGridProps {
-  locale: Locale
+export interface CostCountryItem {
+  countryKey: string
+  slug: string
+  name: string
+  flag: string
+  tagline: string
+  cost: string
+  clinics: string
+  href: string
+  costNumeric: number
 }
 
-export function CostComparisonGrid({ locale }: CostComparisonGridProps) {
+export interface CostComparisonGridProps {
+  locale: Locale
+  countries: CostCountryItem[]
+}
+
+export function CostComparisonGrid({ locale, countries }: CostComparisonGridProps) {
   return (
     <Suspense fallback={<CostComparisonGridSkeleton />}>
-      <CostComparisonGridInner locale={locale} />
+      <CostComparisonGridInner locale={locale} countries={countries} />
     </Suspense>
   )
 }
 
-function CostComparisonGridInner({ locale }: CostComparisonGridProps) {
+function CostComparisonGridInner({ locale, countries }: CostComparisonGridProps) {
   const { sort, country } = useHubFilters()
 
-  const countries = useMemo(() => {
-    let items = Object.entries(countryMeta).map(([slug, meta]) => ({
-      slug,
-      ...meta,
-      href: localizedPath(`/${slug}`, locale),
-      costNumeric: parseInt(meta.cost.replace(/[^0-9]/g, '') || '99999'),
-    }))
+  const items = useMemo(() => {
+    let result = countries
 
     if (country) {
-      items = items.filter((c) => c.slug === `guides/${country}-ivf-guide`)
+      result = result.filter((c) => c.countryKey === country)
     }
 
     if (sort === 'alpha') {
-      items = [...items].sort((a, b) => a.name.localeCompare(b.name))
+      result = [...result].sort((a, b) => a.name.localeCompare(b.name))
     } else {
-      items = [...items].sort((a, b) => a.costNumeric - b.costNumeric)
+      result = [...result].sort((a, b) => a.costNumeric - b.costNumeric)
     }
 
-    return items
-  }, [locale, country, sort])
+    return result
+  }, [countries, country, sort])
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {countries.map((c, i) => (
+      {items.map((c, i) => (
         <Link
           key={c.slug}
           href={c.href}
@@ -71,7 +78,7 @@ function CostComparisonGridInner({ locale }: CostComparisonGridProps) {
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-xs text-[var(--color-neutral-400)]">Estimated cost</p>
-                <p className="text-2xl font-bold text-[var(--color-primary-800)]">{c.cost}</p>
+                <p className="text-2xl font-bold text-[var(--color-primary-800)]">{c.cost || '—'}</p>
               </div>
               <span className="text-sm text-[var(--color-neutral-500)]">{c.clinics}</span>
             </div>
@@ -104,3 +111,4 @@ export function CostComparisonGridSkeleton() {
     </div>
   )
 }
+

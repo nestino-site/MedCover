@@ -1,6 +1,9 @@
+'use client'
+
 import Link from 'next/link'
 import { CircleDollarSign } from 'lucide-react'
-import { countryMeta } from '@/lib/content/hubs'
+import { slugToLabel } from '@/lib/routes'
+import { trackCardClick } from '@/lib/analytics'
 
 interface CostGuideCardProps {
   href: string
@@ -10,6 +13,8 @@ interface CostGuideCardProps {
   title?: string
   description?: string
   costEstimate?: string
+  countryName?: string
+  flag?: string
   compact?: boolean
 }
 
@@ -20,18 +25,20 @@ export function CostGuideCard({
   title,
   description,
   costEstimate,
+  countryName: countryNameProp,
+  flag: flagProp,
   compact = false,
 }: CostGuideCardProps) {
-  const meta = countryMeta[`guides/${countryKey}-ivf-guide`]
-  const countryName = meta?.name
-  const flag = meta?.flag
-  const estimate = costEstimate ?? meta?.cost
+  const countryName = countryNameProp ?? slugToLabel(countryKey)
+  const flag = flagProp
+  const estimate = costEstimate
   const displayTitle = title ?? label
 
   if (compact) {
     return (
       <Link
         href={href}
+        onClick={() => trackCardClick({ content_type: 'cost', item_id: href, item_name: displayTitle })}
         className="group flex min-h-[72px] items-start gap-3 rounded-xl border border-[var(--color-border)] bg-white p-4 transition-colors hover:border-[var(--color-primary-300)] hover:bg-[var(--color-primary-50)]/40"
       >
         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary-50)] text-[var(--color-primary-600)]">
@@ -71,6 +78,7 @@ export function CostGuideCard({
   return (
     <Link
       href={href}
+      onClick={() => trackCardClick({ content_type: 'cost', item_id: href, item_name: displayTitle })}
       className="group flex min-h-[88px] flex-col rounded-xl border border-[var(--color-border)] bg-white p-4 transition-colors hover:border-[var(--color-primary-300)] hover:bg-[var(--color-primary-50)]/40"
     >
       {countryName && flag ? (

@@ -12,17 +12,19 @@ import {
   type MegaGroupId,
   type SiteHub,
 } from '@/lib/content/site-nav'
-import { treatmentCategories } from '@/lib/content/treatments'
+import type { TreatmentCategoryDisplay } from '@/lib/content/treatments'
+import { treatmentPath } from '@/lib/routes'
 import { localizedPath, type Locale, type Dictionary } from '@/lib/i18n'
-import type { getFeaturedCountries, GuideCountryGroup } from '@/lib/content/hubs'
+import type { getFeaturedCountriesFromTaxonomy, GuideCountryGroup } from '@/lib/content/hubs'
 
-type FeaturedCountry = ReturnType<typeof getFeaturedCountries>[number]
+type FeaturedCountry = ReturnType<typeof getFeaturedCountriesFromTaxonomy>[number]
 
 type NavMegaMenuProps = {
   locale: Locale
   t: Dictionary
   featuredCountries: FeaturedCountry[]
   guideGroups: GuideCountryGroup[]
+  treatments: TreatmentCategoryDisplay[]
 }
 
 function HubCardLink({
@@ -100,7 +102,7 @@ function PanelSectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-function DestinationsPanel({
+function ClinicsPanel({
   t,
   locale,
   featuredCountries,
@@ -111,27 +113,17 @@ function DestinationsPanel({
   featuredCountries: FeaturedCountry[]
   onNavigate: () => void
 }) {
-  const countriesHub = getHubById('countries')!
-  const citiesHub = getHubById('cities')!
+  const clinicsHub = getHubById('clinics')!
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-2 sm:grid-cols-2">
-        <HubCardLink
-          hub={countriesHub}
-          label={t.nav.countries}
-          description={t.nav.descriptions.countries}
-          locale={locale}
-          onNavigate={onNavigate}
-        />
-        <HubCardLink
-          hub={citiesHub}
-          label={t.nav.cities}
-          description={t.nav.descriptions.cities}
-          locale={locale}
-          onNavigate={onNavigate}
-        />
-      </div>
+      <HubCardLink
+        hub={clinicsHub}
+        label={t.nav.clinics}
+        description={t.nav.descriptions.clinics}
+        locale={locale}
+        onNavigate={onNavigate}
+      />
       {featuredCountries.length > 0 && (
         <div>
           <PanelSectionLabel>{t.nav.groups.featuredIvf}</PanelSectionLabel>
@@ -149,18 +141,59 @@ function DestinationsPanel({
   )
 }
 
-function TreatmentsPanel({
+function DestinationsPanel({
   t,
   locale,
+  featuredCountries,
   onNavigate,
 }: {
   t: Dictionary
   locale: Locale
+  featuredCountries: FeaturedCountry[]
   onNavigate: () => void
 }) {
+  const countriesHub = getHubById('countries')!
+
+  return (
+    <div className="flex flex-col gap-4">
+      <HubCardLink
+        hub={countriesHub}
+        label={t.nav.countries}
+        description={t.nav.descriptions.countries}
+        locale={locale}
+        onNavigate={onNavigate}
+      />
+      {featuredCountries.length > 0 && (
+        <div>
+          <PanelSectionLabel>{t.nav.groups.destinations}</PanelSectionLabel>
+          <div className="flex flex-wrap gap-1">
+            {featuredCountries.map((c) => (
+              <CompactLink key={c.countryHref} href={c.countryHref} onClick={onNavigate}>
+                <span aria-hidden="true">{c.flag}</span>
+                {c.name}
+              </CompactLink>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TreatmentsPanel({
+  t,
+  locale,
+  onNavigate,
+  treatments,
+}: {
+  t: Dictionary
+  locale: Locale
+  onNavigate: () => void
+  treatments: TreatmentCategoryDisplay[]
+}) {
   const treatmentsHub = getHubById('treatments')!
-  const activeTreatments = treatmentCategories.filter((c) => c.status === 'active')
-  const comingSoonTreatments = treatmentCategories.filter((c) => c.status === 'coming_soon')
+  const activeTreatments = treatments.filter((c) => c.status === 'active')
+  const comingSoonTreatments = treatments.filter((c) => c.status === 'coming_soon')
 
   return (
     <div className="flex flex-col gap-4">
@@ -178,7 +211,7 @@ function TreatmentsPanel({
             {activeTreatments.map((treatment) => (
               <CompactLink
                 key={treatment.id}
-                href={localizedPath(`/treatments/${treatment.id}`, locale)}
+                href={treatmentPath(treatment.id, locale)}
                 onClick={onNavigate}
               >
                 {treatment.name}
@@ -339,7 +372,7 @@ function MegaMenuTrigger({
   )
 }
 
-export function NavMegaMenu({ locale, t, featuredCountries, guideGroups }: NavMegaMenuProps) {
+export function NavMegaMenu({ locale, t, featuredCountries, guideGroups, treatments }: NavMegaMenuProps) {
   const [activeGroup, setActiveGroup] = useState<MegaGroupId | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -391,6 +424,15 @@ export function NavMegaMenu({ locale, t, featuredCountries, guideGroups }: NavMe
   const panelContent = (() => {
     if (!activeGroup) return null
     switch (activeGroup) {
+      case 'clinics':
+        return (
+          <ClinicsPanel
+            t={t}
+            locale={locale}
+            featuredCountries={featuredCountries}
+            onNavigate={close}
+          />
+        )
       case 'destinations':
         return (
           <DestinationsPanel
@@ -401,7 +443,7 @@ export function NavMegaMenu({ locale, t, featuredCountries, guideGroups }: NavMe
           />
         )
       case 'treatments':
-        return <TreatmentsPanel t={t} locale={locale} onNavigate={close} />
+        return <TreatmentsPanel t={t} locale={locale} onNavigate={close} treatments={treatments} />
       case 'guides':
         return (
           <GuidesPanel t={t} locale={locale} guideGroups={guideGroups} onNavigate={close} />

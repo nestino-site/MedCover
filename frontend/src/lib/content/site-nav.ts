@@ -22,7 +22,7 @@ export type HubId =
 
 type NavLabelKey = 'countries' | 'cities' | 'treatments' | 'guides' | 'clinics' | 'costs' | 'compare'
 
-export type MegaGroupId = 'destinations' | 'treatments' | 'guides'
+export type MegaGroupId = 'clinics' | 'destinations' | 'treatments' | 'guides'
 
 export interface MegaGroup {
   id: MegaGroupId
@@ -31,13 +31,14 @@ export interface MegaGroup {
 }
 
 export const MEGA_GROUPS: MegaGroup[] = [
-  { id: 'destinations', primaryHubId: 'countries', relatedHubIds: ['cities'] },
+  { id: 'clinics', primaryHubId: 'clinics', relatedHubIds: [] },
+  { id: 'destinations', primaryHubId: 'countries', relatedHubIds: [] },
   { id: 'treatments', primaryHubId: 'treatments', relatedHubIds: [] },
   { id: 'guides', primaryHubId: 'guides', relatedHubIds: [] },
 ]
 
 /** Hubs linked directly in the header (no mega-menu dropdown). */
-export const DIRECT_NAV_HUB_IDS: HubId[] = ['costs', 'compare', 'clinics']
+export const DIRECT_NAV_HUB_IDS: HubId[] = ['costs', 'compare']
 
 export interface SiteHub {
   id: HubId
@@ -66,13 +67,13 @@ export const SITE_HUBS: SiteHub[] = [
   },
   {
     id: 'cities',
-    segment: 'cities',
+    segment: 'clinics',
     labelKey: 'cities',
     status: 'active',
     group: 'destinations',
     icon: MapPin,
-    sitemap: true,
-    headerPrimary: true,
+    sitemap: false,
+    headerPrimary: false,
     headerMore: false,
   },
   {
@@ -101,16 +102,16 @@ export const SITE_HUBS: SiteHub[] = [
     id: 'clinics',
     segment: 'clinics',
     labelKey: 'clinics',
-    status: 'coming_soon',
+    status: 'active',
     group: 'content',
     icon: Building2,
-    sitemap: false,
+    sitemap: true,
     headerPrimary: true,
     headerMore: false,
   },
   {
     id: 'costs',
-    segment: 'costs',
+    segment: 'cost',
     labelKey: 'costs',
     status: 'active',
     group: 'tools',
@@ -155,7 +156,7 @@ export function getHubsByGroup(group: NavGroup): SiteHub[] {
 }
 
 export function getExploreHubs(): SiteHub[] {
-  return SITE_HUBS
+  return SITE_HUBS.filter((h) => h.id !== 'cities')
 }
 
 export function getSitemapHubs(): SiteHub[] {

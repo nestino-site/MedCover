@@ -2,23 +2,28 @@
 
 import { useMemo } from 'react'
 import { getDictionary, type Locale } from '@/lib/i18n'
-import { treatmentCategories } from '@/lib/content/treatments'
-import { countryMatchesTreatmentFilter } from '@/lib/content/country-treatments'
+import type { Taxonomy } from '@/lib/api/types'
+import { countryMatchesTreatmentFilter, treatmentsForDisplay } from '@/lib/content/treatments'
 import { useHubFilters } from '@/components/filters/use-hub-filters'
 import { CountryCard, type CountryCardData } from '@/components/hubs/CountryCard'
 
 export function CountriesListView({
   cards,
   locale,
+  taxonomy,
 }: {
   cards: CountryCardData[]
   locale: Locale
+  taxonomy: Taxonomy
 }) {
   const t = getDictionary(locale)
   const { treatment, sort } = useHubFilters()
+  const treatmentCategories = treatmentsForDisplay(taxonomy)
 
   const filtered = useMemo(() => {
-    let result = cards.filter((card) => countryMatchesTreatmentFilter(card.countryKey, treatment))
+    let result = cards.filter((card) =>
+      countryMatchesTreatmentFilter(taxonomy, card.countryKey, treatment),
+    )
 
     if (sort === 'cost-asc') {
       result = [...result].sort((a, b) => a.costNumeric - b.costNumeric)
@@ -31,7 +36,7 @@ export function CountriesListView({
     }
 
     return result
-  }, [cards, treatment, sort])
+  }, [cards, treatment, sort, taxonomy])
 
   if (filtered.length === 0) {
     const selectedTreatment = treatmentCategories.find((c) => c.id === treatment)

@@ -5,13 +5,19 @@ import Link from 'next/link'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Menu, X, type LucideIcon } from 'lucide-react'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
-import { getFeaturedCountries, type GuideCountryGroup } from '@/lib/content/hubs'
+import type { getFeaturedCountriesFromTaxonomy, GuideCountryGroup } from '@/lib/content/hubs'
+import type { TreatmentCategoryDisplay } from '@/lib/content/treatments'
 import { DIRECT_NAV_HUB_IDS, MEGA_GROUPS, SITE_HUBS, hubPath, type SiteHub } from '@/lib/content/site-nav'
-import { treatmentCategories } from '@/lib/content/treatments'
+import { treatmentPath } from '@/lib/routes'
+import { SearchTriggerButton } from '@/components/search/SearchModal'
+
+type FeaturedCountry = ReturnType<typeof getFeaturedCountriesFromTaxonomy>[number]
 
 type MobileMenuProps = {
   locale: Locale
   guideGroups: GuideCountryGroup[]
+  featuredCountries: FeaturedCountry[]
+  treatments: TreatmentCategoryDisplay[]
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
@@ -91,12 +97,12 @@ function HubItem({
   )
 }
 
-export function MobileMenu({ locale, guideGroups }: MobileMenuProps) {
+export function MobileMenu({ locale, guideGroups, featuredCountries, treatments }: MobileMenuProps) {
   const [open, setOpen] = useState(false)
   const t = getDictionary(locale)
   const close = () => setOpen(false)
 
-  const featured = getFeaturedCountries(locale).slice(0, 6)
+  const featured = featuredCountries.slice(0, 6)
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -129,6 +135,10 @@ export function MobileMenu({ locale, guideGroups }: MobileMenuProps) {
             </Dialog.Close>
           </div>
 
+          <div className="border-b border-[var(--color-border)] px-4 py-3">
+            <SearchTriggerButton className="w-full justify-start" />
+          </div>
+
           <nav
             className="flex flex-1 flex-col gap-5 overflow-y-auto p-4"
             aria-label={t.aria.mainNavigation}
@@ -140,9 +150,20 @@ export function MobileMenu({ locale, guideGroups }: MobileMenuProps) {
                 .filter((h) => h !== undefined)
                 .filter((hub) => group.relatedHubIds.length > 0 || hub.id !== group.primaryHubId)
 
+              const primaryHub = SITE_HUBS.find((h) => h.id === group.primaryHubId)
+              const showAsCard = group.id === 'clinics' || group.id === 'destinations'
+
               return (
                 <div key={group.id}>
-                  {group.relatedHubIds.length === 0 ? (
+                  {showAsCard && primaryHub ? (
+                    <HubItem
+                      hub={primaryHub}
+                      label={t.nav[primaryHub.labelKey]}
+                      locale={locale}
+                      description={t.nav.descriptions[primaryHub.labelKey]}
+                      onNavigate={close}
+                    />
+                  ) : group.relatedHubIds.length === 0 ? (
                     <SectionHubLink
                       href={hubPath(group.primaryHubId, locale)}
                       label={t.nav.triggers[group.id]}
@@ -214,10 +235,10 @@ export function MobileMenu({ locale, guideGroups }: MobileMenuProps) {
                   {group.id === 'treatments' && (
                     <div className="mt-2 px-3">
                       <div className="flex flex-wrap gap-1.5">
-                        {treatmentCategories.map((treatment) => {
+                        {treatments.map((treatment) => {
                           const isActive = treatment.status === 'active'
                           const href = isActive
-                            ? localizedPath(`/treatments/${treatment.id}`, locale)
+                            ? treatmentPath(treatment.id, locale)
                             : hubPath('treatments', locale)
 
                           return (
@@ -245,23 +266,26 @@ export function MobileMenu({ locale, guideGroups }: MobileMenuProps) {
                     </div>
                   )}
 
-                  {group.id === 'destinations' && featured.length > 0 && (
+                  {(group.id === 'clinics' || group.id === 'destinations') && featured.length > 0 && (
                     <div className="mt-2 px-3">
                       <p className="mb-2 text-[9px] font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
                         {t.nav.groups.featuredIvf}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {featured.map((dest) => (
-                          <Link
-                            key={dest.href}
-                            href={dest.href}
-                            onClick={close}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-neutral-700)] transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]"
-                          >
-                            <span aria-hidden="true">{dest.flag}</span>
-                            {dest.name}
-                          </Link>
-                        ))}
+                        {featured.map((dest) => {
+                          const href = group.id === 'destinations' ? dest.countryHref : dest.href
+                          return (
+                            <Link
+                              key={href}
+                              href={href}
+                              onClick={close}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-neutral-700)] transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]"
+                            >
+                              <span aria-hidden="true">{dest.flag}</span>
+                              {dest.name}
+                            </Link>
+                          )
+                        })}
                       </div>
                     </div>
                   )}

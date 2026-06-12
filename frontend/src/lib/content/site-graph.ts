@@ -1,7 +1,8 @@
-import type { ContentListItem } from '@/lib/api/types'
+import type { ContentListItem, Taxonomy } from '@/lib/api/types'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 import { hubPath } from './site-nav'
-import { countryMeta, parseCitySlug, slugToLabel } from './hubs'
+import { getCountryDisplayFromTaxonomy, parseCitySlug } from './hubs'
+import { clinicCountryPath, slugToLabel } from '@/lib/routes'
 import type { HubId } from './site-nav'
 import { appendFiltersToUrl, buildContextualHubUrl, type ActiveFilters } from './filter-utils'
 
@@ -23,12 +24,13 @@ export interface HubLink {
   hubId?: HubId
 }
 
-export function parseGuideSlug(slug: string): GuideDimensions | null {
+export function parseGuideSlug(slug: string, taxonomy?: Taxonomy): GuideDimensions | null {
   const countryMatch = slug.match(/^guides\/([^/]+)-ivf-guide$/)
   if (countryMatch) {
     const countryKey = countryMatch[1]
-    const fullSlug = `guides/${countryKey}-ivf-guide`
-    const countryName = countryMeta[fullSlug]?.name ?? slugToLabel(countryKey)
+    const countryName = taxonomy
+      ? getCountryDisplayFromTaxonomy(countryKey, taxonomy).name
+      : slugToLabel(countryKey)
     return {
       treatment: 'ivf',
       countryKey,
@@ -82,7 +84,7 @@ export function getHubLinksForGuide(
     // Link to country-specific cities sub-page
     links.splice(1, 0, {
       label: `${t.crossHub.citiesIn} ${dim.countryName}`,
-      href: localizedPath(`/countries/${dim.countryKey}/cities`, locale),
+      href: clinicCountryPath(dim.countryKey, locale),
       hubId: 'cities',
     })
     links.unshift({

@@ -3,6 +3,7 @@
 import { useSearchParams, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
 import { useFilterNavigationOptional } from '@/components/filters/filter-navigation'
+import { trackFilterApplied } from '@/lib/analytics'
 
 export interface FilterOption {
   value: string
@@ -24,6 +25,7 @@ export function FilterChips({ options, paramKey, label, allLabel = 'All' }: Filt
   const current = searchParams.get(paramKey)
 
   function select(value: string | null) {
+    if (value !== null) trackFilterApplied({ filter_type: paramKey, value })
     pushParams((params) => {
       if (value === null || params.get(paramKey) === value) {
         params.delete(paramKey)

@@ -4,25 +4,24 @@ import { HubPageLayout } from '@/components/hubs/HubPageLayout'
 import { FilterBar } from '@/components/filters/FilterBar'
 import { SortSelect } from '@/components/filters/SortSelect'
 import { FilterNavigationProvider } from '@/components/filters/filter-navigation'
+import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
 import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
+import { cmsPageSlug } from '@/lib/routes'
+import { cmsMetadataForSlug, hubCopyFromCmsPage, loadCmsPage } from '@/lib/seo/cms-seo'
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 
 const locale = activeLocale
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = getDictionary(locale)
-  return {
-    title: t.meta.guides.title,
-    description: t.meta.guides.description,
-    alternates: { canonical: `${SITE_URL}/guides/` },
-  }
+  return cmsMetadataForSlug(cmsPageSlug('guides'))
 }
 
-export default function GuidesHubPage() {
+export default async function GuidesHubPage() {
   const t = getDictionary(locale)
+  const cms = await loadCmsPage(cmsPageSlug('guides'))
+  const hubCopy = cms.status === 'ok' ? hubCopyFromCmsPage(cms.page) : {}
 
   const sortOptions = [
     { value: 'alpha', label: t.hubs.guides.sortAlpha },
@@ -31,17 +30,18 @@ export default function GuidesHubPage() {
 
   return (
     <>
+      <CmsPageJsonLd result={cms} />
       <HubHero
         variant="compact"
         eyebrow={t.hubs.guides.hero.eyebrow}
-        title={t.hubs.guides.hero.title}
-        subtitle={t.hubs.guides.hero.subtitle}
+        title={hubCopy.title ?? t.hubs.guides.hero.title}
+        subtitle={hubCopy.description ?? t.hubs.guides.hero.subtitle}
       />
       <HubPageLayout
         locale={locale}
         hubId="guides"
-        title={t.hubs.guides.title}
-        description={t.hubs.guides.description}
+        title={hubCopy.title ?? t.hubs.guides.title}
+        description={hubCopy.description ?? t.hubs.guides.description}
         showHeading={false}
       >
         <FilterNavigationProvider>

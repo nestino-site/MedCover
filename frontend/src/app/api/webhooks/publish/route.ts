@@ -5,7 +5,12 @@ import { cacheTags } from '@/lib/cache/tags'
 import { normalizePath } from '@/lib/i18n/paths'
 
 const REPLAY_WINDOW_MS = 5 * 60 * 1000
-const ACCEPTED_EVENTS = new Set(['page.published', 'page.updated'])
+const ACCEPTED_EVENTS = new Set([
+  'page.published',
+  'page.updated',
+  'clinic.updated',
+  'clinic.published',
+])
 
 function verifySignature(body: string, signature: string, secret: string): boolean {
   const expected = 'sha256=' + createHmac('sha256', secret).update(body).digest('hex')
@@ -18,12 +23,49 @@ function verifySignature(body: string, signature: string, secret: string): boole
 }
 
 interface WebhookPayload {
-  pageId: number
-  slug: string
+  pageId?: number
+  slug?: string
   siteId: number
-  language: string
-  event: 'page.published' | 'page.updated' | string
+  language?: string
+  event: string
   timestamp: number
+  pageType?: string
+  affectedPaths?: string[]
+  clinicId?: number
+}
+
+function revalidateClinicScopeTags(path: string) {
+  const match = path.replace(/^\//, '').match(/^clinics\/([^/]+)(?:\/([^/]+))?/)
+  if (!match) return
+  const [, country, city] = match
+  revalidateTag(cacheTags.clinics(country), 'max')
+  if (city) {
+    revalidateTag(cacheTags.clinics(`${country}-${city}`), 'max')
+  }
+}
+
+function revalidateCostScopeTags(path: string) {
+  const match = path.replace(/^\//, '').match(/^cost\/([^/]+)/)
+  if (match) {
+    revalidateTag(cacheTags.costs(match[1]), 'max')
+  }
+}
+
+function revalidateFromPath(publicPath: string, slugPath?: string) {
+  revalidatePath(publicPath)
+
+  if (slugPath) {
+    revalidateTag(cacheTags.pageBySlug(slugPath), 'max')
+  }
+
+  const hubSegment = publicPath.split('/').filter(Boolean)[0]
+  if (hubSegment) {
+    revalidatePath(normalizePath(`/${hubSegment}`))
+    revalidateTag(cacheTags.hub(hubSegment), 'max')
+  }
+
+  revalidateClinicScopeTags(publicPath)
+  revalidateCostScopeTags(publicPath)
 }
 
 /** Lightweight ping for connectivity checks (Railway → Vercel). Does not touch cache. */
@@ -73,24 +115,29 @@ export async function POST(req: Request): Promise<Response> {
     console.warn('[webhook/publish] unexpected event:', payload.event)
   }
 
-  const slugPath = canonicalSlugPath(payload.slug)
-  const publicPath = normalizePath(slugPath)
+  const slugPath = payload.slug ? canonicalSlugPath(payload.slug) : undefined
+  const primaryPath = normalizePath(slugPath ?? payload.affectedPaths?.[0] ?? '/')
+  const pathsToRevalidate = payload.affectedPaths?.length
+    ? payload.affectedPaths.map((p) => normalizePath(p))
+    : [primaryPath]
 
-  revalidatePath(publicPath)
-  revalidateTag(cacheTags.pageBySlug(slugPath), 'max')
-  revalidateTag(cacheTags.pageById(payload.pageId), 'max')
+  for (const publicPath of pathsToRevalidate) {
+    revalidateFromPath(publicPath, slugPath)
+  }
+
+  revalidateTag(cacheTags.taxonomy, 'max')
   revalidateTag(cacheTags.publishedPages, 'max')
   revalidateTag(cacheTags.site(payload.siteId), 'max')
+  revalidateTag(cacheTags.search, 'max')
 
-  const hubSegment = slugPath.split('/').filter(Boolean)[0]
-  if (hubSegment) {
-    revalidatePath(normalizePath(`/${hubSegment}`))
-    revalidateTag(cacheTags.hub(hubSegment), 'max')
+  if (payload.pageId != null) {
+    revalidateTag(cacheTags.pageById(payload.pageId), 'max')
   }
 
   console.info('[webhook/publish] revalidated', {
     pageId: payload.pageId,
     slug: slugPath,
+    affectedPaths: pathsToRevalidate,
     siteId: payload.siteId,
     event: payload.event,
   })
@@ -98,7 +145,7 @@ export async function POST(req: Request): Promise<Response> {
   return Response.json({
     ok: true,
     slug: slugPath,
-    path: publicPath,
+    paths: pathsToRevalidate,
     event: payload.event,
   })
 }

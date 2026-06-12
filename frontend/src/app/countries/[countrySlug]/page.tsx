@@ -1,214 +1,128 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
+import { getTaxonomy } from '@/lib/api/catalog'
 import { getContentBySlugOptional, getContentListSafe } from '@/lib/api/content'
 import {
-  countryMeta,
-  staticCitiesPerCountry,
   getCitiesForCountry,
+  getCountryDisplayFromTaxonomy,
   getRelatedGuideSlugsForCountry,
   partitionGuides,
 } from '@/lib/content/hubs'
 import { loadGuideArticlesBySlugs } from '@/lib/content/guide-posts'
-import { treatmentCategories } from '@/lib/content/treatments'
-import { buildCountryLandingSchemas } from '@/lib/schema/country-landing'
-import { JsonLd } from '@/components/shared/JsonLd'
-import { Breadcrumb } from '@/components/layout/Breadcrumb'
+import { treatmentsForDisplay } from '@/lib/content/treatments'
+import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
+import { cmsMetadataForSlug, heroAnswerFromCmsPage } from '@/lib/seo/cms-seo'
+import { cmsPageSlug } from '@/lib/routes'
+import { loadPublishedPage } from '@/lib/api/content'
 import { CtaBlock } from '@/components/shared/CtaBlock'
-import { SpeakableSummary } from '@/components/shared/SpeakableSummary'
+import { EntityHero } from '@/components/shared/EntityHero'
 import { RelatedArticles } from '@/components/shared/RelatedArticles'
 import { PlacePillars } from '@/components/shared/PlacePillars'
-import { FilterBar } from '@/components/filters/FilterBar'
-import { FilterChips } from '@/components/filters/FilterChips'
-import { FilterNavigationProvider } from '@/components/filters/filter-navigation'
-import { TreatmentFilterPanel } from '@/components/filters/TreatmentFilterPanel'
-import { CountryHero } from '@/components/country-landing/CountryHero'
 import { CountryFeaturedGuide } from '@/components/country-landing/CountryFeaturedGuide'
 import { CountryCitiesSection } from '@/components/country-landing/CountryCitiesSection'
-import { getDictionary, localizedPath } from '@/lib/i18n'
+import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 import { en } from '@/lib/i18n/en'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 type Params = Promise<{ countrySlug: string }>
-const treatmentOptions = treatmentCategories.map((c) => ({
-  value: c.id,
-  label: c.name,
-}))
 
-const activeTreatmentId = treatmentCategories.find((c) => c.status === 'active')?.id ?? 'ivf'
-
-export function generateStaticParams() {
-  return Object.keys(staticCitiesPerCountry).map((countryKey) => ({
-    countrySlug: countryKey,
+export async function generateStaticParams() {
+  const taxonomy = await getTaxonomy()
+  const params = taxonomy.countries.map((country) => ({
+    countrySlug: country.slug,
   }))
-}
-
-function getCountryMetaByKey(countryKey: string) {
-  return countryMeta[`guides/${countryKey}-ivf-guide`] ?? null
+  return params.length > 0 ? params : [{ countrySlug: 'spain' }]
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { countrySlug } = await params
-  const meta = getCountryMetaByKey(countrySlug)
-  if (!meta) return { title: 'Country Guide | MedCover' }
-
-  const cities = staticCitiesPerCountry[countrySlug] ?? []
-  const cityList = cities
-    .slice(0, 3)
-    .map((c) => c.charAt(0).toUpperCase() + c.slice(1))
-    .join(', ')
-
-  const title = `Medical Travel in ${meta.name}: IVF, Costs & Clinics | MedCover`
-  const description = `Medical travel in ${meta.name} — IVF ${meta.cost}, ${meta.clinics}${cityList ? ` across ${cityList}` : ''}. Compare treatments, read patient guides, and explore city hubs.`
-  const canonicalUrl = `${SITE_URL}/countries/${countrySlug}/`
-
-  return {
-    title,
-    description,
-    alternates: { canonical: canonicalUrl },
-    openGraph: {
-      title,
-      description,
-      url: canonicalUrl,
-      type: 'website',
-      siteName: 'MedCover',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-    },
-  }
+  return cmsMetadataForSlug(cmsPageSlug('countries', countrySlug))
 }
 
 async function CountryLandingContent({ countrySlug }: { countrySlug: string }) {
   const locale = activeLocale
   const t = getDictionary(locale)
   const cl = en.countryLanding
+  const taxonomy = await getTaxonomy()
+  const country = taxonomy.countries.find((c) => c.slug === countrySlug)
+  if (!country) notFound()
 
-  const meta = getCountryMetaByKey(countrySlug)
-  if (!meta) notFound()
+  const display = getCountryDisplayFromTaxonomy(countrySlug, taxonomy, locale)
+  const treatmentCategories = treatmentsForDisplay(taxonomy)
 
-  const [guide, allPages] = await Promise.all([
+  const landingSlug = cmsPageSlug('countries', countrySlug)
+  const [guide, allPages, landingCms] = await Promise.all([
     getContentBySlugOptional(`guides/${countrySlug}-ivf-guide`),
     getContentListSafe(),
+    loadPublishedPage(landingSlug),
   ])
 
   const { cities: cityPages } = partitionGuides(allPages, locale)
-  const cities = getCitiesForCountry(countrySlug, cityPages, locale)
-  const relatedSlugs = getRelatedGuideSlugsForCountry(countrySlug, cityPages, locale)
-  const relatedArticles = await loadGuideArticlesBySlugs(relatedSlugs, allPages, locale)
+  const cities = getCitiesForCountry(countrySlug, cityPages, locale, taxonomy)
+  const relatedSlugs = getRelatedGuideSlugsForCountry(countrySlug, cityPages)
+  const relatedArticles = await loadGuideArticlesBySlugs(relatedSlugs, allPages, locale, taxonomy)
 
-  const canonicalUrl = `${SITE_URL}/countries/${countrySlug}/`
-  const metaTitle = `Medical Travel in ${meta.name}: IVF, Costs & Clinics | MedCover`
-  const metaDescription = `Medical travel in ${meta.name} — IVF ${meta.cost}, ${meta.clinics}. Compare treatments and explore verified patient guides.`
+  const cmsAnswer = landingCms.status === 'ok' ? heroAnswerFromCmsPage(landingCms.page) : undefined
 
-  const schemas = buildCountryLandingSchemas({
-    countryKey: countrySlug,
-    countryName: meta.name,
-    metaTitle,
-    metaDescription,
-    canonicalUrl,
-    faqs: guide?.faq ?? [],
-    cities,
-    updatedAt: guide?.updatedAt,
-  })
-
-  const breadcrumbs = [
+  const breadcrumbs = landingCms.status === 'ok' && landingCms.page.breadcrumbs.length > 0
+    ? landingCms.page.breadcrumbs
+    : [
     { name: t.breadcrumb.home, slug: '/', position: 1 },
     { name: t.nav.countries, slug: '/countries', position: 2 },
-    { name: meta.name, slug: `/countries/${countrySlug}`, position: 3 },
+    { name: display.name, slug: `/countries/${countrySlug}`, position: 3 },
   ]
+
+  const heroStats: { label: string; value: string }[] = []
+  if (display.cost) heroStats.push({ label: cl.stats.treatmentCost, value: display.cost })
+  if (display.clinics) heroStats.push({ label: cl.stats.verifiedClinics, value: display.clinics })
+  if (cities.length > 0) heroStats.push({ label: cl.stats.cities, value: String(cities.length) })
 
   return (
     <>
-      <JsonLd schema={schemas} />
+      <CmsPageJsonLd result={landingCms} />
       <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
-        <Breadcrumb items={breadcrumbs.slice(1)} homeHref={localizedPath('/', locale)} />
+        <EntityHero
+          breadcrumbs={breadcrumbs.slice(1)}
+          eyebrow={cl.heroEyebrow}
+          flag={display.flag}
+          title={display.name}
+          description={display.tagline}
+          stats={heroStats}
+          answer={cmsAnswer}
+          answerLabel={cl.speakableSummaryLabel}
+        />
 
-        <div className="mt-4 space-y-10">
-          <CountryHero
-            name={meta.name}
-            flag={meta.flag}
-            tagline={meta.tagline}
-            cost={meta.cost}
-            clinics={meta.clinics}
-            citiesCount={cities.length}
+        <div className="space-y-12">
+          <PlacePillars
+            placeName={display.name}
+            treatments={treatmentCategories}
+            locale={locale}
           />
 
-          <PlacePillars placeName={meta.name} />
+          <CountryFeaturedGuide
+            guide={guide ?? null}
+            countryKey={countrySlug}
+            countryName={display.name}
+          />
 
-          <SpeakableSummary label={cl.speakableSummaryLabel}>
-            <p>
-              {meta.name} is a medical travel destination with verified patient data across{' '}
-              {meta.clinics}. IVF is available {meta.cost}.
-              {cities.length > 0 &&
-                ` City guides are available for ${cities.map((c) => c.cityName).join(', ')}.`}
-            </p>
-          </SpeakableSummary>
+          <CountryCitiesSection
+            cities={cities}
+            countryName={display.name}
+            countryFlag={display.flag}
+          />
 
-          <FilterNavigationProvider>
-            <Suspense fallback={null}>
-              <FilterBar>
-                <FilterChips
-                  options={treatmentOptions}
-                  paramKey="treatment"
-                  label={cl.treatmentFilterLabel}
-                  allLabel={cl.treatmentFilterAll}
-                />
-              </FilterBar>
-            </Suspense>
-
-            <TreatmentFilterPanel
-              activeTreatmentId={activeTreatmentId}
-              ivfContent={
-                <div id="ivf-pillar" className="space-y-8 scroll-mt-8">
-                  <div>
-                    <h2 className="text-xl font-bold text-[var(--color-primary-950)]">
-                      {cl.ivfPillar.heading}
-                    </h2>
-                    <p className="mt-1 text-sm text-[var(--color-neutral-600)]">
-                      {cl.ivfPillar.subtitle}
-                    </p>
-                  </div>
-
-                  <CountryFeaturedGuide
-                    guide={guide ?? null}
-                    countryKey={countrySlug}
-                    countryName={meta.name}
-                  />
-
-                  <CountryCitiesSection
-                    cities={cities}
-                    countryName={meta.name}
-                    countryFlag={meta.flag}
-                  />
-
-                  <RelatedArticles
-                    eyebrow={cl.relatedArticles.eyebrow}
-                    heading={cl.relatedArticles.heading}
-                    articles={relatedArticles}
-                    emptyMessage={cl.relatedArticles.empty}
-                  />
-                </div>
-              }
-              comingSoonContent={
-                <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-6 py-10 text-center">
-                  <p className="font-semibold text-[var(--color-primary-950)]">
-                    {cl.treatmentComingSoon.title}
-                  </p>
-                  <p className="mt-2 text-sm text-[var(--color-neutral-600)]">
-                    {cl.treatmentComingSoon.body}
-                  </p>
-                </div>
-              }
-            />
-          </FilterNavigationProvider>
+          <RelatedArticles
+            eyebrow={cl.relatedArticles.eyebrow}
+            heading={cl.relatedArticles.heading}
+            articles={relatedArticles}
+            emptyMessage={cl.relatedArticles.empty}
+          />
 
           <CtaBlock
-            headline={cl.cta.headline.replace('{country}', meta.name)}
+            headline={cl.cta.headline.replace('{country}', display.name)}
             description={cl.cta.description}
           />
         </div>

@@ -1,24 +1,50 @@
 import type { MetadataRoute } from 'next'
+import { getTaxonomy, listAllClinics, treatmentSlugSet } from '@/lib/api/catalog'
 import { listPublishedPages } from '@/lib/api/content'
 import { filterSitemapPublishedPages } from '@/lib/content/slug-canonical'
 import { filterPagesByLocale } from '@/lib/content/site-graph'
 import { getSitemapHubs, hubPath } from '@/lib/content/site-nav'
-import { staticCitiesPerCountry } from '@/lib/content/hubs'
-import { treatmentCategories } from '@/lib/content/treatments'
+import { treatmentsFromTaxonomy } from '@/lib/content/treatments'
+import {
+  clinicPdpSitemapEntries,
+  clinicPdpSitemapEntriesFromPages,
+  dedupeSitemapEntries,
+  filterSitemapClinicPublishedPages,
+} from '@/lib/clinics/sitemap'
 import { LOCALES } from '@/lib/i18n/locales'
 import { absoluteUrl, localizedPath } from '@/lib/i18n/paths'
+import {
+  clinicCityPath,
+  clinicCountryPath,
+  clinicCityTreatmentPath,
+  clinicCountryTreatmentPath,
+  clinicsHubPath,
+  costCityPath,
+  costCountryPath,
+  costHubPath,
+  costTreatmentPath,
+  countryLandingPath,
+  treatmentPath,
+} from '@/lib/routes'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let pages: Awaited<ReturnType<typeof listPublishedPages>> = []
+  let taxonomy: Awaited<ReturnType<typeof getTaxonomy>> | null = null
+  let allClinics: Awaited<ReturnType<typeof listAllClinics>> = []
 
   try {
-    pages = await listPublishedPages()
+    ;[pages, taxonomy, allClinics] = await Promise.all([
+      listPublishedPages(),
+      getTaxonomy(),
+      listAllClinics(),
+    ])
   } catch {
     return [{ url: SITE_URL, lastModified: new Date(), priority: 1.0 }]
   }
 
+  const treatmentSlugs = treatmentSlugSet(taxonomy)
   const entries: MetadataRoute.Sitemap = []
 
   for (const locale of LOCALES) {
@@ -49,60 +75,128 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     })
 
-    // Country landing pages + country/cities sub-pages
-    for (const countryKey of Object.keys(staticCitiesPerCountry)) {
+    entries.push({
+      url: absoluteUrl(clinicsHubPath(locale), SITE_URL),
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    })
+
+    entries.push({
+      url: absoluteUrl(costHubPath(locale), SITE_URL),
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    })
+
+    for (const country of taxonomy.countries) {
+      if (country.clinicCount === 0) continue
+
       entries.push({
-        url: absoluteUrl(localizedPath(`/countries/${countryKey}`, locale), SITE_URL),
+        url: absoluteUrl(countryLandingPath(country.slug, locale), SITE_URL),
         lastModified: new Date(),
         changeFrequency: 'weekly',
         priority: 0.85,
       })
       entries.push({
-        url: absoluteUrl(localizedPath(`/countries/${countryKey}/cities`, locale), SITE_URL),
+        url: absoluteUrl(clinicCountryPath(country.slug, locale), SITE_URL),
         lastModified: new Date(),
-        changeFrequency: 'monthly',
-        priority: 0.75,
+        changeFrequency: 'weekly',
+        priority: 0.85,
       })
-      for (const cityKey of staticCitiesPerCountry[countryKey] ?? []) {
+
+      for (const city of country.cities) {
+        if (city.clinicCount === 0) continue
         entries.push({
-          url: absoluteUrl(localizedPath(`/cities/${countryKey}/${cityKey}`, locale), SITE_URL),
+          url: absoluteUrl(clinicCityPath(country.slug, city.slug, locale), SITE_URL),
           lastModified: new Date(),
           changeFrequency: 'weekly',
-          priority: 0.8,
+          priority: 0.85,
         })
       }
     }
 
-    // Treatment sub-pages
-    for (const cat of treatmentCategories.filter((c) => c.status === 'active')) {
+    for (const treatment of treatmentsFromTaxonomy(taxonomy)) {
+      if (treatment.clinicCount === 0) continue
+
       entries.push({
-        url: absoluteUrl(localizedPath(`/treatments/${cat.id}`, locale), SITE_URL),
+        url: absoluteUrl(treatmentPath(treatment.id, locale), SITE_URL),
         lastModified: new Date(),
         changeFrequency: 'weekly',
         priority: 0.9,
       })
       entries.push({
-        url: absoluteUrl(localizedPath(`/treatments/${cat.id}/costs`, locale), SITE_URL),
+        url: absoluteUrl(costTreatmentPath(treatment.id, locale), SITE_URL),
         lastModified: new Date(),
         changeFrequency: 'monthly',
         priority: 0.85,
       })
+
+      for (const countrySlug of treatment.countries) {
+        entries.push({
+          url: absoluteUrl(clinicCountryTreatmentPath(countrySlug, treatment.id, locale), SITE_URL),
+          lastModified: new Date(),
+          changeFrequency: 'weekly',
+          priority: 0.8,
+        })
+        entries.push({
+          url: absoluteUrl(costCountryPath(treatment.id, countrySlug, locale), SITE_URL),
+          lastModified: new Date(),
+          changeFrequency: 'monthly',
+          priority: 0.8,
+        })
+
+        const country = taxonomy.countries.find((c) => c.slug === countrySlug)
+        if (country) {
+          for (const city of country.cities) {
+            if (city.clinicCount === 0) continue
+            entries.push({
+              url: absoluteUrl(
+                costCityPath(treatment.id, countrySlug, city.slug, locale),
+                SITE_URL,
+              ),
+              lastModified: new Date(),
+              changeFrequency: 'monthly',
+              priority: 0.75,
+            })
+            entries.push({
+              url: absoluteUrl(
+                clinicCityTreatmentPath(countrySlug, city.slug, treatment.id, locale),
+                SITE_URL,
+              ),
+              lastModified: new Date(),
+              changeFrequency: 'weekly',
+              priority: 0.8,
+            })
+          }
+        }
+      }
     }
 
-    const localePages = filterSitemapPublishedPages(filterPagesByLocale(pages, locale))
+    const localePagesRaw = filterPagesByLocale(pages, locale)
+    const pdpEntries =
+      allClinics.length > 0
+        ? clinicPdpSitemapEntries(allClinics, locale, SITE_URL)
+        : clinicPdpSitemapEntriesFromPages(localePagesRaw, locale, SITE_URL, treatmentSlugs)
+    entries.push(...pdpEntries)
+
+    const localePages = filterSitemapPublishedPages(
+      filterSitemapClinicPublishedPages(localePagesRaw, treatmentSlugs),
+    )
     for (const page of localePages) {
       const slugPath = page.slug.startsWith('/') ? page.slug : `/${page.slug}`
       const isCountryGuide = /^\/guides\/[^/]+-ivf-guide$/.test(slugPath)
       const isCityGuide = /^\/guides\/[^/]+\/.+-ivf-guide$/.test(slugPath)
-      const isCostGuide = slugPath.startsWith('/costs/')
+      const isCostPage = slugPath.startsWith('/cost/')
+      const isComparePage = slugPath.startsWith('/compare/')
       entries.push({
         url: absoluteUrl(localizedPath(slugPath, locale), SITE_URL),
         lastModified: new Date(page.updatedAt),
         changeFrequency: isCountryGuide ? 'weekly' : 'monthly',
-        priority: isCostGuide ? 0.8 : isCountryGuide ? 0.85 : isCityGuide ? 0.75 : 0.8,
+        priority: isCostPage ? 0.8 : isComparePage ? 0.75 : isCountryGuide ? 0.85 : isCityGuide ? 0.75 : 0.8,
       })
     }
   }
 
-  return entries
+  return dedupeSitemapEntries(entries)
 }

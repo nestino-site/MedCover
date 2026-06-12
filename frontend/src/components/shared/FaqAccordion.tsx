@@ -10,30 +10,35 @@ interface FaqAccordionProps {
   faqs: FaqItem[]
   title?: string
   variant?: 'default' | 'compact'
+  /** When false, all items start collapsed (default: first item open). */
+  defaultOpen?: boolean
 }
 
 export function FaqAccordion({
   faqs,
   title = en.page.faqTitle,
   variant = 'default',
+  defaultOpen = true,
 }: FaqAccordionProps) {
-  const [openIndex, setOpenIndex] = useState<number | null>(0)
+  const [openIndex, setOpenIndex] = useState<number | null>(defaultOpen ? 0 : null)
 
   if (faqs.length === 0) return null
 
   const isCompact = variant === 'compact'
 
   return (
-    <section className={cn(isCompact ? 'py-6' : 'py-10')} aria-labelledby="faq-heading">
-      <h2
-        id="faq-heading"
-        className={cn(
-          'font-bold tracking-tight text-[var(--color-primary-950)]',
-          isCompact ? 'mb-4 text-xl' : 'mb-6 text-3xl',
-        )}
-      >
-        {title}
-      </h2>
+    <section className={cn(isCompact ? 'py-6' : 'py-10')} aria-labelledby={title ? 'faq-heading' : undefined}>
+      {title && (
+        <h2
+          id="faq-heading"
+          className={cn(
+            'font-bold tracking-tight text-[var(--color-primary-950)]',
+            isCompact ? 'mb-4 text-xl' : 'mb-6 text-3xl',
+          )}
+        >
+          {title}
+        </h2>
+      )}
 
       <div className="divide-y divide-[var(--color-border)]">
         {faqs.map((faq, index) => {

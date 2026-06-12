@@ -1,14 +1,15 @@
 import { Suspense } from 'react'
+import { getTaxonomy } from '@/lib/api/catalog'
 import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import {
-  getFeaturedCountries,
-  getCountryDisplay,
+  getFeaturedCountriesFromTaxonomy,
+  getCountryDisplayFromTaxonomy,
   getCountryKeyFromSlug,
   getCitiesForCountry,
   partitionGuides,
 } from '@/lib/content/hubs'
-import { getTreatmentTagsForCountry } from '@/lib/content/country-treatments'
+import { getTreatmentTagsForCountry } from '@/lib/content/treatments'
 import type { CountryCardData } from '@/components/hubs/CountryCard'
 import { CountriesListView } from '@/components/hubs/CountriesListView'
 
@@ -31,13 +32,16 @@ export interface CountriesListProps {
 
 export async function CountriesList({ locale }: CountriesListProps) {
   const t = getDictionary(locale)
-  const pages = await listPublishedPagesSafe()
+  const [taxonomy, pages] = await Promise.all([getTaxonomy(), listPublishedPagesSafe()])
   const { countries: countryPages, cities: cityPages } = partitionGuides(pages, locale)
 
   const baseCountries =
     countryPages.length > 0
-      ? countryPages.map((p) => getCountryDisplay(p.slug.replace(/^\//, ''), locale))
-      : getFeaturedCountries(locale)
+      ? countryPages.map((p) => {
+          const countryKey = getCountryKeyFromSlug(p.slug.replace(/^\//, '')) ?? ''
+          return getCountryDisplayFromTaxonomy(countryKey, taxonomy, locale)
+        })
+      : getFeaturedCountriesFromTaxonomy(taxonomy, locale)
 
   if (baseCountries.length === 0) {
     return <p className="text-[var(--color-neutral-500)]">{t.hubs.countries.empty}</p>
@@ -55,8 +59,8 @@ export async function CountriesList({ locale }: CountriesListProps) {
       tagline: display.tagline,
       cost: display.cost,
       clinics: display.clinics,
-      cities: getCitiesForCountry(countryKey, cityPages, locale),
-      treatments: getTreatmentTagsForCountry(countryKey),
+      cities: getCitiesForCountry(countryKey, cityPages, locale, taxonomy),
+      treatments: getTreatmentTagsForCountry(taxonomy, countryKey),
       costNumeric: parseCostNumeric(display.cost),
       clinicsNumeric: parseClinicsNumeric(display.clinics),
     }
@@ -68,7 +72,7 @@ export async function CountriesList({ locale }: CountriesListProps) {
 
   return (
     <Suspense fallback={<CountriesListSkeleton />}>
-      <CountriesListView cards={cards} locale={locale} />
+      <CountriesListView cards={cards} locale={locale} taxonomy={taxonomy} />
     </Suspense>
   )
 }

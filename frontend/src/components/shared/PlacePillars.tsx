@@ -1,18 +1,22 @@
 import Link from 'next/link'
-import { treatmentCategories } from '@/lib/content/treatments'
-import { localizedPath } from '@/lib/i18n'
+import type { TreatmentCategoryDisplay } from '@/lib/content/treatments'
+import { localizedPath, type Locale } from '@/lib/i18n'
 import { en } from '@/lib/i18n/en'
 
 interface PlacePillarsProps {
   placeName: string
+  treatments: TreatmentCategoryDisplay[]
   activeTreatmentId?: string
   ivfAnchorId?: string
+  locale?: Locale
 }
 
 export function PlacePillars({
   placeName,
+  treatments,
   activeTreatmentId = 'ivf',
   ivfAnchorId = 'ivf-pillar',
+  locale = 'en' as Locale,
 }: PlacePillarsProps) {
   const t = en.placeLanding.pillars
 
@@ -29,7 +33,7 @@ export function PlacePillars({
       </div>
 
       <ul className="flex flex-wrap gap-2">
-        {treatmentCategories.map((category) => {
+        {treatments.map((category) => {
           const isActive = category.status === 'active'
 
           if (isActive && category.id === activeTreatmentId) {
@@ -52,7 +56,7 @@ export function PlacePillars({
             return (
               <li key={category.id}>
                 <Link
-                  href={localizedPath(`/treatments/${category.id}`, 'en')}
+                  href={localizedPath(`/treatments/${category.id}`, locale)}
                   className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-primary-200)] bg-white px-4 py-2 text-sm font-semibold text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-50)]"
                 >
                   {category.name}

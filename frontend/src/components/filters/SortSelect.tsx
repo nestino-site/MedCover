@@ -3,6 +3,7 @@
 import { useSearchParams } from 'next/navigation'
 import { ArrowUpDown } from 'lucide-react'
 import { useFilterNavigationOptional } from '@/components/filters/filter-navigation'
+import { trackSortChanged } from '@/lib/analytics'
 
 export interface SortOption {
   value: string
@@ -21,6 +22,7 @@ export function SortSelect({ options, defaultValue, label = 'Sort' }: SortSelect
   const current = searchParams.get('sort') ?? defaultValue ?? options[0]?.value
 
   function onChange(value: string) {
+    trackSortChanged({ sort_by: value })
     pushParams((params) => {
       if (!value || value === (defaultValue ?? options[0]?.value)) {
         params.delete('sort')

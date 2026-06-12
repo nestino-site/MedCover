@@ -2,8 +2,9 @@ import 'server-only'
 import type { ContentListItem, ContentPage } from '@/lib/api/types'
 import { loadPublishedPage } from '@/lib/api/content'
 import { localizedPath, type Locale } from '@/lib/i18n'
+import type { Taxonomy } from '@/lib/api/types'
 import {
-  countryMeta,
+  getCountryDisplayFromTaxonomy,
   getCountryKeyFromSlug,
   isCityGuideSlug,
   isCountryGuideSlug,
@@ -37,18 +38,18 @@ export function resolveGuideSeo(page: ContentPage, slug: string): GuideSeoDispla
   return { title, description }
 }
 
-function fallbackTitleAndDescription(slug: string): GuideSeoDisplay {
+function fallbackTitleAndDescription(slug: string, taxonomy?: Taxonomy): GuideSeoDisplay {
   const normalized = slug.replace(/^\//, '')
 
   if (isCountryGuideSlug(normalized)) {
-    const meta = countryMeta[normalized]
-    if (meta) {
+    const countryKey = getCountryKeyFromSlug(normalized)
+    if (countryKey && taxonomy) {
+      const display = getCountryDisplayFromTaxonomy(countryKey, taxonomy)
       return {
-        title: `${meta.name} IVF Guide`,
-        description: meta.tagline,
+        title: `${display.name} IVF Guide`,
+        description: display.tagline || 'Country guide',
       }
     }
-    const countryKey = getCountryKeyFromSlug(normalized)
     return {
       title: pageTitleFromSlug(normalized),
       description: countryKey ? 'Country guide' : 'Patient guide',
@@ -89,32 +90,32 @@ function buildGuideArticleItem(
   page: ContentListItem,
   locale: Locale,
   summaries: GuideSummaryMap,
+  taxonomy?: Taxonomy,
 ): GuideArticleItem | null {
   const slug = page.slug.replace(/^\//, '')
   const href = localizedPath(`/${slug}`, locale)
-  const seo = summaries.get(slug) ?? fallbackTitleAndDescription(slug)
+  const seo = summaries.get(slug) ?? fallbackTitleAndDescription(slug, taxonomy)
 
   if (isCountryGuideSlug(slug)) {
     const countryKey = getCountryKeyFromSlug(slug) ?? ''
-    const meta = countryMeta[slug]
+    const display = taxonomy ? getCountryDisplayFromTaxonomy(countryKey, taxonomy) : null
     return {
       slug,
       href,
       title: seo.title,
-      description: seo.description || meta?.tagline || '',
+      description: seo.description || display?.tagline || '',
       updatedAt: page.updatedAt,
       kind: 'country',
       countryKey,
-      countryName: meta?.name ?? pageTitleFromSlug(slug),
-      flag: meta?.flag ?? '🌍',
+      countryName: display?.name ?? pageTitleFromSlug(slug),
+      flag: display?.flag ?? '🌍',
     }
   }
 
   if (isCityGuideSlug(slug)) {
     const parsed = parseCitySlug(slug)
     if (!parsed) return null
-    const countrySlug = `guides/${parsed.countryKey}-ivf-guide`
-    const meta = countryMeta[countrySlug]
+    const display = taxonomy ? getCountryDisplayFromTaxonomy(parsed.countryKey, taxonomy) : null
     return {
       slug,
       href,
@@ -124,32 +125,30 @@ function buildGuideArticleItem(
       kind: 'city',
       countryKey: parsed.countryKey,
       countryName: parsed.countryName,
-      flag: meta?.flag ?? '🌍',
+      flag: display?.flag ?? '🌍',
     }
   }
 
   return null
 }
 
-const FEATURED_COUNTRY_ORDER = Object.keys(countryMeta).map((slug) =>
-  getCountryKeyFromSlug(slug),
-).filter((k): k is string => k != null)
-
-function countrySortIndex(countryKey: string): number {
-  const idx = FEATURED_COUNTRY_ORDER.indexOf(countryKey)
-  return idx === -1 ? FEATURED_COUNTRY_ORDER.length : idx
+function countrySortIndex(countryKey: string, taxonomy?: Taxonomy): number {
+  if (!taxonomy) return Number.MAX_SAFE_INTEGER
+  const idx = taxonomy.countries.findIndex((c) => c.slug === countryKey)
+  return idx === -1 ? taxonomy.countries.length : idx
 }
 
 export function buildGuideGroups(
   pages: ContentListItem[],
   summaries: GuideSummaryMap,
   locale: Locale,
+  taxonomy?: Taxonomy,
 ): GuideCountryGroup[] {
   const { countries, cities } = partitionGuides(pages, locale)
   const groupMap = new Map<string, GuideCountryGroup>()
 
   for (const page of countries) {
-    const item = buildGuideArticleItem(page, locale, summaries)
+    const item = buildGuideArticleItem(page, locale, summaries, taxonomy)
     if (!item) continue
     groupMap.set(item.countryKey, {
       countryKey: item.countryKey,
@@ -161,7 +160,7 @@ export function buildGuideGroups(
   }
 
   for (const page of cities) {
-    const item = buildGuideArticleItem(page, locale, summaries)
+    const item = buildGuideArticleItem(page, locale, summaries, taxonomy)
     if (!item) continue
     if (!groupMap.has(item.countryKey)) {
       groupMap.set(item.countryKey, {
@@ -182,7 +181,7 @@ export function buildGuideGroups(
 
   groups.sort(
     (a, b) =>
-      countrySortIndex(a.countryKey) - countrySortIndex(b.countryKey) ||
+      countrySortIndex(a.countryKey, taxonomy) - countrySortIndex(b.countryKey, taxonomy) ||
       a.countryName.localeCompare(b.countryName),
   )
 
@@ -203,6 +202,7 @@ export { filterGuideGroups } from '@/lib/content/guide-group-filters'
 export async function loadGuidePostsBySlugs(
   slugs: string[],
   locale: Locale,
+  taxonomy?: Taxonomy,
 ): Promise<GuideArticleItem[]> {
   const normalized = [...new Set(slugs.map((s) => s.replace(/^\//, '')))]
   if (normalized.length === 0) return []
@@ -216,7 +216,7 @@ export async function loadGuidePostsBySlugs(
   }))
 
   return stubPages
-    .map((page) => buildGuideArticleItem(page, locale, summaries))
+    .map((page) => buildGuideArticleItem(page, locale, summaries, taxonomy))
     .filter((item): item is GuideArticleItem => item != null)
 }
 
@@ -224,6 +224,7 @@ export async function loadGuideArticlesBySlugs(
   slugs: string[],
   pages: ContentListItem[],
   locale: Locale,
+  taxonomy?: Taxonomy,
 ): Promise<GuideArticleItem[]> {
   const normalized = [...new Set(slugs.map((s) => s.replace(/^\//, '')))]
   if (normalized.length === 0) return []
@@ -239,7 +240,7 @@ export async function loadGuideArticlesBySlugs(
         language: locale,
         updatedAt: '',
       }
-      return buildGuideArticleItem(page, locale, summaries)
+      return buildGuideArticleItem(page, locale, summaries, taxonomy)
     })
     .filter((item): item is GuideArticleItem => item != null)
 }
@@ -278,12 +279,13 @@ export async function loadPublishedPostItems(
 export async function loadGuideGroupsForPages(
   pages: ContentListItem[],
   locale: Locale,
+  taxonomy?: Taxonomy,
 ): Promise<GuideCountryGroup[]> {
   const { countries, cities } = partitionGuides(pages, locale)
   const allPages = [...countries, ...cities]
   const slugs = allPages.map((p) => p.slug.replace(/^\//, ''))
   const summaries = await loadGuideSummaries(slugs)
-  return buildGuideGroups(pages, summaries, locale)
+  return buildGuideGroups(pages, summaries, locale, taxonomy)
 }
 
 export function limitGuideGroupsForNav(

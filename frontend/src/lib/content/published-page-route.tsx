@@ -20,6 +20,8 @@ import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { GuideArticleLayout } from '@/components/guides/GuideArticleLayout'
 import { pageTitleFromSlug } from '@/lib/content/hubs'
+import { getRelatedForGuide } from '@/lib/content/link-graph'
+import { getTaxonomy } from '@/lib/api/catalog'
 import { isNextImageOptimizable, resolveHeroImage, resolveHeroImageForMetadata } from '@/lib/content/hero-image'
 import { normalizeContentHtml } from '@/lib/content/html-content-images'
 import { getDictionary, type Locale } from '@/lib/i18n'
@@ -53,56 +55,24 @@ function slugToRouteParams(
   return tail.length > 0 ? { slug: tail } : null
 }
 
+import {
+  metadataFromCmsPage,
+  resolveSiteCanonical,
+} from '@/lib/seo/cms-seo'
+
 function siteOrigin(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io').replace(/\/+$/, '')
 }
 
-function resolveSiteCanonical(slugPath: string, apiCanonical?: string | null): string {
-  const canonicalPath = slugPath.endsWith('/') ? slugPath : `${slugPath}/`
-  const defaultCanonical = `${siteOrigin()}${canonicalPath}`
-
-  if (!apiCanonical) return defaultCanonical
-
-  try {
-    const apiUrl = new URL(apiCanonical)
-    if (apiUrl.host === new URL(siteOrigin()).host) {
-      return apiCanonical.endsWith('/') ? apiCanonical : `${apiCanonical}/`
-    }
-  } catch {
-    // Ignore malformed API canonical URLs.
-  }
-
-  return defaultCanonical
-}
-
+/** @deprecated Import metadataFromCmsPage from @/lib/seo/cms-seo */
 export function getPublishedPageMetadata(
   page: PageFetchResult & { status: 'ok' },
   slugPath: string,
 ): Metadata {
-  const canonical = resolveSiteCanonical(slugPath, page.page.seo.canonical)
-  const hero = resolveHeroImageForMetadata(page.page, siteOrigin())
-
-  return {
-    title: page.page.seo.metaTitle ?? page.page.seo.title ?? undefined,
-    description: page.page.seo.metaDescription ?? undefined,
-    robots: page.page.seo.robotsMeta || 'index, follow',
-    alternates: { canonical },
-    openGraph: {
-      title: page.page.seo.og.title ?? page.page.seo.metaTitle ?? undefined,
-      description: page.page.seo.og.description ?? page.page.seo.metaDescription ?? undefined,
-      url: resolveSiteCanonical(slugPath, page.page.seo.og.url ?? page.page.seo.canonical),
-      type: 'article',
-      siteName: 'MedCover',
-      images: hero ? [{ url: hero.url, alt: hero.alt }] : [],
-    },
-    twitter: {
-      card: page.page.seo.twitter.card,
-      title: page.page.seo.twitter.title ?? page.page.seo.metaTitle ?? undefined,
-      description: page.page.seo.twitter.description ?? page.page.seo.metaDescription ?? undefined,
-      images: hero ? [hero.url] : [],
-    },
-  }
+  return metadataFromCmsPage(page.page, slugPath)
 }
+
+export { resolveSiteCanonical }
 
 async function CachedArticleBody({
   slugPath,
@@ -131,6 +101,18 @@ async function CachedArticleBody({
     : null
 
   if (hubSegment === 'guides') {
+    const guideSlug = canonicalSlugPath(slugPath).replace(/^\//, '')
+    const [taxonomy, allPages] = await Promise.all([
+      getTaxonomy(),
+      listPublishedPagesSafe(),
+    ])
+    const related = getRelatedForGuide(
+      { slug: guideSlug, entities: page.entities ?? null },
+      allPages,
+      taxonomy,
+      locale,
+    )
+
     return (
       <>
         <JsonLd schema={page.schemaMarkup} />
@@ -142,6 +124,8 @@ async function CachedArticleBody({
           hero={hero}
           updatedAt={page.updatedAt}
           locale={locale}
+          related={related}
+          guideSlug={guideSlug}
         />
       </>
     )
