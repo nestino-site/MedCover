@@ -2,9 +2,7 @@ import { Suspense } from 'react'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import type { ContentListItem, Taxonomy } from '@/lib/api/types'
 import {
-  getFeaturedCountriesFromTaxonomy,
   getCountryDisplayFromTaxonomy,
-  getCountryKeyFromSlug,
   getCitiesForCountry,
   partitionGuides,
 } from '@/lib/content/hubs'
@@ -35,25 +33,17 @@ export interface CountriesListProps {
 
 export function CountriesList({ locale, taxonomy, pages }: CountriesListProps) {
   const t = getDictionary(locale)
-  const { countries: countryPages, cities: cityPages } = partitionGuides(pages, locale, taxonomy)
+  const { cities: cityPages } = partitionGuides(pages, locale, taxonomy)
 
-  const baseCountries =
-    countryPages.length > 0
-      ? countryPages.map((p) => {
-          const countryKey = getCountryKeyFromSlug(p.slug.replace(/^\//, '')) ?? ''
-          return getCountryDisplayFromTaxonomy(countryKey, taxonomy, locale)
-        })
-      : getFeaturedCountriesFromTaxonomy(taxonomy, locale)
-
-  if (baseCountries.length === 0) {
+  if (taxonomy.countries.length === 0) {
     return <p className="text-[var(--color-neutral-500)]">{t.hubs.countries.empty}</p>
   }
 
-  const cards: CountryCardData[] = baseCountries.map((display) => {
-    const countryKey = getCountryKeyFromSlug(display.slug) ?? ''
+  const cards: CountryCardData[] = taxonomy.countries.map((country) => {
+    const display = getCountryDisplayFromTaxonomy(country.slug, taxonomy, locale)
     return {
       slug: display.slug,
-      countryKey,
+      countryKey: country.slug,
       href: display.href,
       guideHref: display.guideHref,
       name: display.name,
@@ -61,8 +51,8 @@ export function CountriesList({ locale, taxonomy, pages }: CountriesListProps) {
       tagline: display.tagline,
       cost: display.cost,
       clinics: display.clinics,
-      cities: getCitiesForCountry(countryKey, cityPages, locale, taxonomy),
-      treatments: getTreatmentTagsForCountry(taxonomy, countryKey),
+      cities: getCitiesForCountry(country.slug, cityPages, locale, taxonomy),
+      treatments: getTreatmentTagsForCountry(taxonomy, country.slug),
       costNumeric: parseCostNumeric(display.cost),
       clinicsNumeric: parseClinicsNumeric(display.clinics),
     }

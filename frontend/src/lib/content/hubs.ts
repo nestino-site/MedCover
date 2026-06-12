@@ -39,8 +39,15 @@ export interface RelatedArticleItem {
 const COUNTRY_SLUG_RE = /^guides\/[^/]+-ivf-guide$/
 const CITY_SLUG_RE = /^guides\/([^/]+)\/.+-ivf-guide$|^guides\/[^/]+\/[^/]+$/
 
-export function isCountryGuideSlug(slug: string): boolean {
-  return COUNTRY_SLUG_RE.test(slug.replace(/^\//, ''))
+export function isCountryGuideSlug(slug: string, taxonomy?: Taxonomy): boolean {
+  const normalized = slug.replace(/^\//, '')
+  if (!COUNTRY_SLUG_RE.test(normalized)) return false
+  const countryKey = getCountryKeyFromSlug(normalized)
+  if (!countryKey) return false
+  if (taxonomy) {
+    return taxonomy.countries.some((c) => c.slug === countryKey)
+  }
+  return true
 }
 
 export function isCityGuideSlug(slug: string): boolean {
@@ -341,14 +348,15 @@ export function partitionGuides(
 
   for (const page of filtered) {
     if (!isGuideListPage(page)) continue
+    const slug = page.slug.replace(/^\//, '')
     const relations = resolvePageRelations(page, taxonomy)
     if (relations.city) {
       add(cities, page)
-    } else if (relations.country) {
+    } else if (relations.country && taxonomy.countries.some((c) => c.slug === relations.country)) {
       add(countries, page)
-    } else if (isCountryGuideSlug(page.slug.replace(/^\//, ''))) {
+    } else if (isCountryGuideSlug(slug, taxonomy)) {
       add(countries, page)
-    } else if (isCityGuideSlug(page.slug.replace(/^\//, ''))) {
+    } else if (isCityGuideSlug(slug) || parseCitySlug(slug)) {
       add(cities, page)
     } else {
       add(uncategorized, page)
