@@ -1,5 +1,6 @@
 import type { ContentListItem } from '@/lib/api/types'
 import type { Taxonomy } from '@/lib/api/types'
+import { flagEmojiForCountry } from '@/lib/content/country-flags'
 import { localizedPath, type Locale } from '@/lib/i18n'
 import { filterPagesByLocale } from './site-graph'
 import {
@@ -195,14 +196,18 @@ export function getGuideArticles(
     let kind: 'country' | 'city' = 'country'
     let countryKey = ''
     let countryName = ''
-    let flag = '🌍'
+    let flag = ''
     let title = pageTitleFromSlug(slug)
 
     if (isCountryGuideSlug(slug)) {
       countryKey = getCountryKeyFromSlug(slug) ?? ''
       const country = taxonomy?.countries.find((c) => c.slug === countryKey)
       countryName = country?.name ?? slugToLabel(countryKey)
-      flag = country?.flagEmoji ?? '🌍'
+      flag = flagEmojiForCountry({
+        slug: countryKey,
+        flagEmoji: country?.flagEmoji,
+        codeIso2: country?.codeIso2,
+      })
       title = `${countryName} IVF Guide`
       description = country ? `${country.clinicCount} verified clinics` : description
     } else if (isCityGuideSlug(slug)) {
@@ -214,7 +219,11 @@ export function getGuideArticles(
         title = `${parsed.cityName} IVF Guide`
         description = parsed.countryName
         const country = taxonomy?.countries.find((c) => c.slug === countryKey)
-        flag = country?.flagEmoji ?? '🌍'
+        flag = flagEmojiForCountry({
+          slug: countryKey,
+          flagEmoji: country?.flagEmoji,
+          codeIso2: country?.codeIso2,
+        })
       }
     }
 
@@ -255,7 +264,11 @@ export function getCountryDisplayFromTaxonomy(
   const guideSlug = `guides/${countrySlug}-ivf-guide`
   return {
     name: country?.name ?? slugToLabel(countrySlug),
-    flag: country?.flagEmoji ?? '🌍',
+    flag: flagEmojiForCountry({
+      slug: countrySlug,
+      flagEmoji: country?.flagEmoji,
+      codeIso2: country?.codeIso2,
+    }),
     tagline: country && country.clinicCount > 0 ? `${country.clinicCount} verified clinics` : '',
     cost: '',
     clinics: country ? String(country.clinicCount) : '',
@@ -272,7 +285,11 @@ export function getFeaturedCountriesFromTaxonomy(taxonomy: Taxonomy, locale: Loc
     countryHref: countryLandingPath(country.slug, locale),
     guideHref: getCountryGuideHref(country.slug, locale),
     name: country.name,
-    flag: country.flagEmoji ?? '🌍',
+    flag: flagEmojiForCountry({
+      slug: country.slug,
+      flagEmoji: country.flagEmoji,
+      codeIso2: country.codeIso2,
+    }),
     tagline: country.clinicCount > 0 ? `${country.clinicCount} verified clinics` : '',
     cost: '',
     clinics: String(country.clinicCount),

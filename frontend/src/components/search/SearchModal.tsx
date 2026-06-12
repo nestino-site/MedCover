@@ -12,11 +12,11 @@ import { trackSearch } from '@/lib/analytics'
 type SearchResult = {
   clinics: ClinicCard[]
   treatments: Array<{ slug: string; name: string; clinicCount?: number }>
-  countries: Array<{ slug: string; name: string; clinicCount?: number }>
+  countries: Array<{ slug: string; name: string; clinicCount?: number; flagEmoji?: string }>
   cities: Array<{ slug: string; name: string; country?: string; clinicCount?: number }>
   guides: Array<{ slug: string; title: string; description?: string }>
   suggestions?: {
-    countries: Array<{ slug: string; name: string; clinicCount?: number }>
+    countries: Array<{ slug: string; name: string; clinicCount?: number; flagEmoji?: string }>
     treatments: Array<{ slug: string; name: string; clinicCount?: number }>
   }
 }
@@ -28,6 +28,7 @@ type FlatResult = {
   title: string
   subtitle?: string
   group: string
+  flagEmoji?: string
   clinic?: ClinicCard
 }
 
@@ -95,6 +96,7 @@ function flattenResults(results: SearchResult, scope: SearchScope): FlatResult[]
         title: c.name,
         subtitle: c.clinicCount ? `${c.clinicCount} clinics` : undefined,
         group: 'Countries',
+        flagEmoji: c.flagEmoji,
       })
     }
     for (const c of results.cities) {
@@ -300,6 +302,11 @@ export function SearchModal({ open: controlledOpen, onOpenChange, trigger }: Sea
                         : 'hover:bg-[var(--color-primary-50)]',
                     )}
                   >
+                    {item.flagEmoji && (
+                      <span className="mt-0.5 text-lg leading-none" role="img" aria-hidden="true">
+                        {item.flagEmoji}
+                      </span>
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-[var(--color-primary-900)]">{item.title}</p>
                       {item.subtitle && (
@@ -362,12 +369,21 @@ export function SearchModal({ open: controlledOpen, onOpenChange, trigger }: Sea
                         key={c.slug}
                         href={`/clinics/${c.slug}/`}
                         onClick={() => handleSelect({ title: c.name, href: `/clinics/${c.slug}/` })}
-                        className="block rounded-lg px-3 py-2.5 hover:bg-[var(--color-primary-50)]"
+                        className="flex items-start gap-3 rounded-lg px-3 py-2.5 hover:bg-[var(--color-primary-50)]"
                       >
-                        <p className="font-medium text-[var(--color-primary-900)]">{c.name}</p>
-                        {c.clinicCount != null && (
-                          <p className="text-sm text-[var(--color-neutral-500)]">{c.clinicCount} clinics</p>
-                        )}
+                        {c.flagEmoji ? (
+                          <span className="mt-0.5 text-lg leading-none" role="img" aria-hidden="true">
+                            {c.flagEmoji}
+                          </span>
+                        ) : null}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-[var(--color-primary-900)]">{c.name}</p>
+                          {c.clinicCount != null ? (
+                            <p className="text-sm text-[var(--color-neutral-500)]">
+                              {c.clinicCount} clinics
+                            </p>
+                          ) : null}
+                        </div>
                       </Link>
                     ))}
                   </div>

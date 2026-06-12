@@ -2,21 +2,8 @@ import 'server-only'
 import type { ContentListItem } from './types'
 import type { ClinicCard, ClinicDetail, ClinicListResponse, CostsResponse, Taxonomy } from './types'
 import { clinicPdpPath, slugToLabel } from '@/lib/routes'
+import { flagEmojiForCountry } from '@/lib/content/country-flags'
 import { loadPublishedPage } from './content'
-
-function flagFromIso2(codeIso2?: string): string | undefined {
-  if (!codeIso2 || codeIso2.length !== 2) return undefined
-  const upper = codeIso2.toUpperCase()
-  const base = 0x1f1e6
-  const a = upper.charCodeAt(0) - 65
-  const b = upper.charCodeAt(1) - 65
-  if (a < 0 || a > 25 || b < 0 || b > 25) return undefined
-  return String.fromCodePoint(base + a, base + b)
-}
-
-function flagFor(countrySlug: string, codeIso2?: string): string {
-  return flagFromIso2(codeIso2) ?? '🌍'
-}
 
 /** Derive taxonomy from published page slugs (real backend data). */
 export function buildTaxonomyFromPages(pages: ContentListItem[]): Taxonomy {
@@ -97,7 +84,7 @@ export function buildTaxonomyFromPages(pages: ContentListItem[]): Taxonomy {
     .map((c) => ({
       slug: c.slug,
       name: c.name,
-      flagEmoji: flagFor(c.slug),
+      flagEmoji: flagEmojiForCountry({ slug: c.slug }),
       clinicCount: c.clinicCount,
       cities: [...c.cities.values()].sort((a, b) => b.clinicCount - a.clinicCount || a.name.localeCompare(b.name)),
     }))

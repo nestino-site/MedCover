@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Globe, MapPin, ShieldCheck } from 'lucide-react'
+import { MapPin, ShieldCheck } from 'lucide-react'
 import { en } from '@/lib/i18n/en'
 
 interface CityHeroProps {
@@ -41,7 +41,9 @@ export function CityHero({
         </Link>
 
         <div className="mb-3 mt-4 flex items-center gap-2">
-          <Globe size={14} className="text-[var(--color-accent-400)]" aria-hidden="true" />
+          <span className="text-sm leading-none" aria-hidden="true">
+            {countryFlag}
+          </span>
           <span className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-400)]">
             {t.heroEyebrow}
           </span>

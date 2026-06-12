@@ -345,6 +345,7 @@ export const SearchResponseSchema = z.object({
     slug: z.string(),
     name: z.string(),
     clinicCount: z.number().optional(),
+    flagEmoji: z.string().optional(),
   })).default([]),
   cities: z.array(z.object({
     slug: z.string(),
@@ -362,6 +363,7 @@ export const SearchResponseSchema = z.object({
       slug: z.string(),
       name: z.string(),
       clinicCount: z.number().optional(),
+      flagEmoji: z.string().optional(),
     })).default([]),
     treatments: z.array(z.object({
       slug: z.string(),

@@ -3,6 +3,7 @@ import type { ContentListItem, ContentPage } from '@/lib/api/types'
 import { loadPublishedPage } from '@/lib/api/content'
 import { localizedPath, type Locale } from '@/lib/i18n'
 import type { Taxonomy } from '@/lib/api/types'
+import { flagEmojiForCountry } from '@/lib/content/country-flags'
 import {
   getCountryDisplayFromTaxonomy,
   getCountryKeyFromSlug,
@@ -108,7 +109,7 @@ function buildGuideArticleItem(
       kind: 'country',
       countryKey,
       countryName: display?.name ?? pageTitleFromSlug(slug),
-      flag: display?.flag ?? '🌍',
+      flag: display?.flag || flagEmojiForCountry({ slug: countryKey }),
     }
   }
 
@@ -125,7 +126,7 @@ function buildGuideArticleItem(
       kind: 'city',
       countryKey: parsed.countryKey,
       countryName: parsed.countryName,
-      flag: display?.flag ?? '🌍',
+      flag: display?.flag || flagEmojiForCountry({ slug: parsed.countryKey }),
     }
   }
 

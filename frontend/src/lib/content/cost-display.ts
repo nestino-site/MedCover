@@ -3,6 +3,7 @@ import type { ContentListItem } from '@/lib/api/types'
 import { canonicalSlugPath } from '@/lib/api/content'
 import { localizedPath, type Locale } from '@/lib/i18n'
 import type { Taxonomy } from '@/lib/api/types'
+import { flagEmojiForCountry } from '@/lib/content/country-flags'
 import {
   filterPagesByHub,
   getCountryDisplayFromTaxonomy,
@@ -160,7 +161,7 @@ function buildCostArticleItem(
     updatedAt: page.updatedAt,
     countryKey: parsed.countryKey,
     countryName: display?.name ?? slugToLabel(parsed.countryKey),
-    flag: display?.flag ?? '🌍',
+    flag: display?.flag || flagEmojiForCountry({ slug: parsed.countryKey }),
     costEstimate: display?.cost ?? '',
     treatmentId: parsed.treatmentId,
     label: parsed.label,

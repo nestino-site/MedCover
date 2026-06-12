@@ -11,9 +11,13 @@ interface BreadcrumbProps {
 export function Breadcrumb({ items, homeHref = '/' }: BreadcrumbProps) {
   const sorted = [...items].sort((a, b) => a.position - b.position)
 
+  // Callers often include Home in `items`; this component always renders it first.
+  const rest =
+    sorted.length > 0 && sorted[0].slug === homeHref ? sorted.slice(1) : sorted
+
   const allItems = [
     { name: en.breadcrumb.home, slug: homeHref },
-    ...sorted,
+    ...rest,
   ]
 
   return (
@@ -23,7 +27,7 @@ export function Breadcrumb({ items, homeHref = '/' }: BreadcrumbProps) {
           const isLast = index === allItems.length - 1
 
           return (
-            <li key={item.slug} className="flex items-center gap-1">
+            <li key={`${index}-${item.slug}`} className="flex items-center gap-1">
               {index === 0 ? (
                 <Home size={13} className="shrink-0" aria-hidden="true" />
               ) : (

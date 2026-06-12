@@ -17,6 +17,7 @@ import {
   type CompareResponse,
   type SearchResponse,
 } from './types'
+import { flagEmojiForCountry } from '@/lib/content/country-flags'
 import { cacheTags } from '../cache/tags'
 import {
   buildTaxonomyFromPages,
@@ -170,7 +171,16 @@ export async function searchContent(q: string, limit = 10): Promise<SearchRespon
   const countries = taxonomy.countries
     .filter((c) => c.name.toLowerCase().includes(lower) || c.slug.includes(lower))
     .slice(0, limit)
-    .map((c) => ({ slug: c.slug, name: c.name, clinicCount: c.clinicCount }))
+    .map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      clinicCount: c.clinicCount,
+      flagEmoji: flagEmojiForCountry({
+        slug: c.slug,
+        flagEmoji: c.flagEmoji,
+        codeIso2: c.codeIso2,
+      }),
+    }))
 
   const cities = taxonomy.countries
     .flatMap((c) => c.cities.map((city) => ({ ...city, country: c.slug })))
@@ -209,7 +219,16 @@ export async function getSearchSuggestions(): Promise<{
       .filter((c) => c.clinicCount > 0)
       .sort((a, b) => b.clinicCount - a.clinicCount)
       .slice(0, 6)
-      .map((c) => ({ slug: c.slug, name: c.name, clinicCount: c.clinicCount })),
+      .map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      clinicCount: c.clinicCount,
+      flagEmoji: flagEmojiForCountry({
+        slug: c.slug,
+        flagEmoji: c.flagEmoji,
+        codeIso2: c.codeIso2,
+      }),
+    })),
     treatments: taxonomy.treatments
       .sort((a, b) => b.clinicCount - a.clinicCount)
       .slice(0, 6)

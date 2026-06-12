@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { cacheLife, cacheTag } from 'next/cache'
 import { getTaxonomy } from '@/lib/api/catalog'
 import { listPublishedPagesSafe } from '@/lib/api/content'
+import { flagEmojiForCountry } from '@/lib/content/country-flags'
 import { filterPagesByHub, getCountryDisplayFromTaxonomy } from '@/lib/content/hubs'
 import { cacheTags } from '@/lib/cache/tags'
 import { getDictionary, type Locale } from '@/lib/i18n'
@@ -71,7 +72,7 @@ function LocationChip({
 }) {
   const meta = locationMeta[locationKey]
   const display = meta?.name ?? locationKey.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ')
-  const flag = meta?.flag ?? '🌍'
+  const flag = meta?.flag || flagEmojiForCountry({ slug: locationKey })
   return (
     <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary-900)]">
       <span role="img" aria-label={display}>{flag}</span>

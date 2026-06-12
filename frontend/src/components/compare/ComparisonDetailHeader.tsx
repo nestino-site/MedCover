@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { flagEmojiForCountry } from '@/lib/content/country-flags'
 import { slugToLabel } from '@/lib/routes'
 import { trackCompareView } from '@/lib/analytics'
 
@@ -62,7 +63,7 @@ interface LocationCardProps {
 function LocationCard({ locationKey, locationMeta, isHighlighted }: LocationCardProps) {
   const meta = locationMeta[locationKey]
   const name = meta?.name ?? locationLabel(locationKey, locationMeta)
-  const flag = meta?.flag ?? '🌍'
+  const flag = meta?.flag || flagEmojiForCountry({ slug: locationKey })
 
   return (
     <div
