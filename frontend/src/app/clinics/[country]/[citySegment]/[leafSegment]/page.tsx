@@ -38,6 +38,7 @@ import {
   slugToLabel,
 } from '@/lib/routes'
 import { ensureStaticParams } from '@/lib/static-params'
+import { listClinicPdpsFromPages } from '@/lib/api/catalog-adapters'
 import { ClinicsPlpTemplate } from '@/components/clinics/ClinicsPlpTemplate'
 import { ClinicFilters } from '@/components/clinics/ClinicFilters'
 import { ClinicFilterNavigationProvider } from '@/components/clinics/clinic-filter-navigation'
@@ -58,6 +59,8 @@ type Props = {
 
 export async function generateStaticParams() {
   const taxonomy = await getTaxonomy()
+  const treatmentSlugs = treatmentSlugSet(taxonomy)
+  const pages = await listPublishedPagesSafe()
   const params: { country: string; citySegment: string; leafSegment: string }[] = []
   const seen = new Set<string>()
 
@@ -76,6 +79,21 @@ export async function generateStaticParams() {
         })
       }
     }
+  }
+
+  for (const clinic of listClinicPdpsFromPages(pages, {})) {
+    const country = clinic.country?.slug
+    const city = clinic.city?.slug
+    if (!country || !city) continue
+    if (treatmentSlugs.has(clinic.slug)) continue
+    const key = `${country}/${city}/${clinic.slug}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    params.push({
+      country,
+      citySegment: city,
+      leafSegment: clinic.slug,
+    })
   }
 
   return ensureStaticParams(params, {

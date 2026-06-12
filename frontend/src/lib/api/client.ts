@@ -65,11 +65,11 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-/** Retries on transient network errors (default 2 retries in production). */
+/** Retries on transient network errors (default 3 retries in production). */
 export function trafficEngineFetchRetries(): number {
   const fromEnv = Number(process.env.TRAFFIC_ENGINE_FETCH_RETRIES)
   if (!Number.isNaN(fromEnv) && fromEnv >= 0) return fromEnv
-  return 2
+  return 3
 }
 
 export function isTrafficEngineUnreachable(error: unknown): boolean {

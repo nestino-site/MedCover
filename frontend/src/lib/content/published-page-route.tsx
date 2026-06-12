@@ -28,6 +28,7 @@ import { isNextImageOptimizable, resolveHeroImage } from '@/lib/content/hero-ima
 import { normalizeContentHtml } from '@/lib/content/html-content-images'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
+import { isDedicatedAppRouteSlug } from '@/lib/routes'
 
 type Params = Promise<{ slug: string[] }>
 
@@ -298,6 +299,7 @@ export function createPublishedPageHandlers(
     const params = pages
       .map((page) => slugToRouteParams(page.slug, prefixSegments))
       .filter((entry): entry is { slug: string[] } => entry !== null)
+      .filter((entry) => !isDedicatedAppRouteSlug(buildSlugPath(entry.slug, prefixSegments)))
 
     // Cache Components requires at least one param set for build-time validation.
     if (params.length === 0) {

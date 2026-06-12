@@ -12,6 +12,21 @@ export function withTrailingSlash(path: string): string {
   return path.endsWith('/') ? path : `${path}/`
 }
 
+/** Slugs owned by explicit App Router pages — exclude from catch-all CMS static params. */
+const DEDICATED_APP_ROUTE_PATTERNS = [
+  /^\/clinics(\/|$)/,
+  /^\/cost(\/|$)/,
+  /^\/compare(\/|$)/,
+  /^\/countries(\/|$)/,
+  /^\/treatments(\/|$)/,
+] as const
+
+export function isDedicatedAppRouteSlug(slugPath: string): boolean {
+  const normalized = slugPath.startsWith('/') ? slugPath : `/${slugPath}`
+  const path = normalized.replace(/\/+$/, '') || '/'
+  return DEDICATED_APP_ROUTE_PATTERNS.some((pattern) => pattern.test(path))
+}
+
 export function slugToLabel(segment: string): string {
   return segment
     .split('-')

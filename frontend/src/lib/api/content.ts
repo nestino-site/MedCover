@@ -78,7 +78,17 @@ async function parsePageResponse(
     return { status: 'unavailable' }
   }
 
-  const json = await res.json()
+  let json: unknown
+  try {
+    json = await res.json()
+  } catch (error) {
+    if (isTrafficEngineUnreachable(error)) {
+      console.warn(`[Traffic Engine] response body unreadable — ${label}`)
+      return { status: 'unavailable' }
+    }
+    throw error
+  }
+
   const parsed = ContentPageSchemaV22.safeParse(normalizePagePayload(json))
   if (!parsed.success) {
     console.error(
@@ -129,27 +139,35 @@ export async function loadPublishedPage(slug: string): Promise<PageFetchResult> 
   const canonical = canonicalSlugPath(slug)
   cacheTag(cacheTags.pageBySlug(canonical), cacheTags.site(SITE_ID))
 
-  const bySlug = await fetchPageRaw(`/content/by-slug${canonical}`)
-  if (bySlug.status === 'ok') {
-    const listPageId = bySlug.page.pageId ?? (await resolveListPageId(canonical))
-    return enrichPageWithListMetadata(bySlug, canonical, listPageId)
-  }
-  if (bySlug.status === 'invalid') return bySlug
-  if (bySlug.status === 'unavailable') return bySlug
-
-  const pages = await listPublishedPages()
-  const item = pages.find((p) => slugsMatch(p.slug, canonical))
-  if (item) {
-    cacheTag(cacheTags.pageById(item.id))
-    const byId = await fetchPageRaw(`/content/${item.id}`)
-    if (byId.status === 'ok') {
-      return enrichPageWithListMetadata(byId, canonical, item.id)
+  try {
+    const bySlug = await fetchPageRaw(`/content/by-slug${canonical}`)
+    if (bySlug.status === 'ok') {
+      const listPageId = bySlug.page.pageId ?? (await resolveListPageId(canonical))
+      return enrichPageWithListMetadata(bySlug, canonical, listPageId)
     }
-    if (byId.status === 'invalid') return byId
-    if (byId.status === 'unavailable') return byId
-  }
+    if (bySlug.status === 'invalid') return bySlug
+    if (bySlug.status === 'unavailable') return bySlug
 
-  return bySlug
+    const pages = await listPublishedPages()
+    const item = pages.find((p) => slugsMatch(p.slug, canonical))
+    if (item) {
+      cacheTag(cacheTags.pageById(item.id))
+      const byId = await fetchPageRaw(`/content/${item.id}`)
+      if (byId.status === 'ok') {
+        return enrichPageWithListMetadata(byId, canonical, item.id)
+      }
+      if (byId.status === 'invalid') return byId
+      if (byId.status === 'unavailable') return byId
+    }
+
+    return bySlug
+  } catch (error) {
+    if (isTrafficEngineUnreachable(error)) {
+      console.warn(`[Traffic Engine] loadPublishedPage failed — ${canonical}`)
+      return { status: 'unavailable' }
+    }
+    throw error
+  }
 }
 
 async function probeHeroImageExists(pageId: number): Promise<boolean> {
