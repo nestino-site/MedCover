@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 import type { BreadcrumbItem, ClinicCard as ClinicCardType } from '@/lib/api/types'
 import type { CostsResponse } from '@/lib/api/types'
 import { ClinicCard } from './ClinicCard'
+import { ClinicPlpResultsRegion } from './clinic-filter-navigation'
+import { ClinicPlpSkeleton } from './ClinicPlpSkeleton'
 import { EntityHero } from '@/components/shared/EntityHero'
 import { PriceRangeTable } from '@/components/shared/PriceRangeTable'
 import { RelatedLandingsGrid, type RelatedLanding } from '@/components/shared/RelatedLandingsGrid'
@@ -28,6 +31,8 @@ type ClinicsPlpTemplateProps = {
   faq?: FaqItem[]
   related?: RelatedLanding[]
   filters?: ReactNode
+  /** Optional link shown under the hero (e.g. back to editorial city landing). */
+  overviewLink?: { href: string; label: string }
 }
 
 export function ClinicsPlpTemplate({
@@ -46,6 +51,7 @@ export function ClinicsPlpTemplate({
   faq,
   related,
   filters,
+  overviewLink,
 }: ClinicsPlpTemplateProps) {
   const totalPages = Math.ceil(total / limit)
 
@@ -82,29 +88,40 @@ export function ClinicsPlpTemplate({
         description={description}
         answer={answer}
         stats={stats}
-      />
+      >
+        {overviewLink && (
+          <Link
+            href={overviewLink.href}
+            className="text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
+          >
+            {overviewLink.label}
+          </Link>
+        )}
+      </EntityHero>
 
       {filters && <div className="mb-8">{filters}</div>}
 
-      {clinics.length > 0 ? (
-        <>
-          <div className="mb-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {clinics.map((clinic, i) => (
-              <ClinicCard key={clinic.urlPath} clinic={clinic} priority={i < 3} />
-            ))}
-          </div>
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            buildHref={buildPageHref}
-            className="mb-12"
-          />
-        </>
-      ) : (
-        <p className="mb-12 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-6 py-12 text-center text-[var(--color-neutral-600)]">
-          No published clinics in this scope yet. Check back as we verify more clinics.
-        </p>
-      )}
+      <ClinicPlpResultsRegion fallback={<ClinicPlpSkeleton count={clinics.length || 6} />}>
+        {clinics.length > 0 ? (
+          <>
+            <div className="mb-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {clinics.map((clinic, i) => (
+                <ClinicCard key={clinic.urlPath} clinic={clinic} priority={i < 3} />
+              ))}
+            </div>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              buildHref={buildPageHref}
+              className="mb-12"
+            />
+          </>
+        ) : (
+          <p className="mb-12 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-6 py-12 text-center text-[var(--color-neutral-600)]">
+            No published clinics in this scope yet. Check back as we verify more clinics.
+          </p>
+        )}
+      </ClinicPlpResultsRegion>
 
       {hasDetailsSection && (
         <section className="mb-12 border-t border-[var(--color-border)] pt-10" aria-labelledby="plp-details-heading">

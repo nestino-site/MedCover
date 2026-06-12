@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Suspense, useMemo } from 'react'
 import { localizedPath, type Locale } from '@/lib/i18n'
 import { useHubFilters } from '@/components/filters/use-hub-filters'
+import { Skeleton, SkeletonStatus } from '@/components/ui/Skeleton'
 
 export interface CostCountryItem {
   countryKey: string
@@ -94,21 +95,19 @@ function CostComparisonGridInner({ locale, countries }: CostComparisonGridProps)
 
 export function CostComparisonGridSkeleton() {
   return (
-    <div
-      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-      role="status"
-      aria-label="Loading cost comparison"
-    >
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white">
-          <div className="h-24 animate-pulse bg-[var(--color-neutral-100)]" />
-          <div className="space-y-2 p-5">
-            <div className="h-3 w-20 animate-pulse rounded bg-[var(--color-neutral-100)]" />
-            <div className="h-8 w-28 animate-pulse rounded bg-[var(--color-neutral-100)]" />
+    <SkeletonStatus label="Loading cost comparison">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white">
+            <Skeleton className="h-24 w-full" rounded="none" />
+            <div className="space-y-2 p-5">
+              <Skeleton className="h-3 w-20" rounded="sm" />
+              <Skeleton className="h-8 w-28" rounded="sm" />
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </SkeletonStatus>
   )
 }
 

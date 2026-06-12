@@ -1,53 +1,49 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight, CheckCircle2, BarChart3, HeartHandshake } from 'lucide-react'
-import { getTaxonomy, listClinics } from '@/lib/api/catalog'
-import { listPublishedPagesSafe } from '@/lib/api/content'
+import { getTaxonomy } from '@/lib/api/catalog'
 import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
-import { cmsMetadataForSlug, loadCmsPage } from '@/lib/seo/cms-seo'
-import { ClinicCard } from '@/components/clinics/ClinicCard'
-import { CountryCard, type CountryCardData } from '@/components/hubs/CountryCard'
+import { loadCmsPage } from '@/lib/seo/cms-seo'
+import { cmsHubMetadata } from '@/lib/seo/site-metadata'
+import { HomeCountriesSection } from '@/components/home/HomeCountriesSection'
+import { HomeTopClinicsSection } from '@/components/home/HomeTopClinicsSection'
 import { SearchTriggerButton } from '@/components/search/SearchModal'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Section } from '@/components/ui/Section'
 import { SectionHeading } from '@/components/ui/SectionHeading'
 import {
-  getCitiesForCountry,
-  getCountryDisplayFromTaxonomy,
-  partitionGuides,
-} from '@/lib/content/hubs'
-import { getTreatmentTagsForCountry } from '@/lib/content/treatments'
+  HomeCountriesSectionSkeleton,
+  HomeTopClinicsSectionSkeleton,
+} from '@/components/ui/skeletons/HubSectionSkeletons'
 import {
   clinicsHubPath,
   treatmentsHubPath,
   costHubPath,
   compareHubPath,
   guidesHubPath,
-  countriesHubPath,
   startPath,
 } from '@/lib/routes'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return cmsMetadataForSlug('/')
+  return cmsHubMetadata('home')
+}
+
+async function HomeHeroEyebrow() {
+  const t = getDictionary(activeLocale)
+  const taxonomy = await getTaxonomy()
+  const totalClinics = taxonomy.countries.reduce((s, c) => s + c.clinicCount, 0)
+  return totalClinics > 0 ? `${totalClinics} verified clinics worldwide` : t.home.hero.eyebrow
 }
 
 export default async function HomePage() {
   const locale = activeLocale
   const t = getDictionary(locale)
-
-  const [taxonomy, topClinics, cms, allPages] = await Promise.all([
-    getTaxonomy(),
-    listClinics({ sort: 'rating', limit: 6 }),
-    loadCmsPage('/'),
-    listPublishedPagesSafe(),
-  ])
-
-  const totalClinics = taxonomy.countries.reduce((s, c) => s + c.clinicCount, 0)
-  const { cities: cityPages } = partitionGuides(allPages, locale, taxonomy)
+  const cms = await loadCmsPage('/')
 
   const hubs = {
     clinics: clinicsHubPath(locale),
@@ -55,7 +51,6 @@ export default async function HomePage() {
     costs: costHubPath(locale),
     compare: compareHubPath(locale),
     guides: guidesHubPath(locale),
-    countries: countriesHubPath(locale),
     start: startPath(locale),
   }
 
@@ -66,25 +61,6 @@ export default async function HomePage() {
     { label: t.home.quickLinks.compare, href: hubs.compare },
     { label: t.home.quickLinks.guides, href: hubs.guides },
   ]
-
-  const countryCards: CountryCardData[] = taxonomy.countries.slice(0, 6).map((country) => {
-    const display = getCountryDisplayFromTaxonomy(country.slug, taxonomy, locale)
-    return {
-      slug: display.slug,
-      countryKey: country.slug,
-      href: display.href,
-      guideHref: display.guideHref,
-      name: display.name,
-      flag: display.flag,
-      tagline: display.tagline,
-      cost: display.cost,
-      clinics: display.clinics,
-      cities: getCitiesForCountry(country.slug, cityPages, locale, taxonomy),
-      treatments: getTreatmentTagsForCountry(taxonomy, country.slug),
-      costNumeric: 0,
-      clinicsNumeric: country.clinicCount,
-    }
-  })
 
   const howItWorksSteps = [
     {
@@ -117,7 +93,6 @@ export default async function HomePage() {
     <div className="flex flex-col">
       <CmsPageJsonLd result={cms} />
 
-      {/* ── SECTION 1: HERO (with quick links merged in) ─────── */}
       <section className="on-dark relative overflow-hidden bg-gradient-to-br from-[var(--color-primary-950)] via-[var(--color-primary-900)] to-[var(--color-primary-800)] py-16 sm:py-24">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.10]"
@@ -132,7 +107,9 @@ export default async function HomePage() {
         <div className="relative mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div className="text-center lg:text-left">
             <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-400)]">
-              {totalClinics > 0 ? `${totalClinics} verified clinics worldwide` : t.home.hero.eyebrow}
+              <Suspense fallback={t.home.hero.eyebrow}>
+                <HomeHeroEyebrow />
+              </Suspense>
             </p>
             <h1 className="mt-4 text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl">
               {t.home.hero.title}
@@ -168,55 +145,14 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── SECTION 2: DESTINATIONS ──────────────────────────── */}
-      {countryCards.length > 0 && (
-        <Section id="countries">
-          <SectionHeading
-            eyebrow={t.home.countries.eyebrow}
-            title={t.home.countries.title}
-            description={t.home.countries.subtitle}
-            action={
-              <Link
-                href={hubs.countries}
-                className="text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
-              >
-                {t.home.countries.viewAll} →
-              </Link>
-            }
-          />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {countryCards.map((card) => (
-              <CountryCard key={card.countryKey} data={card} t={t} />
-            ))}
-          </div>
-        </Section>
-      )}
+      <Suspense fallback={<HomeCountriesSectionSkeleton />}>
+        <HomeCountriesSection locale={locale} />
+      </Suspense>
 
-      {/* ── SECTION 3: TOP-RATED CLINICS ─────────────────────── */}
-      {topClinics.items.length > 0 && (
-        <Section tone="subtle">
-          <SectionHeading
-            eyebrow="Patient-verified"
-            title="Top-rated clinics"
-            description="Ranked by Google rating and independently verified patient data."
-            action={
-              <Link
-                href={hubs.clinics}
-                className="text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
-              >
-                View all clinics →
-              </Link>
-            }
-          />
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {topClinics.items.map((clinic, i) => (
-              <ClinicCard key={clinic.urlPath} clinic={clinic} priority={i < 3} />
-            ))}
-          </div>
-        </Section>
-      )}
+      <Suspense fallback={<HomeTopClinicsSectionSkeleton />}>
+        <HomeTopClinicsSection locale={locale} />
+      </Suspense>
 
-      {/* ── SECTION 4: HOW IT WORKS ──────────────────────────── */}
       <Section width="narrow" containerClassName="max-w-5xl">
         <SectionHeading
           align="center"
@@ -247,7 +183,6 @@ export default async function HomePage() {
         </div>
       </Section>
 
-      {/* ── SECTION 5: CTA ───────────────────────────────────── */}
       <CtaBlock headline={t.home.cta.headline} description={t.home.cta.description} />
     </div>
   )

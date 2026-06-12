@@ -8,6 +8,7 @@ import {
   hubPath,
   type SiteHub,
 } from '@/lib/content/site-nav'
+import { Skeleton, SkeletonStatus } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils/cn'
 
 function hubDescription(hub: SiteHub, locale: Locale, countryCount: number, cityCount: number): string {
@@ -146,18 +147,18 @@ export async function HubExploreGrid({ locale }: { locale: Locale }) {
 
 export function HubExploreGridSkeleton() {
   return (
-    <div>
-      <div className="mb-8 h-8 w-48 animate-pulse rounded-lg bg-[var(--color-neutral-100)]" />
+    <SkeletonStatus label="Loading explore hubs">
+      <Skeleton className="mb-8 h-8 w-48" rounded="lg" />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-32 animate-pulse rounded-2xl bg-[var(--color-neutral-100)]" />
+          <Skeleton key={i} className="h-32" rounded="2xl" />
         ))}
       </div>
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-2xl bg-[var(--color-neutral-100)]" />
+          <Skeleton key={i} className="h-28" rounded="2xl" />
         ))}
       </div>
-    </div>
+    </SkeletonStatus>
   )
 }

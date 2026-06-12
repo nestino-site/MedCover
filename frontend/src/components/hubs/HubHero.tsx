@@ -35,7 +35,7 @@ export function HubHero({
 }: HubHeroProps) {
   const isCompact = variant === 'compact'
   const hasCtas = !isCompact && ctas && ctas.length > 0
-  const hasStats = !isCompact && stats && stats.length > 0
+  const hasStats = stats && stats.length > 0
   const hasHighlights = !isCompact && highlights && highlights.length > 0
 
   if (isCompact) {
@@ -63,6 +63,18 @@ export function HubHero({
             >
               {subtitle}
             </p>
+            {hasStats && (
+              <dl className="mt-5 flex flex-wrap gap-x-6 gap-y-2">
+                {stats.map((s) => (
+                  <div key={s.label} className="flex items-baseline gap-1.5">
+                    <dd className="text-lg font-bold tabular-nums text-[var(--color-primary-900)]">
+                      {s.value}
+                    </dd>
+                    <dt className="text-sm text-[var(--color-neutral-500)]">{s.label}</dt>
+                  </div>
+                ))}
+              </dl>
+            )}
           </div>
         </div>
       </section>

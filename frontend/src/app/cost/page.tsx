@@ -1,43 +1,29 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
-import { cmsMetadataForSlug, hubCopyFromCmsPage } from '@/lib/seo/cms-seo'
-import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
-import { getTaxonomy, getCosts } from '@/lib/api/catalog'
+import { hubCopyFromCmsPage } from '@/lib/seo/cms-seo'
+import { cmsHubMetadata } from '@/lib/seo/site-metadata'
+import { getTaxonomy } from '@/lib/api/catalog'
 import { loadPublishedPage } from '@/lib/api/content'
 import { HubHero } from '@/components/hubs/HubHero'
 import { HubPageLayout } from '@/components/hubs/HubPageLayout'
-import { Card } from '@/components/ui/Card'
-import { SectionHeading } from '@/components/ui/SectionHeading'
+import { CostHubTreatmentGrid } from '@/components/costs/CostHubTreatmentGrid'
 import { StatStrip } from '@/components/shared/StatStrip'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { SearchTriggerButton } from '@/components/search/SearchModal'
 import { activeLocale } from '@/lib/i18n/locale'
 import { ContentHtml } from '@/components/shared/ContentHtml'
-import { costTreatmentPath, cmsPageSlug } from '@/lib/routes'
+import { cmsPageSlug } from '@/lib/routes'
+import { CostHubTreatmentGridSkeleton } from '@/components/ui/skeletons/HubSectionSkeletons'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return cmsMetadataForSlug(cmsPageSlug('cost'))
+  return cmsHubMetadata('costs')
 }
 
-export default async function CostHubPage() {
-  const locale = activeLocale
+async function CostHubStats() {
   const taxonomy = await getTaxonomy()
-  const cms = await loadPublishedPage(cmsPageSlug('cost'))
-  const hubCopy = cms.status === 'ok' ? hubCopyFromCmsPage(cms.page) : {}
-
-  const treatmentCosts = await Promise.all(
-    taxonomy.treatments.map(async (t) => ({
-      treatment: t,
-      costs: await getCosts(t.slug),
-    })),
-  )
-
-  const totalCountries = new Set(
-    taxonomy.treatments.flatMap((t) => t.countries),
-  ).size
-
+  const totalCountries = new Set(taxonomy.treatments.flatMap((t) => t.countries)).size
   const stats = [
     taxonomy.treatments.length > 0
       ? { label: 'Treatments tracked', value: String(taxonomy.treatments.length) }
@@ -46,6 +32,19 @@ export default async function CostHubPage() {
       ? { label: 'Countries with data', value: String(totalCountries) }
       : null,
   ].filter((s): s is NonNullable<typeof s> => s != null)
+
+  if (stats.length === 0) return null
+  return (
+    <div className="mb-10">
+      <StatStrip stats={stats} />
+    </div>
+  )
+}
+
+export default async function CostHubPage() {
+  const locale = activeLocale
+  const cms = await loadPublishedPage(cmsPageSlug('cost'))
+  const hubCopy = cms.status === 'ok' ? hubCopyFromCmsPage(cms.page) : {}
 
   return (
     <>
@@ -68,54 +67,13 @@ export default async function CostHubPage() {
           <SearchTriggerButton className="min-w-[200px] flex-1 sm:max-w-md" />
         </div>
 
-        {stats.length > 0 && (
-          <div className="mb-10">
-            <StatStrip stats={stats} />
-          </div>
-        )}
+        <Suspense fallback={null}>
+          <CostHubStats />
+        </Suspense>
 
-        <section aria-labelledby="cost-treatments-heading">
-          <SectionHeading title="Cost guides by treatment" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {treatmentCosts.map(({ treatment, costs }) => {
-              const countryCount = costs.byCountry.length
-              return (
-                <Card key={treatment.slug} as="article" interactive>
-                  <Link
-                    href={costTreatmentPath(treatment.slug, locale)}
-                    className="flex h-full flex-col gap-3 p-6"
-                  >
-                    <h3 className="text-lg font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
-                      {treatment.name}
-                    </h3>
-                    {costs.overall ? (
-                      <p className="text-2xl font-bold tabular-nums text-[var(--color-primary-900)]">
-                        €{costs.overall.min.toLocaleString()}–€{costs.overall.max.toLocaleString()}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-[var(--color-neutral-500)]">
-                        Pricing data coming soon
-                      </p>
-                    )}
-                    <p className="text-sm text-[var(--color-neutral-500)]">
-                      {costs.overall?.sampleSize
-                        ? `${costs.overall.sampleSize} verified packages`
-                        : null}
-                      {costs.overall?.sampleSize && countryCount > 0 ? ' · ' : null}
-                      {countryCount > 0
-                        ? `${countryCount} ${countryCount === 1 ? 'country' : 'countries'}`
-                        : null}
-                    </p>
-                    <span className="mt-auto inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-accent-700)]">
-                      Full cost guide
-                      <ArrowRight size={14} aria-hidden="true" />
-                    </span>
-                  </Link>
-                </Card>
-              )
-            })}
-          </div>
-        </section>
+        <Suspense fallback={<CostHubTreatmentGridSkeleton />}>
+          <CostHubTreatmentGrid locale={locale} />
+        </Suspense>
 
         {cms.status === 'ok' && cms.page.htmlContent && (
           <div className="prose prose-neutral mt-12 max-w-none">

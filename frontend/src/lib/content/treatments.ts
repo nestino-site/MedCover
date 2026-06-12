@@ -1,5 +1,6 @@
 import type { Taxonomy } from '@/lib/api/types'
 import type { HubId } from './site-nav'
+import { canonicalTreatmentSlug } from './treatment-slugs'
 
 export interface TreatmentHubLink {
   hubId: HubId
@@ -15,17 +16,27 @@ export interface TreatmentCategory {
 }
 
 export function treatmentsFromTaxonomy(taxonomy: Taxonomy): TreatmentCategory[] {
-  return taxonomy.treatments.map((t) => ({
-    id: t.slug,
-    name: t.name,
-    clinicCount: t.clinicCount,
-    countries: t.countries,
-    hubLinks: [
-      { hubId: 'countries', labelKey: 'countries' },
-      { hubId: 'clinics', labelKey: 'cities' },
-      { hubId: 'guides', labelKey: 'guides' },
-    ],
-  }))
+  const seen = new Set<string>()
+  const categories: TreatmentCategory[] = []
+
+  for (const t of taxonomy.treatments) {
+    const id = canonicalTreatmentSlug(t.slug)
+    if (seen.has(id)) continue
+    seen.add(id)
+    categories.push({
+      id,
+      name: t.name,
+      clinicCount: t.clinicCount,
+      countries: t.countries,
+      hubLinks: [
+        { hubId: 'countries', labelKey: 'countries' },
+        { hubId: 'clinics', labelKey: 'cities' },
+        { hubId: 'guides', labelKey: 'guides' },
+      ],
+    })
+  }
+
+  return categories
 }
 
 export function countryHasTreatment(
@@ -33,7 +44,10 @@ export function countryHasTreatment(
   countryKey: string,
   treatmentId: string,
 ): boolean {
-  const treatment = taxonomy.treatments.find((t) => t.slug === treatmentId)
+  const canonical = canonicalTreatmentSlug(treatmentId)
+  const treatment = taxonomy.treatments.find(
+    (t) => t.slug === treatmentId || canonicalTreatmentSlug(t.slug) === canonical,
+  )
   if (!treatment) return false
   return treatment.countries.includes(countryKey)
 }
@@ -61,7 +75,8 @@ export function primaryTreatmentSlugForCountry(
   taxonomy: Taxonomy,
   countryKey: string,
 ): string | undefined {
-  return taxonomy.treatments.find((t) => t.countries.includes(countryKey))?.slug
+  const slug = taxonomy.treatments.find((t) => t.countries.includes(countryKey))?.slug
+  return slug ? canonicalTreatmentSlug(slug) : undefined
 }
 
 export type TreatmentDisplayStatus = 'active' | 'coming_soon'

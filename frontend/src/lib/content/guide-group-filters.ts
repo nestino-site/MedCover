@@ -53,6 +53,8 @@ export function filterGuideGroups(
       )
       return bDate - aDate
     })
+  } else if (options.sort === 'alpha') {
+    result = [...result].sort((a, b) => a.countryName.localeCompare(b.countryName))
   } else if (order.length > 0) {
     result = [...result].sort(
       (a, b) =>

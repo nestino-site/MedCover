@@ -19,6 +19,8 @@ import {
 import { treatmentPath } from '@/lib/routes'
 import type { ContentListItem } from '@/lib/api/types'
 import type { Taxonomy } from '@/lib/api/types'
+import { Card } from '@/components/ui/Card'
+import { Skeleton, SkeletonStatus, SkeletonText } from '@/components/ui/Skeleton'
 
 interface CountryPill {
   slug: string
@@ -206,10 +208,17 @@ export async function TreatmentsList({ locale }: TreatmentsListProps) {
 
 export function TreatmentsListSkeleton() {
   return (
-    <div className="space-y-4">
+    <SkeletonStatus label="Loading treatments" className="space-y-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="h-36 animate-pulse rounded-xl bg-[var(--color-neutral-100)]" />
+        <Card key={i} className="p-5">
+          <Skeleton className="h-5 w-1/3" rounded="sm" />
+          <SkeletonText lines={2} className="mt-3" />
+          <div className="mt-4 flex gap-2">
+            <Skeleton className="h-6 w-16" rounded="full" />
+            <Skeleton className="h-6 w-20" rounded="full" />
+          </div>
+        </Card>
       ))}
-    </div>
+    </SkeletonStatus>
   )
 }

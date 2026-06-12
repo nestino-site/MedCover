@@ -7,6 +7,7 @@ import {
   legacyCompareToNew,
   legacyCostToNew,
   legacyGuideFlatten,
+  legacyTreatmentSlugRedirect,
 } from './src/lib/routes'
 
 function legacyRedirect(pathname: string): string | null {
@@ -23,6 +24,9 @@ function legacyRedirect(pathname: string): string | null {
 
   const guide = legacyGuideFlatten(normalized)
   if (guide) return guide
+
+  const treatmentSlug = legacyTreatmentSlugRedirect(normalized)
+  if (treatmentSlug) return treatmentSlug
 
   const compareFor = normalized.match(/^\/compare\/([^/]+)-vs-([^/]+)-ivf\/$/)
   if (compareFor) {

@@ -1,10 +1,15 @@
+'use client'
+
 import Link from 'next/link'
 import type { getDictionary } from '@/lib/i18n'
 import type { TreatmentTag } from '@/components/hubs/CountryCard'
+import { clinicCityTreatmentPath } from '@/lib/routes'
+import type { Locale } from '@/lib/i18n'
 
 export interface CityCardData {
   slug: string
   href: string
+  clinicHref: string
   guideHref: string
   cityName: string
   cityKey: string
@@ -17,30 +22,54 @@ export interface CityCardData {
   hasPublishedGuide: boolean
 }
 
-function TreatmentTagBadge({ tag }: { tag: TreatmentTag }) {
+function TreatmentTagBadge({
+  tag,
+  countryKey,
+  cityKey,
+  locale,
+}: {
+  tag: TreatmentTag
+  countryKey: string
+  cityKey: string
+  locale: Locale
+}) {
   const isActive = tag.status === 'active'
-  return (
-    <span
-      className={
-        isActive
-          ? 'inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-50)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-accent-700)]'
-          : 'inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-neutral-500)]'
-      }
-    >
+  const className = isActive
+    ? 'inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-50)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]'
+    : 'inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-neutral-500)]'
+
+  const content = (
+    <>
       {tag.name}
       {!isActive && (
         <span className="text-[9px] font-bold uppercase tracking-wide opacity-70">Soon</span>
       )}
-    </span>
+    </>
   )
+
+  if (isActive) {
+    return (
+      <Link
+        href={clinicCityTreatmentPath(countryKey, cityKey, tag.id, locale)}
+        className={className}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {content}
+      </Link>
+    )
+  }
+
+  return <span className={className}>{content}</span>
 }
 
 export function CityCard({
   data,
   t,
+  locale = 'en',
 }: {
   data: CityCardData
   t: ReturnType<typeof getDictionary>
+  locale?: Locale
 }) {
   return (
     <Link
@@ -66,9 +95,15 @@ export function CityCard({
             .filter((tag) => tag.status === 'active')
             .slice(0, 2)
             .map((tag) => (
-              <TreatmentTagBadge key={tag.id} tag={tag} />
+              <TreatmentTagBadge
+                key={tag.id}
+                tag={tag}
+                countryKey={data.countryKey}
+                cityKey={data.cityKey}
+                locale={locale}
+              />
             ))}
-          {data.treatments.filter((t) => t.status === 'active').length === 0 && (
+          {data.treatments.filter((tx) => tx.status === 'active').length === 0 && (
             <span className="text-xs text-[var(--color-neutral-400)]">{t.hubs.cities.comingSoonLabel}</span>
           )}
         </div>

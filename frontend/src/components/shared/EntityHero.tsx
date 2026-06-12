@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import type { BreadcrumbItem } from '@/lib/api/types'
+import { cn } from '@/lib/utils/cn'
 import { AnswerBlock } from './AnswerBlock'
 
 export type EntityHeroStat = {
   label: string
   value: string
+  href?: string
 }
 
 type EntityHeroProps = {
@@ -20,6 +22,8 @@ type EntityHeroProps = {
   /** Slim inline stat row under the description (replaces standalone StatStrips). */
   stats?: EntityHeroStat[]
   children?: ReactNode
+  hideBreadcrumb?: boolean
+  className?: string
 }
 
 export function EntityHero({
@@ -32,10 +36,12 @@ export function EntityHero({
   answerLabel,
   stats,
   children,
+  hideBreadcrumb = false,
+  className,
 }: EntityHeroProps) {
   return (
-    <header className="mb-10 space-y-6">
-      <Breadcrumb items={breadcrumbs} />
+    <header className={cn('mb-10 space-y-6', className)}>
+      {!hideBreadcrumb && <Breadcrumb items={breadcrumbs} />}
       <div className="max-w-3xl space-y-4">
         {eyebrow && (
           <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-600)]">
@@ -60,9 +66,20 @@ export function EntityHero({
           >
             {stats.map((s) => (
               <div key={s.label} className="flex flex-col">
-                <dd className="text-xl font-bold tabular-nums text-[var(--color-primary-900)]">
-                  {s.value}
-                </dd>
+                {s.href ? (
+                  <dd className="text-xl font-bold tabular-nums text-[var(--color-primary-900)]">
+                    <a
+                      href={s.href}
+                      className="transition-colors hover:text-[var(--color-accent-700)]"
+                    >
+                      {s.value}
+                    </a>
+                  </dd>
+                ) : (
+                  <dd className="text-xl font-bold tabular-nums text-[var(--color-primary-900)]">
+                    {s.value}
+                  </dd>
+                )}
                 <dt className="text-xs text-[var(--color-neutral-500)]">{s.label}</dt>
               </div>
             ))}

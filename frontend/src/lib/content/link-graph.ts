@@ -5,16 +5,20 @@ import {
   clinicCountryPath,
   clinicCityPath,
   clinicCountryTreatmentPath,
+  clinicCityTreatmentPath,
   compareCountryPath,
   costCountryPath,
   costCityPath,
   costTreatmentPath,
+  cityLandingPath,
   countryLandingPath,
   guidePath,
   slugToLabel,
   treatmentPath,
 } from '@/lib/routes'
 import { parseCitySlug, getCountryKeyFromSlug, isCountryGuideSlug } from './hubs'
+import { primaryTreatmentSlugForCountry } from './treatments'
+import { canonicalTreatmentSlug } from './treatment-slugs'
 import { localizedPath, type Locale } from '@/lib/i18n'
 
 export interface PageEntities {
@@ -71,7 +75,9 @@ function buildTaxonomyMaps(taxonomy?: Taxonomy) {
       }
     }
     for (const t of taxonomy.treatments) {
-      treatmentMap.set(t.slug, { slug: t.slug, name: t.name })
+      const slug = canonicalTreatmentSlug(t.slug)
+      treatmentMap.set(t.slug, { slug, name: t.name })
+      treatmentMap.set(slug, { slug, name: t.name })
     }
   }
 
@@ -116,7 +122,7 @@ export function resolvePageRelations(
         pageType: input.pageType,
         country: country?.slug,
         city: city?.slug,
-        treatment: treatment?.slug,
+        treatment: treatment ? canonicalTreatmentSlug(treatment.slug) : undefined,
         clinics,
       }
     }
@@ -195,7 +201,12 @@ export function parseEntitiesFromSlug(slug: string): PageEntities {
 }
 
 function treatmentDisplayName(slug: string, taxonomy: Taxonomy): string {
-  return taxonomy.treatments.find((t) => t.slug === slug)?.name ?? slugToLabel(slug)
+  const canonical = canonicalTreatmentSlug(slug)
+  return (
+    taxonomy.treatments.find(
+      (t) => t.slug === slug || canonicalTreatmentSlug(t.slug) === canonical,
+    )?.name ?? slugToLabel(canonical)
+  )
 }
 
 function guideLinkForCountry(
@@ -231,7 +242,14 @@ export function buildRelatedLandingsForEntities(
   pages?: ContentListItem[],
 ): RelatedLanding[] {
   const items: RelatedLanding[] = []
-  const treatment = entities.treatment ?? 'ivf'
+  const treatment = canonicalTreatmentSlug(
+    entities.treatment ??
+      (entities.country
+        ? primaryTreatmentSlugForCountry(taxonomy, entities.country)
+        : undefined) ??
+      'ivf',
+  )
+  const treatmentName = treatmentDisplayName(treatment, taxonomy)
 
   if (entities.country) {
     const country = taxonomy.countries.find((c) => c.slug === entities.country)
@@ -241,13 +259,20 @@ export function buildRelatedLandingsForEntities(
         href: clinicCountryPath(country.slug, locale),
         badge: 'Clinics',
       })
+      if (entities.treatment && !entities.city) {
+        items.push({
+          title: `${treatmentName} clinics in ${country.name}`,
+          href: clinicCountryTreatmentPath(country.slug, treatment, locale),
+          badge: 'Treatment',
+        })
+      }
       items.push({
         title: `${country.name} overview`,
         href: countryLandingPath(country.slug, locale),
         badge: 'Country',
       })
       items.push({
-        title: `${treatment.toUpperCase()} cost in ${country.name}`,
+        title: `${treatmentName} cost in ${country.name}`,
         href: costCountryPath(treatment, country.slug, locale),
         badge: 'Cost',
       })
@@ -261,16 +286,28 @@ export function buildRelatedLandingsForEntities(
     const city = country?.cities.find((c) => c.slug === entities.city)
     if (city) {
       items.push({
-        title: `Clinics in ${city.name}`,
-        href: clinicCityPath(entities.country, city.slug, locale),
+        title: `${city.name} overview`,
+        href: cityLandingPath(entities.country, city.slug, locale),
         badge: 'City',
       })
+      items.push({
+        title: `Clinics in ${city.name}`,
+        href: clinicCityPath(entities.country, city.slug, locale),
+        badge: 'Clinics',
+      })
+      items.push({
+        title: `${treatmentName} clinics in ${city.name}`,
+        href: clinicCityTreatmentPath(entities.country, city.slug, treatment, locale),
+        badge: 'Treatment',
+      })
+      if (!entities.treatment) {
+        items.push({
+          title: `${treatmentName} in ${country?.name ?? entities.country}`,
+          href: clinicCountryTreatmentPath(entities.country, treatment, locale),
+          badge: 'Treatment',
+        })
+      }
     }
-    items.push({
-      title: `${treatment.toUpperCase()} in ${entities.country}`,
-      href: clinicCountryTreatmentPath(entities.country, treatment, locale),
-      badge: 'Treatment',
-    })
   }
 
   if (entities.treatment && !entities.country) {
@@ -406,15 +443,26 @@ export function getRelatedForGuide(
     const city = relations.city
       ? country?.cities.find((c) => c.slug === relations.city)
       : undefined
+    const treatmentName = treatmentDisplayName(treatment, taxonomy)
 
     if (city) {
+      landings.push({
+        title: `${city.name} overview`,
+        href: cityLandingPath(relations.country, city.slug, locale),
+        badge: 'City',
+      })
       landings.push({
         title: `Clinics in ${city.name}`,
         href: clinicCityPath(relations.country, city.slug, locale),
         badge: 'Clinics',
       })
       landings.push({
-        title: `${treatment.toUpperCase()} cost in ${city.name}`,
+        title: `${treatmentName} clinics in ${city.name}`,
+        href: clinicCityTreatmentPath(relations.country, city.slug, treatment, locale),
+        badge: 'Treatment',
+      })
+      landings.push({
+        title: `${treatmentName} cost in ${city.name}`,
         href: costCityPath(treatment, relations.country, city.slug, locale),
         badge: 'Cost',
       })
@@ -425,7 +473,12 @@ export function getRelatedForGuide(
         badge: 'Clinics',
       })
       landings.push({
-        title: `${treatment.toUpperCase()} cost in ${countryName}`,
+        title: `${treatmentName} clinics in ${countryName}`,
+        href: clinicCountryTreatmentPath(relations.country, treatment, locale),
+        badge: 'Treatment',
+      })
+      landings.push({
+        title: `${treatmentName} cost in ${countryName}`,
         href: costCountryPath(treatment, relations.country, locale),
         badge: 'Cost',
       })

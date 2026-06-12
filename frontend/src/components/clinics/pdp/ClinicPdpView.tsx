@@ -1,22 +1,32 @@
-import type { BreadcrumbItem, ClinicCard as ClinicCardType, ClinicDetail, FaqItem } from '@/lib/api/types'
+import type {
+  BreadcrumbItem,
+  ClinicDetail,
+  FaqItem,
+  TocItem,
+} from '@/lib/api/types'
 import type { RelatedLanding } from '@/components/shared/RelatedLandingsGrid'
-import { Breadcrumb } from '@/components/layout/Breadcrumb'
+import type { RelatedClinicsForPdp } from '@/lib/content/clinic-discovery'
+import type { GuideArticleItem } from '@/lib/content/hubs'
 import { ContentHtml } from '@/components/shared/ContentHtml'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
-import { ClinicCard } from '@/components/clinics/ClinicCard'
 import { RelatedLandingsGrid } from '@/components/shared/RelatedLandingsGrid'
-import { ClinicPdpHeader } from './ClinicPdpHeader'
+import { RelatedArticles } from '@/components/shared/RelatedArticles'
+import { RelatedClinicsSections } from '@/components/clinics/RelatedClinicsSections'
+import { TableOfContents } from '@/components/layout/TableOfContents'
+import { SectionHeading } from '@/components/ui/SectionHeading'
+import { ClinicPdpHero } from './ClinicPdpHero'
 import { ClinicFactsSidebar } from './ClinicFactsSidebar'
+import { ClinicSectionNav, type ClinicSectionNavItem } from './ClinicSectionNav'
 import { TruthScorePanel } from './TruthScorePanel'
 import { TreatmentsOffered } from './TreatmentsOffered'
 import { PricingPackagesSection } from './PricingPackagesSection'
 import { DoctorsGrid } from './DoctorsGrid'
 import { PatientVoices } from './PatientVoices'
 import { GoogleReviewsSection } from './GoogleReviewsSection'
-import { Collapsible } from '@/components/ui/Collapsible'
+import { cn } from '@/lib/utils/cn'
 import type { Locale } from '@/lib/i18n'
-import { slugToLabel } from '@/lib/routes'
+import { en } from '@/lib/i18n/en'
 
 type ClinicPdpViewProps = {
   clinic: ClinicDetail
@@ -26,10 +36,50 @@ type ClinicPdpViewProps = {
   cityName: string
   countryName: string
   locale?: Locale
+  answer?: string
   editorialHtml?: string | null
   faq?: FaqItem[]
-  similarClinics: ClinicCardType[]
+  tableOfContents?: TocItem[]
+  lastUpdated?: string | null
+  relatedClinics: RelatedClinicsForPdp
   related: RelatedLanding[]
+  relatedArticles: GuideArticleItem[]
+  overviewLinks?: {
+    city?: { href: string; label: string }
+    country?: { href: string; label: string }
+  }
+}
+
+function buildSectionNav(clinic: ClinicDetail, faq?: FaqItem[]): ClinicSectionNavItem[] {
+  const sections: ClinicSectionNavItem[] = []
+  const copy = en.clinicPdp.sections
+
+  if (clinic.truthScore?.composite) {
+    sections.push({ id: 'truth-score', label: copy.truthScore.title })
+  }
+  if (clinic.treatments.length > 0) {
+    sections.push({ id: 'treatments', label: copy.treatments.title })
+  }
+  if (clinic.pricingPackages.length > 0) {
+    sections.push({ id: 'pricing', label: copy.pricing.title })
+  }
+  if (clinic.doctors.length > 0) {
+    sections.push({ id: 'doctors', label: copy.doctors.title })
+  }
+  if ((clinic.interviews?.length ?? 0) > 0) {
+    sections.push({ id: 'patient-voices', label: copy.patientVoices.title })
+  }
+  if (clinic.shortDescription) {
+    sections.push({ id: 'about', label: copy.about.title })
+  }
+  if ((clinic.googleReviews?.length ?? 0) > 0) {
+    sections.push({ id: 'reviews', label: copy.reviews.title })
+  }
+  if (faq && faq.length > 0) {
+    sections.push({ id: 'faq', label: copy.faq.title })
+  }
+
+  return sections
 }
 
 export function ClinicPdpView({
@@ -40,74 +90,106 @@ export function ClinicPdpView({
   cityName,
   countryName,
   locale = 'en',
+  answer,
   editorialHtml,
   faq,
-  similarClinics,
+  tableOfContents,
+  lastUpdated,
+  relatedClinics,
   related,
+  relatedArticles,
+  overviewLinks,
 }: ClinicPdpViewProps) {
-  const locationLabel = [cityName, countryName].join(', ')
+  const sectionNav = buildSectionNav(clinic, faq)
+  const hasToc = (tableOfContents?.length ?? 0) > 0
+  const aboutCopy = en.clinicPdp.sections.about
+  const faqCopy = en.clinicPdp.sections.faq
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <Breadcrumb items={breadcrumbs} />
+      <ClinicPdpHero
+        clinic={clinic}
+        breadcrumbs={breadcrumbs}
+        locationLabel={[cityName, countryName].join(', ')}
+        answer={answer}
+        lastUpdated={lastUpdated}
+        overviewLinks={overviewLinks}
+      />
 
-      <div className="mt-6">
-        <ClinicPdpHeader clinic={clinic} locationLabel={locationLabel} />
-      </div>
+      <ClinicSectionNav sections={sectionNav} />
 
-      <div className="mt-12 grid gap-12 lg:grid-cols-[1fr_300px]">
+      <div
+        className={cn(
+          'grid gap-12',
+          hasToc ? 'lg:grid-cols-[1fr_280px_300px]' : 'lg:grid-cols-[1fr_300px]',
+        )}
+      >
         <div className="min-w-0 space-y-10">
           <TruthScorePanel clinic={clinic} />
           <TreatmentsOffered clinic={clinic} country={country} city={city} locale={locale} />
-          <PricingPackagesSection clinic={clinic} />
+          <PricingPackagesSection
+            clinic={clinic}
+            country={country}
+            city={city}
+            cityName={cityName}
+            locale={locale}
+          />
           <DoctorsGrid clinic={clinic} />
           <PatientVoices clinic={clinic} />
 
           {clinic.shortDescription && !editorialHtml && (
-            <section>
-              <h2 className="mb-4 text-2xl font-bold text-[var(--color-primary-950)]">About</h2>
+            <section id="about" className="scroll-mt-28">
+              <SectionHeading eyebrow={aboutCopy.eyebrow} title={aboutCopy.title} className="mb-4" />
               <p className="text-[var(--color-neutral-700)] leading-relaxed">{clinic.shortDescription}</p>
             </section>
           )}
 
           {editorialHtml && (
-            <div className="prose prose-neutral max-w-none">
-              <ContentHtml html={editorialHtml} />
+            <div id="about" className="scroll-mt-28 prose prose-neutral max-w-none">
+              <ContentHtml html={editorialHtml} variant="guide" />
             </div>
           )}
 
-          {(clinic.googleReviews?.length ?? 0) > 0 && (
-            <Collapsible label="Google reviews">
-              <GoogleReviewsSection clinic={clinic} showHeading={false} />
-            </Collapsible>
-          )}
+          <GoogleReviewsSection clinic={clinic} />
 
           {faq && faq.length > 0 && (
-            <Collapsible label="Frequently asked questions">
+            <section id="faq" className="scroll-mt-28" data-speakable="true">
+              <SectionHeading eyebrow={faqCopy.eyebrow} title={faqCopy.title} className="mb-6" />
               <FaqAccordion faqs={faq} variant="compact" title="" defaultOpen={false} />
-            </Collapsible>
+            </section>
           )}
         </div>
+
+        {hasToc && tableOfContents && (
+          <div className="order-last lg:order-none">
+            <TableOfContents items={tableOfContents} variant="card" />
+          </div>
+        )}
 
         <ClinicFactsSidebar clinic={clinic} className="lg:order-last" />
       </div>
 
-      {similarClinics.length > 0 && (
-        <section className="mt-16">
-          <h2 className="mb-6 text-2xl font-bold text-[var(--color-primary-950)]">
-            Similar clinics in {cityName || slugToLabel(city)}
-          </h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {similarClinics.map((c) => (
-              <ClinicCard key={c.urlPath} clinic={c} />
-            ))}
-          </div>
-        </section>
-      )}
+      <RelatedClinicsSections
+        relatedClinics={relatedClinics}
+        country={country}
+        city={city}
+        cityName={cityName}
+        locale={locale}
+      />
 
       {related.length > 0 && (
         <div className="mt-16">
-          <RelatedLandingsGrid items={related} />
+          <RelatedLandingsGrid title={en.clinicPdp.planYourTreatment} items={related} />
+        </div>
+      )}
+
+      {relatedArticles.length > 0 && (
+        <div className="mt-16">
+          <RelatedArticles
+            eyebrow={en.clinicPdp.relatedArticles.eyebrow}
+            heading={en.clinicPdp.relatedArticles.heading}
+            articles={relatedArticles}
+          />
         </div>
       )}
 

@@ -5,13 +5,12 @@ import { HubPageLayout } from '@/components/hubs/HubPageLayout'
 import { getDictionary, localizedPath } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 import { hubPath } from '@/lib/content/site-nav'
-import { cmsPageSlug } from '@/lib/routes'
-import { cmsMetadataForSlug } from '@/lib/seo/cms-seo'
+import { cmsHubMetadata } from '@/lib/seo/site-metadata'
 
 const locale = activeLocale
 
 export async function generateMetadata(): Promise<Metadata> {
-  return cmsMetadataForSlug(cmsPageSlug('about'))
+  return cmsHubMetadata('about')
 }
 
 export default function AboutPage() {

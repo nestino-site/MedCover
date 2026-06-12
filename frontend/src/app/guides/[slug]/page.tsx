@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { listPublishedPagesSafe, loadPublishedPage } from '@/lib/api/content'
 import { getPublishedPageMetadata, PublishedArticleView } from '@/lib/content/published-page-route'
+import { GuideArticleSkeleton } from '@/components/guides/GuideArticleSkeleton'
 import { activeLocale } from '@/lib/i18n/locale'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -35,5 +37,10 @@ export default async function GuidePage({ params }: Props) {
   const result = await loadPublishedPage(slugPath)
   if (result.status !== 'ok') notFound()
   const locale = activeLocale
-  return <PublishedArticleView slugPath={slugPath} locale={locale} hubSegment="guides" />
+
+  return (
+    <Suspense fallback={<GuideArticleSkeleton />}>
+      <PublishedArticleView slugPath={slugPath} locale={locale} hubSegment="guides" />
+    </Suspense>
+  )
 }

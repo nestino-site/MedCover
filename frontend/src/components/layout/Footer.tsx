@@ -1,16 +1,22 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { getTaxonomy } from '@/lib/api/catalog'
+import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
-import { hubPath, getExploreHubs } from '@/lib/content/site-nav'
-import { getFeaturedCountriesFromTaxonomy } from '@/lib/content/hubs'
-
-const companyLinks = [
-  { key: 'privacy' as const, href: '/privacy/' },
-  { key: 'terms' as const, href: '/terms/' },
-  { key: 'methodology' as const, href: '/ai-interviewer/' },
-  { key: 'contact' as const, href: '/contact/' },
-]
+import {
+  FOOTER_COMPANY_LINKS,
+  getExploreHubs,
+  getFooterToolsHubs,
+  hubPath,
+  MOBILE_QUICK_LINKS,
+  type HubId,
+} from '@/lib/content/site-nav'
+import {
+  getFeaturedCountriesFromTaxonomy,
+  getFeaturedCitiesForNav,
+  publishedCityGuideKeys,
+} from '@/lib/content/hubs'
+import { countriesHubPath } from '@/lib/routes'
 
 function SocialIcon({ href, label, children }: { href: string; label: string; children: ReactNode }) {
   return (
@@ -28,20 +34,46 @@ type FooterProps = {
   locale: Locale
 }
 
+function mobileQuickLinkLabel(
+  hubId: (typeof MOBILE_QUICK_LINKS)[number],
+  t: ReturnType<typeof getDictionary>,
+): string {
+  switch (hubId) {
+    case 'countries':
+      return t.nav.quickLinks.destinations
+    case 'clinics':
+      return t.nav.quickLinks.clinics
+    case 'costs':
+      return t.nav.quickLinks.costs
+    case 'compare':
+      return t.nav.quickLinks.compare
+    case 'guides':
+      return t.nav.quickLinks.guides
+    default:
+      return t.nav[hubId]
+  }
+}
+
+function exploreHubLabel(hubId: HubId, t: ReturnType<typeof getDictionary>): string {
+  if (hubId === 'countries') return t.nav.triggers.destinations
+  return t.nav[hubId]
+}
+
 export async function Footer({ locale }: FooterProps) {
   const t = getDictionary(locale)
   const year = 2026
-  const taxonomy = await getTaxonomy()
+  const [taxonomy, pages] = await Promise.all([getTaxonomy(), listPublishedPagesSafe()])
+  const publishedGuideKeys = publishedCityGuideKeys(pages, locale, taxonomy)
   const exploreHubs = getExploreHubs()
+  const toolsHubs = getFooterToolsHubs()
   const featured = getFeaturedCountriesFromTaxonomy(taxonomy, locale).slice(0, 5)
+  const featuredCities = getFeaturedCitiesForNav(taxonomy, locale, 5, publishedGuideKeys)
+  const browseAllCitiesHref = `${countriesHubPath(locale)}#cities`
 
-  const mobileEssential = [
-    { label: t.nav.clinics, href: hubPath('clinics', locale) },
-    { label: t.nav.treatments, href: hubPath('treatments', locale) },
-    { label: t.nav.guides, href: hubPath('guides', locale) },
-    { label: t.nav.costs, href: hubPath('costs', locale) },
-    { label: t.footer.links.privacy, href: localizedPath('/privacy', locale) },
-  ]
+  const mobileEssential = MOBILE_QUICK_LINKS.map((hubId) => ({
+    label: mobileQuickLinkLabel(hubId, t),
+    href: hubPath(hubId, locale),
+  }))
 
   return (
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-primary-950)] text-white">
@@ -93,7 +125,7 @@ export async function Footer({ locale }: FooterProps) {
             </form>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 sm:gap-10 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-8 sm:gap-10 lg:grid-cols-6">
             <div className="col-span-2 lg:col-span-1">
               <Link href={localizedPath('/', locale)} aria-label="MedCover">
                 <span className="text-xl font-bold tracking-tight text-white">
@@ -116,8 +148,34 @@ export async function Footer({ locale }: FooterProps) {
                       href={hubPath(hub.id, locale)}
                       className="text-sm text-[var(--color-primary-200)] transition-colors hover:text-white"
                     >
-                      {t.nav[hub.labelKey]}
+                      {exploreHubLabel(hub.id, t)}
                       {hub.status === 'coming_soon' ? ` (${t.nav.soon})` : ''}
+                    </Link>
+                  </li>
+                ))}
+                <li>
+                  <Link
+                    href={browseAllCitiesHref}
+                    className="text-sm text-[var(--color-primary-200)] transition-colors hover:text-white"
+                  >
+                    {t.nav.cities}
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-[var(--color-primary-400)]">
+                {t.footer.sections.tools}
+              </h3>
+              <ul className="space-y-2.5">
+                {toolsHubs.map((hub) => (
+                  <li key={hub.id}>
+                    <Link
+                      href={hubPath(hub.id, locale)}
+                      className="text-sm text-[var(--color-primary-200)] transition-colors hover:text-white"
+                    >
+                      {t.nav[hub.labelKey]}
                     </Link>
                   </li>
                 ))}
@@ -130,9 +188,9 @@ export async function Footer({ locale }: FooterProps) {
               </h3>
               <ul className="space-y-2.5">
                 {featured.map((dest) => (
-                  <li key={dest.href}>
+                  <li key={dest.countryHref}>
                     <Link
-                      href={dest.href}
+                      href={dest.countryHref}
                       className="text-sm text-[var(--color-primary-200)] transition-colors hover:text-white"
                     >
                       {t.home.ivfSpotlight.ivfIn} {dest.name}
@@ -141,13 +199,40 @@ export async function Footer({ locale }: FooterProps) {
                 ))}
                 <li>
                   <Link
-                    href={hubPath('clinics', locale)}
+                    href={hubPath('countries', locale)}
                     className="text-sm font-medium text-[var(--color-accent-400)] hover:text-[var(--color-accent-300)]"
                   >
                     {t.footer.allCountries} →
                   </Link>
                 </li>
               </ul>
+              {featuredCities.length > 0 && (
+                <>
+                  <h4 className="mb-3 mt-6 text-[10px] font-semibold uppercase tracking-widest text-[var(--color-primary-500)]">
+                    {t.nav.featuredCities}
+                  </h4>
+                  <ul className="space-y-2.5">
+                    {featuredCities.map((city) => (
+                      <li key={city.overviewHref}>
+                        <Link
+                          href={city.overviewHref}
+                          className="text-sm text-[var(--color-primary-200)] transition-colors hover:text-white"
+                        >
+                          {city.cityName}, {city.countryName}
+                        </Link>
+                      </li>
+                    ))}
+                    <li>
+                      <Link
+                        href={browseAllCitiesHref}
+                        className="text-sm font-medium text-[var(--color-accent-400)] hover:text-[var(--color-accent-300)]"
+                      >
+                        {t.nav.actions.browseAllCities} →
+                      </Link>
+                    </li>
+                  </ul>
+                </>
+              )}
             </div>
 
             <div>
@@ -155,7 +240,15 @@ export async function Footer({ locale }: FooterProps) {
                 {t.footer.sections.company}
               </h3>
               <ul className="space-y-2.5">
-                {companyLinks.map((link) => (
+                <li>
+                  <Link
+                    href={localizedPath('/about', locale)}
+                    className="text-sm text-[var(--color-primary-200)] transition-colors hover:text-white"
+                  >
+                    {t.nav.about}
+                  </Link>
+                </li>
+                {FOOTER_COMPANY_LINKS.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={localizedPath(link.href.replace(/\/$/, ''), locale)}

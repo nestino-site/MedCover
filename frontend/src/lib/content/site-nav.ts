@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { localizedPath, type Locale } from '@/lib/i18n'
+
 export type HubStatus = 'active' | 'coming_soon'
 export type NavGroup = 'destinations' | 'treatments' | 'content' | 'tools'
 export type HubId =
@@ -22,23 +23,83 @@ export type HubId =
 
 type NavLabelKey = 'countries' | 'cities' | 'treatments' | 'guides' | 'clinics' | 'costs' | 'compare'
 
-export type MegaGroupId = 'clinics' | 'destinations' | 'treatments' | 'guides'
+export type NavPanelId = 'destinations' | 'clinics' | 'treatments' | 'tools'
+export type HeaderNavItemId = 'destinations' | 'clinics' | 'treatments' | 'guides' | 'tools'
+export type NavItemKind = 'mega' | 'link'
 
-export interface MegaGroup {
-  id: MegaGroupId
+export interface HeaderNavItem {
+  id: HeaderNavItemId
+  kind: NavItemKind
   primaryHubId: HubId
-  relatedHubIds: HubId[]
+  /** Key under nav.triggers */
+  triggerKey: HeaderNavItemId
+  panel?: NavPanelId
 }
 
-export const MEGA_GROUPS: MegaGroup[] = [
-  { id: 'clinics', primaryHubId: 'clinics', relatedHubIds: [] },
-  { id: 'destinations', primaryHubId: 'countries', relatedHubIds: [] },
-  { id: 'treatments', primaryHubId: 'treatments', relatedHubIds: [] },
-  { id: 'guides', primaryHubId: 'guides', relatedHubIds: [] },
+export const HEADER_NAV: HeaderNavItem[] = [
+  {
+    id: 'destinations',
+    kind: 'mega',
+    primaryHubId: 'countries',
+    triggerKey: 'destinations',
+    panel: 'destinations',
+  },
+  {
+    id: 'clinics',
+    kind: 'mega',
+    primaryHubId: 'clinics',
+    triggerKey: 'clinics',
+    panel: 'clinics',
+  },
+  {
+    id: 'treatments',
+    kind: 'mega',
+    primaryHubId: 'treatments',
+    triggerKey: 'treatments',
+    panel: 'treatments',
+  },
+  {
+    id: 'guides',
+    kind: 'link',
+    primaryHubId: 'guides',
+    triggerKey: 'guides',
+  },
+  {
+    id: 'tools',
+    kind: 'mega',
+    primaryHubId: 'costs',
+    triggerKey: 'tools',
+    panel: 'tools',
+  },
 ]
 
-/** Hubs linked directly in the header (no mega-menu dropdown). */
-export const DIRECT_NAV_HUB_IDS: HubId[] = ['costs', 'compare']
+/** Always-visible quick links in the mobile drawer. */
+export const MOBILE_QUICK_LINKS: HubId[] = ['clinics', 'countries', 'costs', 'compare', 'guides']
+
+/** Footer "Explore" column — matches header order. */
+export const FOOTER_EXPLORE_IDS: HubId[] = ['countries', 'clinics', 'treatments', 'guides']
+
+/** Footer "Tools" column. */
+export const FOOTER_TOOLS_IDS: HubId[] = ['costs', 'compare']
+
+export type FooterInfoLinkKey = 'about' | 'forClinics'
+
+export interface FooterInfoLink {
+  key: FooterInfoLinkKey
+  href: string
+}
+
+export const FOOTER_INFO_LINKS: FooterInfoLink[] = [
+  { key: 'about', href: '/about/' },
+  { key: 'forClinics', href: '/start/' },
+]
+
+export const FOOTER_COMPANY_LINKS = [
+  { key: 'privacy' as const, href: '/privacy/' },
+  { key: 'terms' as const, href: '/terms/' },
+  { key: 'methodology' as const, href: '/ai-interviewer/' },
+  { key: 'contact' as const, href: '/contact/' },
+]
 
 export interface SiteHub {
   id: HubId
@@ -156,9 +217,25 @@ export function getHubsByGroup(group: NavGroup): SiteHub[] {
 }
 
 export function getExploreHubs(): SiteHub[] {
-  return SITE_HUBS.filter((h) => h.id !== 'cities')
+  return FOOTER_EXPLORE_IDS.map((id) => getHubById(id)).filter(
+    (hub): hub is SiteHub => hub !== undefined,
+  )
+}
+
+export function getFooterToolsHubs(): SiteHub[] {
+  return FOOTER_TOOLS_IDS.map((id) => getHubById(id)).filter(
+    (hub): hub is SiteHub => hub !== undefined,
+  )
 }
 
 export function getSitemapHubs(): SiteHub[] {
   return SITE_HUBS.filter((h) => h.sitemap)
+}
+
+export function getMegaNavItems(): HeaderNavItem[] {
+  return HEADER_NAV.filter((item) => item.kind === 'mega')
+}
+
+export function getLinkNavItems(): HeaderNavItem[] {
+  return HEADER_NAV.filter((item) => item.kind === 'link')
 }

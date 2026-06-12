@@ -81,6 +81,8 @@ interface FilteredResultsRegionProps {
   children: ReactNode
   fallback: ReactNode
   className?: string
+  /** Minimum height for the overlay region to prevent collapse during loading */
+  minHeight?: string
 }
 
 /**
@@ -90,18 +92,21 @@ export function FilteredResultsRegion({
   children,
   fallback,
   className,
+  minHeight = '12rem',
 }: FilteredResultsRegionProps) {
-  const { isPending } = useFilterNavigationOptional()
+  const ctx = useContext(FilterNavigationContext)
+  const isPending = ctx?.isPending ?? false
 
   return (
     <div
       className={cn('relative', className)}
       aria-busy={isPending}
       data-filter-pending={isPending ? '' : undefined}
+      style={isPending ? { minHeight } : undefined}
     >
       {isPending && (
         <div
-          className="absolute inset-0 z-10 min-h-[12rem] rounded-xl bg-white/90 backdrop-blur-[1px]"
+          className="absolute inset-0 z-10 rounded-xl bg-white/90 p-4 backdrop-blur-sm"
           role="status"
           aria-live="polite"
           aria-label="Updating results"

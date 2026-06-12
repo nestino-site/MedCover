@@ -6,8 +6,11 @@ import { localizedPath, type Locale } from '@/lib/i18n'
 import { filterPagesByLocale } from './site-graph'
 import {
   clinicCityPath,
+  clinicCityTreatmentPath,
   clinicCountryPath,
+  clinicCountryTreatmentPath,
   clinicPdpPath,
+  cityLandingPath,
   countryLandingPath,
   guidePath,
   slugToLabel,
@@ -18,7 +21,14 @@ export interface CityDisplay {
   cityName: string
   citySlug: string
   href: string
+  clinicHref: string
   guideHref: string
+}
+
+export type CityLinkOptions = {
+  treatment?: string
+  /** editorial = city landing (default); clinic = city PLP; clinic_treatment = treatment-scoped city PLP */
+  hrefMode?: 'editorial' | 'clinic' | 'clinic_treatment'
 }
 
 export interface RelatedArticleItem {
@@ -99,17 +109,31 @@ export function getCitiesForCountryFromTaxonomy(
   taxonomy: Taxonomy,
   countryKey: string,
   locale: Locale,
+  options?: CityLinkOptions,
 ): CityDisplay[] {
   const country = taxonomy.countries.find((c) => c.slug === countryKey)
   if (!country) return []
 
-  return country.cities.map((city) => ({
-    cityKey: city.slug,
-    cityName: city.name,
-    citySlug: `guides/${countryKey}/${city.slug}-ivf-guide`,
-    href: clinicCityPath(countryKey, city.slug, locale),
-    guideHref: guidePath(`${city.slug}-ivf-guide`, locale),
-  }))
+  return country.cities.map((city) => {
+    const clinicHref = options?.treatment
+      ? clinicCityTreatmentPath(countryKey, city.slug, options.treatment, locale)
+      : clinicCityPath(countryKey, city.slug, locale)
+    const href =
+      options?.hrefMode === 'clinic_treatment' && options.treatment
+        ? clinicCityTreatmentPath(countryKey, city.slug, options.treatment, locale)
+        : options?.hrefMode === 'clinic'
+          ? clinicCityPath(countryKey, city.slug, locale)
+          : cityLandingPath(countryKey, city.slug, locale)
+
+    return {
+      cityKey: city.slug,
+      cityName: city.name,
+      citySlug: `guides/${countryKey}/${city.slug}-ivf-guide`,
+      href,
+      clinicHref,
+      guideHref: guidePath(`${city.slug}-ivf-guide`, locale),
+    }
+  })
 }
 
 export function getCitiesForCountry(
@@ -117,9 +141,10 @@ export function getCitiesForCountry(
   allCityPages: ContentListItem[],
   locale: Locale,
   taxonomy?: Taxonomy,
+  options?: CityLinkOptions,
 ): CityDisplay[] {
   if (taxonomy) {
-    return getCitiesForCountryFromTaxonomy(taxonomy, countryKey, locale)
+    return getCitiesForCountryFromTaxonomy(taxonomy, countryKey, locale, options)
   }
 
   const fromApi = allCityPages.filter((p) =>
@@ -131,11 +156,22 @@ export function getCitiesForCountry(
       const parsed = parseCitySlug(p.slug)
       if (!parsed) return null
       const cityKey = parsed.cityName.toLowerCase().replace(/\s+/g, '-')
+      const clinicHref = options?.treatment
+        ? clinicCityTreatmentPath(countryKey, cityKey, options.treatment, locale)
+        : clinicCityPath(countryKey, cityKey, locale)
+      const href =
+        options?.hrefMode === 'clinic_treatment' && options.treatment
+          ? clinicCityTreatmentPath(countryKey, cityKey, options.treatment, locale)
+          : options?.hrefMode === 'clinic'
+            ? clinicCityPath(countryKey, cityKey, locale)
+            : cityLandingPath(countryKey, cityKey, locale)
+
       return {
         cityKey,
         cityName: parsed.cityName,
         citySlug: p.slug.replace(/^\//, ''),
-        href: clinicCityPath(countryKey, cityKey, locale),
+        href,
+        clinicHref,
         guideHref: localizedPath(`/${p.slug.replace(/^\//, '')}`, locale),
       }
     })
@@ -151,7 +187,7 @@ export function getCityHubPath(
   cityKey: string,
   locale: Locale = 'en',
 ): string {
-  return clinicCityPath(countryKey, cityKey, locale)
+  return cityLandingPath(countryKey, cityKey, locale)
 }
 
 export function getCountryGuideHref(countryKey: string, locale: Locale = 'en'): string {
@@ -378,6 +414,63 @@ export function getFeaturedCountriesFromTaxonomy(taxonomy: Taxonomy, locale: Loc
     cost: '',
     clinics: String(country.clinicCount),
   }))
+}
+
+export interface NavFeaturedCity {
+  cityName: string
+  countryName: string
+  countryKey: string
+  cityKey: string
+  flag: string
+  overviewHref: string
+  clinicHref: string
+  guideHref: string | null
+}
+
+export function getFeaturedCitiesForNav(
+  taxonomy: Taxonomy,
+  locale: Locale = 'en',
+  limit = 8,
+  publishedGuideKeys?: Set<string>,
+): NavFeaturedCity[] {
+  const entries: Array<NavFeaturedCity & { clinicCount: number }> = []
+
+  for (const country of taxonomy.countries) {
+    const flag = flagEmojiForCountry({
+      slug: country.slug,
+      flagEmoji: country.flagEmoji,
+      codeIso2: country.codeIso2,
+    })
+
+    for (const city of country.cities) {
+      const guideKey = `${country.slug}/${city.slug}`
+      const hasPublishedGuide = publishedGuideKeys?.has(guideKey) ?? false
+
+      entries.push({
+        cityName: city.name,
+        countryName: country.name,
+        countryKey: country.slug,
+        cityKey: city.slug,
+        flag,
+        overviewHref: cityLandingPath(country.slug, city.slug, locale),
+        clinicHref: clinicCityPath(country.slug, city.slug, locale),
+        guideHref: hasPublishedGuide
+          ? getCityGuideHref(country.slug, city.slug, locale)
+          : null,
+        clinicCount: city.clinicCount,
+      })
+    }
+  }
+
+  return entries
+    .sort(
+      (a, b) =>
+        b.clinicCount - a.clinicCount ||
+        a.countryName.localeCompare(b.countryName) ||
+        a.cityName.localeCompare(b.cityName),
+    )
+    .slice(0, limit)
+    .map(({ clinicCount: _clinicCount, ...city }) => city)
 }
 
 /** @deprecated Use getCountryDisplayFromTaxonomy with taxonomy */

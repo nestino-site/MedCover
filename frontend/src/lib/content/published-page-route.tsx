@@ -19,6 +19,7 @@ import { RelatedCostArticles } from '@/components/costs/RelatedCostArticles'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { GuideArticleLayout } from '@/components/guides/GuideArticleLayout'
+import { resolveGuideSeo } from '@/lib/content/guide-display'
 import { pageTitleFromSlug } from '@/lib/content/hubs'
 import { getRelatedForGuide, resolvePageRelations } from '@/lib/content/link-graph'
 import { guideDimensionsFromRelations } from '@/lib/content/site-graph'
@@ -60,6 +61,8 @@ import {
   metadataFromCmsPage,
   resolveSiteCanonical,
 } from '@/lib/seo/cms-seo'
+import { en } from '@/lib/i18n/en'
+import { siteMetadataDefaults } from '@/lib/seo/site-metadata'
 
 function siteOrigin(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io').replace(/\/+$/, '')
@@ -117,6 +120,7 @@ async function CachedArticleBody({
       guideDimensionsFromRelations(relations, guideSlug, taxonomy) ??
       undefined
     const related = getRelatedForGuide(guideInput, allPages, taxonomy, locale)
+    const { title, description } = resolveGuideSeo(page, guideSlug)
 
     return (
       <>
@@ -127,6 +131,8 @@ async function CachedArticleBody({
           faqs={page.faq}
           htmlContent={htmlContent}
           hero={hero}
+          title={title}
+          description={description || undefined}
           updatedAt={page.updatedAt}
           locale={locale}
           related={related}
@@ -265,7 +271,11 @@ export function createPublishedPageHandlers(
       return getPublishedPageMetadata(result, slugPath)
     }
 
-    return { title: pageTitleFromSlug(slugPath) }
+    return {
+      ...siteMetadataDefaults(),
+      title: pageTitleFromSlug(slugPath),
+      description: en.meta.layout.description,
+    }
   }
 
   async function PublishedPage({ params }: { params: Params }) {

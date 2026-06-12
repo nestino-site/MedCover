@@ -1,7 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useCallback, useTransition } from 'react'
+import { useCallback } from 'react'
 import { X } from 'lucide-react'
 import type { Taxonomy } from '@/lib/api/types'
 import {
@@ -16,7 +15,8 @@ import {
   buildPlpQueryString,
   type ClinicSort,
 } from '@/lib/clinics/plp-search-params'
-import { cn } from '@/lib/utils/cn'
+import { canonicalTreatmentSlug } from '@/lib/content/treatment-slugs'
+import { useClinicFilterNavigationOptional } from '@/components/clinics/clinic-filter-navigation'
 
 export type ClinicPlpScope =
   | { kind: 'hub' }
@@ -37,13 +37,26 @@ type ClinicFiltersProps = {
 }
 
 function scopeTreatments(taxonomy: Taxonomy, scope: ClinicPlpScope) {
-  if (scope.kind === 'country' || scope.kind === 'city') {
-    return taxonomy.treatments.filter((t) => t.countries.includes(scope.country))
+  const filterCountry =
+    scope.kind === 'country' ||
+    scope.kind === 'city' ||
+    scope.kind === 'country_treatment' ||
+    scope.kind === 'city_treatment'
+      ? scope.country
+      : undefined
+
+  const seen = new Set<string>()
+  const treatments = []
+
+  for (const treatment of taxonomy.treatments) {
+    if (filterCountry && !treatment.countries.includes(filterCountry)) continue
+    const slug = canonicalTreatmentSlug(treatment.slug)
+    if (seen.has(slug)) continue
+    seen.add(slug)
+    treatments.push({ ...treatment, slug })
   }
-  if (scope.kind === 'country_treatment' || scope.kind === 'city_treatment') {
-    return taxonomy.treatments.filter((t) => t.countries.includes(scope.country))
-  }
-  return taxonomy.treatments
+
+  return treatments
 }
 
 function scopeCities(taxonomy: Taxonomy, scope: ClinicPlpScope) {
@@ -77,13 +90,17 @@ export function ClinicFilters({
   minTruthScore,
   basePath,
 }: ClinicFiltersProps) {
-  const router = useRouter()
-  const [isPending, startTransition] = useTransition()
+  const { isPending, navigate } = useClinicFilterNavigationOptional()
 
   const treatments = scopeTreatments(taxonomy, scope)
   const cities = scopeCities(taxonomy, scope)
   const activeTreatment = currentTreatment(scope)
   const activeCity = currentCity(scope)
+
+  const querySuffix = buildPlpQueryString(
+    { pageNum: 1, sort, minRating, minTruthScore },
+    1,
+  )
 
   const applyQueryFilters = useCallback(
     (updates: { sort?: ClinicSort; minRating?: number | null; minTruthScore?: number | null }) => {
@@ -96,45 +113,41 @@ export function ClinicFilters({
         { pageNum: 1, sort: nextSort, minRating: nextMinRating, minTruthScore: nextMinTruthScore },
         1,
       )
-      startTransition(() => {
-        router.replace(`${basePath}${qs}`)
-      })
+      navigate(`${basePath}${qs}`, true)
     },
-    [basePath, minRating, minTruthScore, router, sort],
+    [basePath, minRating, minTruthScore, navigate, sort],
   )
 
   const navigateTreatment = (treatmentSlug: string) => {
     if (!treatmentSlug) {
       if (scope.kind === 'country_treatment') {
-        router.push(`${clinicCountryPath(scope.country, locale)}${buildPlpQueryString({ pageNum: 1, sort, minRating, minTruthScore }, 1)}`)
+        navigate(`${clinicCountryPath(scope.country, locale)}${querySuffix}`)
       } else if (scope.kind === 'city_treatment') {
-        router.push(`${clinicCityPath(scope.country, scope.city, locale)}${buildPlpQueryString({ pageNum: 1, sort, minRating, minTruthScore }, 1)}`)
+        navigate(`${clinicCityPath(scope.country, scope.city, locale)}${querySuffix}`)
       }
       return
     }
 
     if (scope.kind === 'country' || scope.kind === 'country_treatment') {
-      router.push(
-        `${clinicCountryTreatmentPath(scope.country, treatmentSlug, locale)}${buildPlpQueryString({ pageNum: 1, sort, minRating, minTruthScore }, 1)}`,
-      )
+      navigate(`${clinicCountryTreatmentPath(scope.country, treatmentSlug, locale)}${querySuffix}`)
     } else if (scope.kind === 'city' || scope.kind === 'city_treatment') {
-      router.push(
-        `${clinicCityTreatmentPath(scope.country, scope.city, treatmentSlug, locale)}${buildPlpQueryString({ pageNum: 1, sort, minRating, minTruthScore }, 1)}`,
+      navigate(
+        `${clinicCityTreatmentPath(scope.country, scope.city, treatmentSlug, locale)}${querySuffix}`,
       )
     }
   }
 
   const navigateCity = (citySlug: string) => {
-    if (!citySlug || scope.kind !== 'country' && scope.kind !== 'country_treatment') return
-    router.push(
-      `${clinicCityPath(scope.country, citySlug, locale)}${buildPlpQueryString({ pageNum: 1, sort, minRating, minTruthScore }, 1)}`,
-    )
+    if (!citySlug || (scope.kind !== 'country' && scope.kind !== 'country_treatment')) return
+    navigate(`${clinicCityPath(scope.country, citySlug, locale)}${querySuffix}`)
   }
 
   const activePills: { label: string; onClear: () => void }[] = []
 
   if (activeTreatment) {
-    const t = taxonomy.treatments.find((x) => x.slug === activeTreatment)
+    const t = treatments.find(
+      (x) => x.slug === activeTreatment || canonicalTreatmentSlug(x.slug) === activeTreatment,
+    )
     activePills.push({
       label: t?.name ?? activeTreatment,
       onClear: () => navigateTreatment(''),
@@ -172,12 +185,7 @@ export function ClinicFilters({
   const showCityFilter = scope.kind === 'country' || scope.kind === 'country_treatment'
 
   return (
-    <div
-      className={cn(
-        'rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm',
-        isPending && 'opacity-70',
-      )}
-    >
+    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium text-[var(--color-primary-900)]">
           {total} clinic{total === 1 ? '' : 's'} found
@@ -191,7 +199,9 @@ export function ClinicFilters({
             <select
               value={activeTreatment ?? ''}
               onChange={(e) => navigateTreatment(e.target.value)}
-              className="min-w-[160px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)]"
+              disabled={isPending}
+              aria-busy={isPending}
+              className="min-w-[160px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)] disabled:cursor-wait disabled:opacity-60"
             >
               <option value="">All treatments</option>
               {treatments.map((t) => (
@@ -209,7 +219,9 @@ export function ClinicFilters({
             <select
               value={activeCity ?? ''}
               onChange={(e) => navigateCity(e.target.value)}
-              className="min-w-[160px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)]"
+              disabled={isPending}
+              aria-busy={isPending}
+              className="min-w-[160px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)] disabled:cursor-wait disabled:opacity-60"
             >
               <option value="">All cities</option>
               {cities.map((c) => (
@@ -226,7 +238,9 @@ export function ClinicFilters({
           <select
             value={sort}
             onChange={(e) => applyQueryFilters({ sort: e.target.value as ClinicSort })}
-            className="min-w-[160px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)]"
+            disabled={isPending}
+            aria-busy={isPending}
+            className="min-w-[160px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)] disabled:cursor-wait disabled:opacity-60"
           >
             {CLINIC_SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -245,7 +259,9 @@ export function ClinicFilters({
                 minRating: e.target.value ? parseFloat(e.target.value) : null,
               })
             }
-            className="min-w-[120px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)]"
+            disabled={isPending}
+            aria-busy={isPending}
+            className="min-w-[120px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)] disabled:cursor-wait disabled:opacity-60"
           >
             <option value="">Any</option>
             <option value="3">3.0+</option>
@@ -264,7 +280,9 @@ export function ClinicFilters({
                 minTruthScore: e.target.value ? parseInt(e.target.value, 10) : null,
               })
             }
-            className="min-w-[120px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)]"
+            disabled={isPending}
+            aria-busy={isPending}
+            className="min-w-[120px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)] disabled:cursor-wait disabled:opacity-60"
           >
             <option value="">Any</option>
             <option value="60">60+</option>
@@ -282,7 +300,9 @@ export function ClinicFilters({
               key={pill.label}
               type="button"
               onClick={pill.onClear}
-              className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-50)] px-3 py-1 text-xs font-medium text-[var(--color-primary-800)] hover:bg-[var(--color-primary-100)]"
+              disabled={isPending}
+              aria-busy={isPending}
+              className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-50)] px-3 py-1 text-xs font-medium text-[var(--color-primary-800)] hover:bg-[var(--color-primary-100)] disabled:cursor-wait disabled:opacity-60"
             >
               {pill.label}
               <X className="h-3 w-3" />

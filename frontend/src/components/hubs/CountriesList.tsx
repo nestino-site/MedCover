@@ -12,6 +12,8 @@ import {
 import { getTreatmentTagsForCountry } from '@/lib/content/treatments'
 import type { CountryCardData } from '@/components/hubs/CountryCard'
 import { CountriesListView } from '@/components/hubs/CountriesListView'
+import { CardGridSkeleton, CountryCardSkeleton } from '@/components/ui/skeletons'
+import { SkeletonStatus } from '@/components/ui/Skeleton'
 
 export type { CountryCardData } from '@/components/hubs/CountryCard'
 export { CountryCard } from '@/components/hubs/CountryCard'
@@ -79,21 +81,10 @@ export async function CountriesList({ locale }: CountriesListProps) {
 
 export function CountriesListSkeleton() {
   return (
-    <div
-      className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
-      role="status"
-      aria-label="Loading countries"
-    >
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
-          <div className="h-20 animate-pulse bg-[var(--color-neutral-100)]" />
-          <div className="space-y-2 px-4 py-4">
-            <div className="h-4 w-2/3 animate-pulse rounded bg-[var(--color-neutral-100)]" />
-            <div className="h-3 w-1/2 animate-pulse rounded bg-[var(--color-neutral-100)]" />
-            <div className="mt-4 h-8 animate-pulse rounded bg-[var(--color-neutral-100)]" />
-          </div>
-        </div>
-      ))}
-    </div>
+    <SkeletonStatus label="Loading countries">
+      <CardGridSkeleton count={6} gridClassName="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <CountryCardSkeleton />
+      </CardGridSkeleton>
+    </SkeletonStatus>
   )
 }

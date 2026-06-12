@@ -11,6 +11,8 @@ import {
   costHubPath,
   countriesHubPath,
 } from '@/lib/routes'
+import { CardGridSkeleton, GuidePostCardSkeleton } from '@/components/ui/skeletons'
+import { Skeleton, SkeletonStatus } from '@/components/ui/Skeleton'
 
 const KNOWN_TREATMENTS = ['ivf', 'hair-transplant', 'dental', 'hair', 'cosmetic']
 
@@ -220,15 +222,13 @@ export async function CompareHubContent({ locale }: { locale: Locale }) {
 
 export function CompareHubContentSkeleton() {
   return (
-    <div className="space-y-12">
+    <SkeletonStatus label="Loading comparisons" className="space-y-12">
       <div>
-        <div className="mb-5 h-7 w-48 animate-pulse rounded-lg bg-[var(--color-neutral-100)]" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-36 animate-pulse rounded-2xl bg-[var(--color-neutral-100)]" />
-          ))}
-        </div>
+        <Skeleton className="mb-5 h-7 w-48" rounded="lg" />
+        <CardGridSkeleton count={3}>
+          <GuidePostCardSkeleton variant="featured" />
+        </CardGridSkeleton>
       </div>
-    </div>
+    </SkeletonStatus>
   )
 }

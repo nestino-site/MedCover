@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Clock, Globe, Search, Stethoscope, Star, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { TruthScoreBadge } from '@/components/shared/TruthScoreBadge'
+import { SearchResultSkeleton } from '@/components/search/SearchResultSkeleton'
 import type { ClinicCard } from '@/lib/api/types'
 import { trackSearch } from '@/lib/analytics'
 
@@ -279,10 +280,8 @@ export function SearchModal({ open: controlledOpen, onOpenChange, trigger }: Sea
             </div>
           )}
 
-          <div ref={listRef} className="max-h-[60vh] overflow-y-auto p-2">
-            {loading && (
-              <p className="px-4 py-8 text-center text-sm text-[var(--color-neutral-500)]">Searching…</p>
-            )}
+          <div ref={listRef} className="max-h-[60vh] overflow-y-auto p-2" aria-busy={loading}>
+            {loading && <SearchResultSkeleton count={4} />}
 
             {!loading && hasQuery && !hasResults && (
               <p className="px-4 py-8 text-center text-sm text-[var(--color-neutral-500)]">No results found</p>

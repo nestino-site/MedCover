@@ -7,6 +7,7 @@ import { Footer } from '@/components/layout/Footer'
 import { WebMCPProvider } from '@/components/WebMCPProvider'
 import { DEFAULT_LOCALE, getLocaleDir } from '@/lib/i18n/locales'
 import { en } from '@/lib/i18n/en'
+import { siteMetadataDefaults } from '@/lib/seo/site-metadata'
 
 const geist = Geist({
   variable: '--font-geist',
@@ -20,46 +21,42 @@ const geistMono = Geist_Mono({
   display: 'swap',
 })
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
 
 export const viewport: Viewport = {
-  themeColor: '#ffffff',
+  themeColor: '#0f2040',
   width: 'device-width',
   initialScale: 1,
+  colorScheme: 'light',
 }
 
+const siteDefaults = siteMetadataDefaults()
+
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  ...siteDefaults,
   title: {
     default: en.meta.layout.title,
     template: '%s | MedCover',
   },
   description: en.meta.layout.description,
-  keywords: [...en.meta.layout.keywords],
-  authors: [{ name: 'MedCover' }],
-  creator: 'MedCover',
-  publisher: 'MedCover',
   manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
   openGraph: {
-    type: 'website',
-    siteName: 'MedCover',
-    locale: 'en_US',
+    ...siteDefaults.openGraph,
+    title: en.meta.layout.title,
+    description: en.meta.layout.description,
   },
   twitter: {
-    card: 'summary_large_image',
-    site: '@medcover',
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
+    ...siteDefaults.twitter,
+    title: en.meta.layout.title,
+    description: en.meta.layout.description,
   },
 }
 

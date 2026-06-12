@@ -1,23 +1,33 @@
+'use client'
+
+import { useState } from 'react'
 import { Star } from 'lucide-react'
 import type { ClinicDetail } from '@/lib/api/types'
+import { SectionHeading } from '@/components/ui/SectionHeading'
 import { formatRelativeTime } from '@/lib/clinics/format'
+import { en } from '@/lib/i18n/en'
 
 type GoogleReviewsSectionProps = {
   clinic: ClinicDetail
-  showHeading?: boolean
 }
 
-export function GoogleReviewsSection({ clinic, showHeading = true }: GoogleReviewsSectionProps) {
+const INITIAL_VISIBLE = 4
+
+export function GoogleReviewsSection({ clinic }: GoogleReviewsSectionProps) {
   const reviews = clinic.googleReviews?.filter((r) => r.text || r.authorName) ?? []
+  const [expanded, setExpanded] = useState(false)
+
   if (reviews.length === 0) return null
 
+  const copy = en.clinicPdp.sections.reviews
+  const visible = expanded ? reviews : reviews.slice(0, INITIAL_VISIBLE)
+  const hasMore = reviews.length > INITIAL_VISIBLE
+
   return (
-    <section>
-      {showHeading && (
-        <h2 className="mb-6 text-2xl font-bold text-[var(--color-primary-950)]">Google reviews</h2>
-      )}
+    <section id="reviews" className="scroll-mt-28">
+      <SectionHeading eyebrow={copy.eyebrow} title={copy.title} className="mb-6" />
       <div className="grid gap-4 md:grid-cols-2">
-        {reviews.slice(0, 6).map((review, i) => (
+        {visible.map((review, i) => (
           <article
             key={`${review.authorName}-${i}`}
             className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm"
@@ -46,6 +56,17 @@ export function GoogleReviewsSection({ clinic, showHeading = true }: GoogleRevie
           </article>
         ))}
       </div>
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-4 text-sm font-medium text-[var(--color-accent-600)] hover:text-[var(--color-accent-700)]"
+        >
+          {expanded
+            ? en.clinicPdp.reviews.showLess
+            : en.clinicPdp.reviews.showAll.replace('{count}', String(reviews.length))}
+        </button>
+      )}
     </section>
   )
 }

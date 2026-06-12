@@ -110,7 +110,7 @@ export function CitiesListView({
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {group.cities.map((city) => (
               <li key={`${city.countryKey}-${city.cityKey}`}>
-                <CityCard data={city} t={t} />
+                <CityCard data={city} t={t} locale={locale} />
               </li>
             ))}
           </ul>

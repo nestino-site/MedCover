@@ -1,5 +1,7 @@
 import { Quote } from 'lucide-react'
 import type { ClinicDetail } from '@/lib/api/types'
+import { SectionHeading } from '@/components/ui/SectionHeading'
+import { en } from '@/lib/i18n/en'
 
 type InterviewQuotes = {
   positive?: string
@@ -21,12 +23,16 @@ export function PatientVoices({ clinic }: PatientVoicesProps) {
   const interviews = clinic.interviews?.filter((i) => extractQuote(i.quotes)) ?? []
   if (interviews.length === 0) return null
 
+  const copy = en.clinicPdp.sections.patientVoices
+
   return (
-    <section>
-      <h2 className="mb-2 text-2xl font-bold text-[var(--color-primary-950)]">Verified patient voices</h2>
-      <p className="mb-6 text-sm text-[var(--color-neutral-600)]">
-        Quotes from MedCover-verified patient interviews
-      </p>
+    <section id="patient-voices" className="scroll-mt-28">
+      <SectionHeading
+        eyebrow={copy.eyebrow}
+        title={copy.title}
+        description={copy.description}
+        className="mb-6"
+      />
       <div className="grid gap-6 md:grid-cols-2">
         {interviews.map((interview, i) => {
           const quote = extractQuote(interview.quotes)
@@ -43,13 +49,18 @@ export function PatientVoices({ clinic }: PatientVoicesProps) {
 
           return (
             <blockquote
-              key={i}
-              className="relative rounded-2xl border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] p-6"
+              key={`${interview.treatmentCode}-${i}`}
+              className="relative rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-sm"
             >
-              <Quote className="mb-3 h-6 w-6 text-[var(--color-accent-400)]" aria-hidden />
-              <p className="text-[var(--color-neutral-800)] leading-relaxed">&ldquo;{quote}&rdquo;</p>
+              <Quote
+                className="mb-3 h-8 w-8 text-[var(--color-trust-300)]"
+                aria-hidden="true"
+              />
+              <p className="text-[var(--color-neutral-700)] leading-relaxed">&ldquo;{quote}&rdquo;</p>
               {meta && (
-                <footer className="mt-4 text-xs font-medium text-[var(--color-neutral-500)]">{meta}</footer>
+                <footer className="mt-4 text-xs font-medium text-[var(--color-neutral-500)]">
+                  {meta}
+                </footer>
               )}
             </blockquote>
           )

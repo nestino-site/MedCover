@@ -14,6 +14,7 @@ import {
   findRelatedGuides,
 } from '@/lib/content/link-graph'
 import { activeLocale } from '@/lib/i18n/locale'
+import { canonicalTreatmentSlug } from '@/lib/content/treatment-slugs'
 import {
   costCityPath,
   costCountryPath,
@@ -31,12 +32,17 @@ type Props = {
 export async function generateStaticParams() {
   const taxonomy = await getTaxonomy()
   const params: { treatment: string; country: string; city: string }[] = []
+  const seen = new Set<string>()
   for (const t of taxonomy.treatments) {
+    const treatment = canonicalTreatmentSlug(t.slug)
     for (const countrySlug of t.countries) {
       const country = taxonomy.countries.find((c) => c.slug === countrySlug)
       if (!country) continue
       for (const city of country.cities) {
-        params.push({ treatment: t.slug, country: countrySlug, city: city.slug })
+        const key = `${treatment}/${countrySlug}/${city.slug}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        params.push({ treatment, country: countrySlug, city: city.slug })
       }
     }
   }
@@ -54,7 +60,9 @@ export default async function CostCityPage({ params }: Props) {
   const { treatment, country, city } = await params
   const locale = activeLocale
   const taxonomy = await getTaxonomy()
-  const treatmentData = taxonomy.treatments.find((t) => t.slug === treatment)
+  const treatmentData = taxonomy.treatments.find(
+    (t) => t.slug === treatment || canonicalTreatmentSlug(t.slug) === treatment,
+  )
   const countryData = taxonomy.countries.find((c) => c.slug === country)
   const cityData = countryData?.cities.find((c) => c.slug === city)
   if (!treatmentData || !countryData || !cityData) notFound()

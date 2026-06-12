@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import type { ClinicDetail } from '@/lib/api/types'
+import { SectionHeading } from '@/components/ui/SectionHeading'
 import { clinicCityTreatmentPath } from '@/lib/routes'
 import type { Locale } from '@/lib/i18n'
+import { en } from '@/lib/i18n/en'
 
 type TreatmentsOfferedProps = {
   clinic: ClinicDetail
@@ -13,9 +15,11 @@ type TreatmentsOfferedProps = {
 export function TreatmentsOffered({ clinic, country, city, locale = 'en' }: TreatmentsOfferedProps) {
   if (clinic.treatments.length === 0) return null
 
+  const copy = en.clinicPdp.sections.treatments
+
   return (
-    <section>
-      <h2 className="mb-4 text-2xl font-bold text-[var(--color-primary-950)]">Treatments offered</h2>
+    <section id="treatments" className="scroll-mt-28">
+      <SectionHeading eyebrow={copy.eyebrow} title={copy.title} className="mb-4" />
       <div className="flex flex-wrap gap-2">
         {clinic.treatments.map((t) => (
           <Link

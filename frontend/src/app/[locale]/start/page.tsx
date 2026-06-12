@@ -6,6 +6,7 @@ import { getTaxonomy } from '@/lib/api/catalog'
 import { StartIntakeForm } from '@/components/start/StartIntakeForm'
 import { treatmentsForDisplay } from '@/lib/content/treatments'
 import { getDictionary, type Locale } from '@/lib/i18n'
+import { hubMetadata } from '@/lib/seo/site-metadata'
 import { isLocale } from '@/lib/i18n/locales'
 import { countriesHubPath } from '@/lib/routes'
 
@@ -14,12 +15,10 @@ type Props = { params: Promise<{ locale: string }> }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale: raw } = await params
   const locale = isLocale(raw) ? raw : 'en'
-  const t = getDictionary(locale)
-  return {
-    title: 'Get Matched — MedCover',
-    description: t.meta.start.description,
+  return hubMetadata('start', {
+    path: locale === 'en' ? '/start' : `/${locale}/start`,
     robots: { index: false, follow: true },
-  }
+  })
 }
 
 export default async function StartPage({ params }: Props) {

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { HubPageLayout } from '@/components/hubs/HubPageLayout'
+import { hubMetadata } from '@/lib/seo/site-metadata'
 import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 import { isLocale } from '@/lib/i18n/locales'
 import { hubPath } from '@/lib/content/site-nav'
@@ -12,17 +13,7 @@ type Props = { params: Promise<{ locale: string }> }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale: raw } = await params
   const locale = isLocale(raw) ? raw : 'en'
-  const t = getDictionary(locale)
-  return {
-    title: t.meta.about.title,
-    description: t.meta.about.description,
-    openGraph: {
-      title: t.meta.about.title,
-      description: t.meta.about.description,
-      url: localizedPath('/about', locale),
-      type: 'website',
-    },
-  }
+  return hubMetadata('about', { path: localizedPath('/about', locale) })
 }
 
 export default async function AboutPage({ params }: Props) {

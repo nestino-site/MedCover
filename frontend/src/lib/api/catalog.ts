@@ -18,6 +18,10 @@ import {
   type SearchResponse,
 } from './types'
 import { flagEmojiForCountry } from '@/lib/content/country-flags'
+import {
+  canonicalTreatmentSlug,
+  treatmentSlugVariants,
+} from '@/lib/content/treatment-slugs'
 import { cacheTags } from '../cache/tags'
 import {
   buildTaxonomyFromPages,
@@ -78,7 +82,7 @@ export async function listClinics(params: ListClinicsParams = {}): Promise<Clini
   const qs = new URLSearchParams()
   if (params.country) qs.set('country', params.country)
   if (params.city) qs.set('city', params.city)
-  if (params.treatment) qs.set('treatment', params.treatment)
+  if (params.treatment) qs.set('treatment', canonicalTreatmentSlug(params.treatment))
   if (params.sort) qs.set('sort', params.sort)
   if (params.minRating != null) qs.set('minRating', String(params.minRating))
   if (params.minTruthScore != null) qs.set('minTruthScore', String(params.minTruthScore))
@@ -119,8 +123,9 @@ export async function getCosts(
   scope?: { country?: string; city?: string },
 ): Promise<CostsResponse> {
   'use cache'
+  const canonical = canonicalTreatmentSlug(treatment)
   cacheLife('max')
-  cacheTag(cacheTags.costs(treatment), cacheTags.site(SITE_ID))
+  cacheTag(cacheTags.costs(canonical), cacheTags.site(SITE_ID))
 
   const qs = new URLSearchParams()
   if (scope?.country) qs.set('country', scope.country)
@@ -128,12 +133,12 @@ export async function getCosts(
   const query = qs.toString()
 
   const api = await fetchJson(
-    `/content/costs/${treatment}${query ? `?${query}` : ''}`,
+    `/content/costs/${canonical}${query ? `?${query}` : ''}`,
     CostsResponseSchema,
   )
   if (api) return api
 
-  return buildEmptyCosts(treatment)
+  return buildEmptyCosts(canonical)
 }
 
 export async function getCompare(
@@ -237,7 +242,13 @@ export async function getSearchSuggestions(): Promise<{
 }
 
 export function treatmentSlugSet(taxonomy: Taxonomy): Set<string> {
-  return new Set(taxonomy.treatments.map((t) => t.slug))
+  const slugs = new Set<string>()
+  for (const treatment of taxonomy.treatments) {
+    for (const variant of treatmentSlugVariants(treatment.slug)) {
+      slugs.add(variant)
+    }
+  }
+  return slugs
 }
 
 /** Paginate through all published clinics (for sitemap, link graphs). */

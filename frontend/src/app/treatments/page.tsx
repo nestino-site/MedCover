@@ -1,23 +1,25 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { Suspense } from 'react'
 import { getTaxonomy } from '@/lib/api/catalog'
 import { loadPublishedPage } from '@/lib/api/content'
 import { HubHero } from '@/components/hubs/HubHero'
 import { HubPageLayout } from '@/components/hubs/HubPageLayout'
-import { GuidePostsList, GuidePostsListSkeleton } from '@/components/hubs/GuidePostsList'
 import { TreatmentsList, TreatmentsListSkeleton } from '@/components/hubs/TreatmentsList'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
 import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
-import { cmsPageSlug } from '@/lib/routes'
-import { cmsMetadataForSlug, hubCopyFromCmsPage } from '@/lib/seo/cms-seo'
+import { cmsPageSlug, guidesHubPath } from '@/lib/routes'
+import { hubCopyFromCmsPage } from '@/lib/seo/cms-seo'
+import { cmsHubMetadata } from '@/lib/seo/site-metadata'
 import type { FaqItem } from '@/lib/api/types'
 
 const locale = activeLocale
 
 export async function generateMetadata(): Promise<Metadata> {
-  return cmsMetadataForSlug(cmsPageSlug('treatments'))
+  return cmsHubMetadata('treatments')
 }
 
 export default async function TreatmentsHubPage() {
@@ -45,9 +47,24 @@ export default async function TreatmentsHubPage() {
         description={t.hubs.treatments.description}
         showHeading={false}
       >
-        <Suspense fallback={<GuidePostsListSkeleton />}>
-          <GuidePostsList locale={locale} scope="all" className="mb-10" />
-        </Suspense>
+        <Link
+          href={guidesHubPath(locale)}
+          className="group mb-10 flex items-center justify-between gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-5 py-4 transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]/40"
+        >
+          <div>
+            <p className="font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
+              {t.hubs.guides.browseGuidesCta}
+            </p>
+            <p className="mt-0.5 text-sm text-[var(--color-neutral-600)]">
+              {t.hubs.guides.browseGuidesDescription}
+            </p>
+          </div>
+          <ArrowRight
+            size={18}
+            className="shrink-0 text-[var(--color-neutral-400)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--color-primary-500)]"
+            aria-hidden="true"
+          />
+        </Link>
 
         <Suspense fallback={<TreatmentsListSkeleton />}>
           <TreatmentsList locale={locale} />

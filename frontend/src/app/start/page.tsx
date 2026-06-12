@@ -6,13 +6,11 @@ import { StartIntakeForm } from '@/components/start/StartIntakeForm'
 import { treatmentsForDisplay } from '@/lib/content/treatments'
 import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
-import { countriesHubPath, cmsPageSlug } from '@/lib/routes'
-import { cmsMetadataForSlug } from '@/lib/seo/cms-seo'
+import { countriesHubPath } from '@/lib/routes'
+import { cmsHubMetadata } from '@/lib/seo/site-metadata'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return cmsMetadataForSlug(cmsPageSlug('start'), {
-    robots: { index: false, follow: true },
-  })
+  return cmsHubMetadata('start', { robots: { index: false, follow: true } })
 }
 
 export default async function StartPage() {

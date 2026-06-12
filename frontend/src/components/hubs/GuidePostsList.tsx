@@ -10,6 +10,8 @@ import {
 } from '@/lib/content/guide-display'
 import { GuidesHubFilteredList } from '@/components/hubs/GuidesHubFilteredList'
 import { partitionGuides, type GuideArticleItem, type GuideCountryGroup } from '@/lib/content/hubs'
+import { Skeleton, SkeletonStatus } from '@/components/ui/Skeleton'
+import { CardGridSkeleton, GuidePostCardSkeleton } from '@/components/ui/skeletons'
 import { cacheTags } from '@/lib/cache/tags'
 import { getDictionary, type Locale } from '@/lib/i18n'
 
@@ -125,39 +127,33 @@ export async function GuidePostsList({
 export function GuidePostsListSkeleton({ count = 6, grouped = false }: { count?: number; grouped?: boolean }) {
   if (grouped) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2" role="status" aria-label="Loading guides">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white"
-          >
-            <div className="flex items-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-4 py-3">
-              <div className="h-7 w-7 animate-pulse rounded-full bg-[var(--color-neutral-100)]" />
-              <div className="h-5 w-28 animate-pulse rounded bg-[var(--color-neutral-100)]" />
-            </div>
-            <div className="px-4 py-3">
-              <div className="h-4 w-full animate-pulse rounded bg-[var(--color-neutral-100)]" />
-            </div>
-            <div className="border-t border-[var(--color-border)] px-4 py-3">
-              <div className="h-4 w-3/4 animate-pulse rounded bg-[var(--color-neutral-100)]" />
-            </div>
+      <SkeletonStatus label="Loading guides" className="space-y-10">
+        <div>
+          <Skeleton className="mb-5 h-7 w-40" rounded="md" />
+          <CardGridSkeleton count={3} gridClassName="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <GuidePostCardSkeleton variant="featured" />
+          </CardGridSkeleton>
+        </div>
+        <div>
+          <Skeleton className="mb-5 h-7 w-32" rounded="md" />
+          <div className="mb-3 flex items-center gap-2.5">
+            <Skeleton className="h-6 w-6" rounded="full" />
+            <Skeleton className="h-5 w-24" rounded="sm" />
           </div>
-        ))}
-      </div>
+          <CardGridSkeleton count={2} gridClassName="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <GuidePostCardSkeleton variant="compact" />
+          </CardGridSkeleton>
+        </div>
+      </SkeletonStatus>
     )
   }
 
   return (
-    <div role="status" aria-label="Loading guides">
-      <div className="mb-4 h-7 w-56 animate-pulse rounded bg-[var(--color-neutral-100)]" />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: count }).map((_, i) => (
-          <div
-            key={i}
-            className="h-24 animate-pulse rounded-xl border border-[var(--color-border)] bg-white"
-          />
-        ))}
-      </div>
-    </div>
+    <SkeletonStatus label="Loading guides">
+      <Skeleton className="mb-4 h-7 w-56" rounded="md" />
+      <CardGridSkeleton count={count} gridClassName="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <GuidePostCardSkeleton variant="compact" />
+      </CardGridSkeleton>
+    </SkeletonStatus>
   )
 }

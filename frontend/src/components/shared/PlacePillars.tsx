@@ -1,6 +1,10 @@
 import Link from 'next/link'
 import type { TreatmentCategoryDisplay } from '@/lib/content/treatments'
 import { localizedPath, type Locale } from '@/lib/i18n'
+import {
+  clinicCityTreatmentPath,
+  clinicCountryTreatmentPath,
+} from '@/lib/routes'
 import { en } from '@/lib/i18n/en'
 
 interface PlacePillarsProps {
@@ -9,6 +13,9 @@ interface PlacePillarsProps {
   activeTreatmentId?: string
   ivfAnchorId?: string
   locale?: Locale
+  /** When set, active treatment pills link to scoped clinic PLPs instead of treatment hubs. */
+  countrySlug?: string
+  citySlug?: string
 }
 
 export function PlacePillars({
@@ -17,8 +24,18 @@ export function PlacePillars({
   activeTreatmentId = 'ivf',
   ivfAnchorId = 'ivf-pillar',
   locale = 'en' as Locale,
+  countrySlug,
+  citySlug,
 }: PlacePillarsProps) {
   const t = en.placeLanding.pillars
+
+  function clinicHrefForTreatment(treatmentId: string): string | undefined {
+    if (!countrySlug) return undefined
+    if (citySlug) {
+      return clinicCityTreatmentPath(countrySlug, citySlug, treatmentId, locale)
+    }
+    return clinicCountryTreatmentPath(countrySlug, treatmentId, locale)
+  }
 
   return (
     <section aria-labelledby="place-pillars-heading">
@@ -35,8 +52,9 @@ export function PlacePillars({
       <ul className="flex flex-wrap gap-2">
         {treatments.map((category) => {
           const isActive = category.status === 'active'
+          const clinicHref = isActive ? clinicHrefForTreatment(category.id) : undefined
 
-          if (isActive && category.id === activeTreatmentId) {
+          if (isActive && category.id === activeTreatmentId && !clinicHref) {
             return (
               <li key={category.id}>
                 <a
@@ -56,7 +74,9 @@ export function PlacePillars({
             return (
               <li key={category.id}>
                 <Link
-                  href={localizedPath(`/treatments/${category.id}`, locale)}
+                  href={
+                    clinicHref ?? localizedPath(`/treatments/${category.id}`, locale)
+                  }
                   className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-primary-200)] bg-white px-4 py-2 text-sm font-semibold text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-50)]"
                 >
                   {category.name}

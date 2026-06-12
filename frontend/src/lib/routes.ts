@@ -1,4 +1,5 @@
 import { localizedPath, type Locale } from '@/lib/i18n'
+import { canonicalTreatmentSlug, TREATMENT_SLUG_ALIASES } from '@/lib/content/treatment-slugs'
 
 /** Ensure trailing slash for public paths. */
 export function withTrailingSlash(path: string): string {
@@ -33,7 +34,7 @@ export function clinicCountryTreatmentPath(
   treatment: string,
   locale: Locale = 'en',
 ): string {
-  return localizedPath(`/clinics/${country}/${treatment}`, locale)
+  return localizedPath(`/clinics/${country}/${canonicalTreatmentSlug(treatment)}`, locale)
 }
 
 export function clinicCityTreatmentPath(
@@ -42,7 +43,10 @@ export function clinicCityTreatmentPath(
   treatment: string,
   locale: Locale = 'en',
 ): string {
-  return localizedPath(`/clinics/${country}/${city}/${treatment}`, locale)
+  return localizedPath(
+    `/clinics/${country}/${city}/${canonicalTreatmentSlug(treatment)}`,
+    locale,
+  )
 }
 
 export function clinicPdpPath(
@@ -59,7 +63,7 @@ export function treatmentsHubPath(locale: Locale = 'en'): string {
 }
 
 export function treatmentPath(treatment: string, locale: Locale = 'en'): string {
-  return localizedPath(`/treatments/${treatment}`, locale)
+  return localizedPath(`/treatments/${canonicalTreatmentSlug(treatment)}`, locale)
 }
 
 export function costHubPath(locale: Locale = 'en'): string {
@@ -67,7 +71,7 @@ export function costHubPath(locale: Locale = 'en'): string {
 }
 
 export function costTreatmentPath(treatment: string, locale: Locale = 'en'): string {
-  return localizedPath(`/cost/${treatment}`, locale)
+  return localizedPath(`/cost/${canonicalTreatmentSlug(treatment)}`, locale)
 }
 
 export function costCountryPath(
@@ -75,7 +79,7 @@ export function costCountryPath(
   country: string,
   locale: Locale = 'en',
 ): string {
-  return localizedPath(`/cost/${treatment}/${country}`, locale)
+  return localizedPath(`/cost/${canonicalTreatmentSlug(treatment)}/${country}`, locale)
 }
 
 export function costCityPath(
@@ -84,7 +88,10 @@ export function costCityPath(
   city: string,
   locale: Locale = 'en',
 ): string {
-  return localizedPath(`/cost/${treatment}/${country}/${city}`, locale)
+  return localizedPath(
+    `/cost/${canonicalTreatmentSlug(treatment)}/${country}/${city}`,
+    locale,
+  )
 }
 
 export function compareHubPath(locale: Locale = 'en'): string {
@@ -103,7 +110,7 @@ export function compareCityPath(
   locale: Locale = 'en',
 ): string {
   const [a, b] = canonicalPair(cityA, cityB)
-  return localizedPath(`/compare/${a}-vs-${b}-for-${treatment}`, locale)
+  return localizedPath(`/compare/${a}-vs-${b}-for-${canonicalTreatmentSlug(treatment)}`, locale)
 }
 
 export function compareCountryPath(
@@ -113,7 +120,7 @@ export function compareCountryPath(
   locale: Locale = 'en',
 ): string {
   const [a, b] = canonicalPair(countryA, countryB)
-  return localizedPath(`/compare/${a}-vs-${b}-for-${treatment}`, locale)
+  return localizedPath(`/compare/${a}-vs-${b}-for-${canonicalTreatmentSlug(treatment)}`, locale)
 }
 
 export function guidesHubPath(locale: Locale = 'en'): string {
@@ -131,6 +138,14 @@ export function countriesHubPath(locale: Locale = 'en'): string {
 
 export function countryLandingPath(country: string, locale: Locale = 'en'): string {
   return localizedPath(`/countries/${country}`, locale)
+}
+
+export function cityLandingPath(
+  country: string,
+  city: string,
+  locale: Locale = 'en',
+): string {
+  return localizedPath(`/countries/${country}/${city}`, locale)
 }
 
 export function startPath(locale: Locale = 'en'): string {
@@ -203,11 +218,17 @@ export function resolveCompareCanonicalSlug(
   if (!parsed) return null
 
   if (parsed.treatment) {
+    const treatment = canonicalTreatmentSlug(parsed.treatment)
     const treatmentSet = treatmentSlugs
     if (treatmentSet.has(parsed.entityA) || treatmentSet.has(parsed.entityB)) {
-      return { ...parsed, type: 'city' }
+      return {
+        ...parsed,
+        type: 'city',
+        treatment,
+        canonicalSlug: `${parsed.entityA}-vs-${parsed.entityB}-for-${treatment}`,
+      }
     }
-    return parsed
+    return { ...parsed, treatment, canonicalSlug: `${parsed.entityA}-vs-${parsed.entityB}-for-${treatment}` }
   }
 
   return parsed
@@ -224,7 +245,7 @@ export function resolveClinicsSegment2(
   treatmentSlugs: Set<string>,
 ): { kind: ClinicsSegment2Kind; city?: string; treatment?: string } {
   if (treatmentSlugs.has(segment)) {
-    return { kind: 'country_treatment_plp', treatment: segment }
+    return { kind: 'country_treatment_plp', treatment: canonicalTreatmentSlug(segment) }
   }
   return { kind: 'city_plp', city: segment }
 }
@@ -236,7 +257,11 @@ export function resolveClinicsSegment3(
   treatmentSlugs: Set<string>,
 ): { kind: ClinicsSegment3Kind; city: string; clinic?: string; treatment?: string } {
   if (treatmentSlugs.has(leafSegment)) {
-    return { kind: 'city_treatment_plp', city: citySegment, treatment: leafSegment }
+    return {
+      kind: 'city_treatment_plp',
+      city: citySegment,
+      treatment: canonicalTreatmentSlug(leafSegment),
+    }
   }
   return { kind: 'clinic_pdp', city: citySegment, clinic: leafSegment }
 }
@@ -255,7 +280,7 @@ export function cmsClinicCitySlug(country: string, city: string): string {
 }
 
 export function cmsClinicCountryTreatmentSlug(country: string, treatment: string): string {
-  return cmsPageSlug('clinics', country, treatment)
+  return cmsPageSlug('clinics', country, canonicalTreatmentSlug(treatment))
 }
 
 export function cmsClinicCityTreatmentSlug(
@@ -263,7 +288,7 @@ export function cmsClinicCityTreatmentSlug(
   city: string,
   treatment: string,
 ): string {
-  return cmsPageSlug('clinics', country, city, treatment)
+  return cmsPageSlug('clinics', country, city, canonicalTreatmentSlug(treatment))
 }
 
 export function cmsClinicPdpSlug(country: string, city: string, clinic: string): string {
@@ -275,7 +300,7 @@ export function cmsCostSlug(
   country?: string,
   city?: string,
 ): string {
-  const segments = ['cost', treatment, country, city].filter(
+  const segments = ['cost', canonicalTreatmentSlug(treatment), country, city].filter(
     (s): s is string => Boolean(s),
   )
   return cmsPageSlug(...segments)
@@ -306,4 +331,15 @@ export function legacyGuideFlatten(slug: string): string | null {
   const match = slug.replace(/^\//, '').match(/^guides\/[^/]+\/(.+-ivf-guide)\/?$/)
   if (!match) return null
   return `/guides/${match[1]}/`
+}
+
+export function legacyTreatmentSlugRedirect(pathname: string): string | null {
+  const normalized = pathname.endsWith('/') ? pathname : `${pathname}/`
+  for (const [alias, canonical] of Object.entries(TREATMENT_SLUG_ALIASES)) {
+    const needle = `/${alias}/`
+    if (normalized.includes(needle)) {
+      return normalized.replaceAll(needle, `/${canonical}/`)
+    }
+  }
+  return null
 }

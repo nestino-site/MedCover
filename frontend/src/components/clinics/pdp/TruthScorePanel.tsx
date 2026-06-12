@@ -1,6 +1,8 @@
 import type { ClinicDetail } from '@/lib/api/types'
 import { TruthScoreBadge } from '@/components/shared/TruthScoreBadge'
+import { SectionHeading } from '@/components/ui/SectionHeading'
 import { dimensionLabel } from '@/lib/clinics/format'
+import { en } from '@/lib/i18n/en'
 
 type TruthScorePanelProps = {
   clinic: ClinicDetail
@@ -15,21 +17,25 @@ export function TruthScorePanel({ clinic }: TruthScorePanelProps) {
     : []
 
   const interviewCount = score.interviewCount ?? clinic.interviewCount
+  const copy = en.clinicPdp.sections.truthScore
 
   return (
-    <section className="rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-trust-50)] to-white p-6 sm:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-[var(--color-primary-950)]">MedCover Truth Score</h2>
-          <p className="mt-1 text-sm text-[var(--color-neutral-600)]">
-            Based on verified patient interviews and transparency signals
-          </p>
-        </div>
+    <section
+      id="truth-score"
+      className="scroll-mt-28 rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-trust-50)] to-white p-6 sm:p-8"
+    >
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <SectionHeading
+          eyebrow={copy.eyebrow}
+          title={copy.title}
+          description={copy.description}
+          className="mb-0"
+        />
         <TruthScoreBadge composite={score.composite} grade={score.grade} size="lg" />
       </div>
 
       {interviewCount != null && interviewCount > 0 && (
-        <p className="mt-4 text-sm font-medium text-[var(--color-trust-800)]">
+        <p className="text-sm font-medium text-[var(--color-trust-800)]">
           {interviewCount} verified patient interview{interviewCount === 1 ? '' : 's'}
         </p>
       )}

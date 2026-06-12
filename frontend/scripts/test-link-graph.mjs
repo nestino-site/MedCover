@@ -143,3 +143,59 @@ assert.equal(clinics.source, 'entities')
 assert.equal(clinics.clinics[0].urlPath, '/clinics/spain/barcelona/c1')
 
 console.log('PASS: link-graph resolver tests')
+
+// --- buildRelatedLandingsForEntities (treatment-scoped clinic links) ---
+
+function buildRelatedLandingsForEntities(entities, tax, locale = 'en') {
+  const items = []
+  const treatment = entities.treatment === 'ivf-in-vitro-fertilisation'
+    ? 'ivf'
+    : (entities.treatment ?? 'ivf')
+
+  if (entities.country && entities.treatment && !entities.city) {
+    items.push({
+      title: 'treatment clinics',
+      href: `/clinics/${entities.country}/${treatment}/`,
+      badge: 'Treatment',
+    })
+  }
+
+  if (entities.country && entities.city) {
+    items.push({
+      title: 'city overview',
+      href: `/countries/${entities.country}/${entities.city}/`,
+      badge: 'City',
+    })
+    items.push({
+      title: 'city treatment clinics',
+      href: `/clinics/${entities.country}/${entities.city}/${treatment}/`,
+      badge: 'Treatment',
+    })
+  }
+
+  return items
+}
+
+const countryTreatment = buildRelatedLandingsForEntities(
+  { country: 'spain', treatment: 'ivf-in-vitro-fertilisation' },
+  taxonomy,
+)
+assert.ok(
+  countryTreatment.some((i) => i.href === '/clinics/spain/ivf/'),
+  'country+treatment should emit canonical clinicCountryTreatmentPath',
+)
+
+const cityScope = buildRelatedLandingsForEntities(
+  { country: 'spain', city: 'barcelona', treatment: 'ivf-in-vitro-fertilisation' },
+  taxonomy,
+)
+assert.ok(
+  cityScope.some((i) => i.href === '/countries/spain/barcelona/'),
+  'city scope should emit city editorial link',
+)
+assert.ok(
+  cityScope.some((i) => i.href === '/clinics/spain/barcelona/ivf/'),
+  'city+treatment should emit canonical clinicCityTreatmentPath',
+)
+
+console.log('PASS: link-graph related landings tests')

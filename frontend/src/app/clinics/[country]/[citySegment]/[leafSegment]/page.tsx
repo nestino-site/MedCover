@@ -4,9 +4,25 @@ import { notFound } from 'next/navigation'
 import { getClinic, getTaxonomy, listClinics, treatmentSlugSet, getCosts } from '@/lib/api/catalog'
 import { listPublishedPagesSafe, loadPublishedPage } from '@/lib/api/content'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
-import { cmsMetadataForSlug } from '@/lib/seo/cms-seo'
+import { JsonLd } from '@/components/shared/JsonLd'
+import {
+  cmsMetadataForSlug,
+  heroAnswerFromCmsPage,
+  schemasFromCmsPage,
+  siteOrigin,
+} from '@/lib/seo/cms-seo'
 import { activeLocale } from '@/lib/i18n/locale'
-import { buildRelatedLandingsForEntities } from '@/lib/content/link-graph'
+import { buildRelatedLandingsForEntities, dedupeRelated, findRelatedGuides } from '@/lib/content/link-graph'
+import { loadRelatedClinicsForPdp } from '@/lib/content/clinic-discovery'
+import { loadGuideArticlesForEntities } from '@/lib/content/guide-display'
+import { primaryTreatmentSlugForCountry } from '@/lib/content/treatments'
+import { canonicalTreatmentSlug } from '@/lib/content/treatment-slugs'
+import { normalizeContentHtml } from '@/lib/content/html-content-images'
+import {
+  buildClinicMetadataFallback,
+  synthesizeClinicAnswer,
+} from '@/lib/clinics/format'
+import { buildClinicJsonLd } from '@/lib/clinics/build-clinic-schema'
 import {
   clinicCityPath,
   clinicCountryPath,
@@ -15,13 +31,18 @@ import {
   clinicsHubPath,
   cmsClinicCityTreatmentSlug,
   cmsClinicPdpSlug,
+  cityLandingPath,
+  countryLandingPath,
   resolveClinicsSegment3,
   slugToLabel,
 } from '@/lib/routes'
 import { ensureStaticParams } from '@/lib/static-params'
 import { ClinicsPlpTemplate } from '@/components/clinics/ClinicsPlpTemplate'
 import { ClinicFilters } from '@/components/clinics/ClinicFilters'
+import { ClinicFilterNavigationProvider } from '@/components/clinics/clinic-filter-navigation'
+import { ClinicPlpPageSkeleton } from '@/components/clinics/ClinicPlpSkeleton'
 import { ClinicPdpView } from '@/components/clinics/pdp/ClinicPdpView'
+import { en } from '@/lib/i18n/en'
 import {
   buildClinicListParams,
   buildPlpQueryString,
@@ -37,17 +58,21 @@ type Props = {
 export async function generateStaticParams() {
   const taxonomy = await getTaxonomy()
   const params: { country: string; citySegment: string; leafSegment: string }[] = []
+  const seen = new Set<string>()
 
   for (const country of taxonomy.countries) {
     for (const city of country.cities) {
       for (const treatment of taxonomy.treatments) {
-        if (treatment.countries.includes(country.slug)) {
-          params.push({
-            country: country.slug,
-            citySegment: city.slug,
-            leafSegment: treatment.slug,
-          })
-        }
+        if (!treatment.countries.includes(country.slug)) continue
+        const leafSegment = canonicalTreatmentSlug(treatment.slug)
+        const key = `${country.slug}/${city.slug}/${leafSegment}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        params.push({
+          country: country.slug,
+          citySegment: city.slug,
+          leafSegment,
+        })
       }
     }
   }
@@ -69,13 +94,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return cmsMetadataForSlug(cmsClinicCityTreatmentSlug(country, citySegment, leafSegment))
   }
 
-  return cmsMetadataForSlug(cmsClinicPdpSlug(country, citySegment, leafSegment))
+  const clinic = await getClinic(country, citySegment, leafSegment)
+  const countryData = taxonomy.countries.find((c) => c.slug === country)
+  const city = countryData?.cities.find((c) => c.slug === citySegment)
+  const cityName = city?.name ?? slugToLabel(citySegment)
+  const countryName = countryData?.name ?? slugToLabel(country)
+
+  const fallback =
+    clinic != null
+      ? buildClinicMetadataFallback(clinic, cityName, countryName)
+      : undefined
+
+  return cmsMetadataForSlug(
+    cmsClinicPdpSlug(country, citySegment, leafSegment),
+    fallback ? { title: fallback.title, description: fallback.description } : undefined,
+  )
 }
 
 export default function ClinicLeafPage(props: Props) {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-24 text-center text-neutral-500">Loading…</div>}>
-      <ClinicLeafContent {...props} />
+    <Suspense fallback={<ClinicPlpPageSkeleton />}>
+      <ClinicFilterNavigationProvider>
+        <ClinicLeafContent {...props} />
+      </ClinicFilterNavigationProvider>
     </Suspense>
   )
 }
@@ -97,7 +138,9 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
     const city = countryData.cities.find((c) => c.slug === citySegment)
     if (!city) notFound()
     const treatment = leafSegment
-    const treatmentData = taxonomy.treatments.find((t) => t.slug === treatment)
+    const treatmentData = taxonomy.treatments.find(
+      (t) => t.slug === treatment || canonicalTreatmentSlug(t.slug) === treatment,
+    )
     const basePath = clinicCityTreatmentPath(country, citySegment, treatment, locale)
     const clinics = await listClinics(
       buildClinicListParams(filters, { country, city: citySegment, treatment }),
@@ -108,6 +151,14 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
     )
     const entities = { country, city: citySegment, treatment }
     const pages = await listPublishedPagesSafe()
+
+    const related = dedupeRelated(
+      [
+        ...buildRelatedLandingsForEntities(entities, taxonomy, locale, pages),
+        ...findRelatedGuides(entities, pages, locale, { taxonomy }),
+      ],
+      basePath,
+    )
 
     return (
       <>
@@ -134,7 +185,7 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
         treatmentSlug={treatment}
         editorialHtml={cms.status === 'ok' ? cms.page.htmlContent : null}
         faq={cms.status === 'ok' ? cms.page.faq : undefined}
-        related={buildRelatedLandingsForEntities(entities, taxonomy, locale, pages)}
+        related={related}
         filters={
           <ClinicFilters
             taxonomy={taxonomy}
@@ -156,50 +207,118 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
   if (!clinic) notFound()
 
   const city = countryData.cities.find((c) => c.slug === citySegment)
+  const cityName = city?.name ?? slugToLabel(citySegment)
+  const countryName = countryData.name
   const cms = await loadPublishedPage(clinic.urlPath.replace(/\/$/, ''))
-  const similar = await listClinics({
+  const pages = await listPublishedPagesSafe()
+
+  const primaryTreatment =
+    clinic.treatments[0]?.slug ?? primaryTreatmentSlugForCountry(taxonomy, country)
+
+  const relatedClinics = await loadRelatedClinicsForPdp({
     country,
     city: citySegment,
-    limit: 4,
-    sort: 'rating',
+    clinicSlug: leafSegment,
+    treatments: clinic.treatments,
   })
 
-  const pages = await listPublishedPagesSafe()
-  const related = buildRelatedLandingsForEntities(
-    { country, city: citySegment },
-    taxonomy,
-    locale,
-    pages,
+  const canonicalUrl = clinicPdpPath(country, citySegment, leafSegment, locale)
+
+  const related = dedupeRelated(
+    [
+      ...buildRelatedLandingsForEntities(
+        { country, city: citySegment, treatment: primaryTreatment },
+        taxonomy,
+        locale,
+        pages,
+      ),
+      ...findRelatedGuides(
+        { country, city: citySegment, treatment: primaryTreatment },
+        pages,
+        locale,
+        { taxonomy },
+      ),
+    ],
+    canonicalUrl,
   )
 
-  const canonicalUrl = clinicPdpPath(country, citySegment, leafSegment, locale)
+  const relatedArticles = await loadGuideArticlesForEntities(
+    { country, city: citySegment, treatment: primaryTreatment },
+    pages,
+    locale,
+    taxonomy,
+    4,
+  )
+
   const faq = cms.status === 'ok' ? cms.page.faq : undefined
+  const cmsAnswer = cms.status === 'ok' ? heroAnswerFromCmsPage(cms.page) : undefined
+  const answer = cmsAnswer ?? synthesizeClinicAnswer(clinic, cityName, countryName)
+  const editorialHtml =
+    cms.status === 'ok' && cms.page.htmlContent
+      ? normalizeContentHtml(cms.page.htmlContent, siteOrigin())
+      : null
+  const tableOfContents = cms.status === 'ok' ? cms.page.tableOfContents : undefined
+  const lastUpdated =
+    (cms.status === 'ok' ? cms.page.updatedAt : null) ?? clinic.updatedAt ?? null
+
+  const breadcrumbs = [
+    { name: 'Home', slug: '/', position: 1 },
+    { name: 'Clinics', slug: clinicsHubPath(locale), position: 2 },
+    { name: countryData.name, slug: clinicCountryPath(country, locale), position: 3 },
+    {
+      name: cityName,
+      slug: clinicCityPath(country, citySegment, locale),
+      position: 4,
+    },
+    { name: clinic.name, slug: canonicalUrl, position: 5 },
+  ]
+
+  const cmsSchemas = cms.status === 'ok' ? schemasFromCmsPage(cms.page) : []
+  const fallbackSchemas =
+    cmsSchemas.length === 0
+      ? buildClinicJsonLd({
+          clinic,
+          canonicalUrl,
+          faq,
+          breadcrumbs,
+          cityName,
+          countryName,
+          metaTitle: `${clinic.name} | MedCover`,
+          metaDescription: answer,
+          updatedAt: lastUpdated ?? undefined,
+        })
+      : null
 
   return (
     <>
       <CmsPageJsonLd result={cms} />
+      {fallbackSchemas && <JsonLd schema={fallbackSchemas} />}
       <ClinicPdpView
         clinic={clinic}
-        breadcrumbs={[
-          { name: 'Home', slug: '/', position: 1 },
-          { name: 'Clinics', slug: clinicsHubPath(locale), position: 2 },
-          { name: countryData.name, slug: clinicCountryPath(country, locale), position: 3 },
-          {
-            name: city?.name ?? slugToLabel(citySegment),
-            slug: clinicCityPath(country, citySegment, locale),
-            position: 4,
-          },
-          { name: clinic.name, slug: canonicalUrl, position: 5 },
-        ]}
+        breadcrumbs={breadcrumbs}
         country={country}
         city={citySegment}
-        cityName={city?.name ?? slugToLabel(citySegment)}
-        countryName={countryData.name}
+        cityName={cityName}
+        countryName={countryName}
         locale={locale}
-        editorialHtml={cms.status === 'ok' ? cms.page.htmlContent : null}
+        answer={answer}
+        editorialHtml={editorialHtml}
         faq={faq}
-        similarClinics={similar.items.filter((c) => c.slug !== leafSegment).slice(0, 3)}
+        tableOfContents={tableOfContents}
+        lastUpdated={lastUpdated}
+        relatedClinics={relatedClinics}
         related={related}
+        relatedArticles={relatedArticles}
+        overviewLinks={{
+          city: {
+            href: cityLandingPath(country, citySegment, locale),
+            label: en.clinicPdp.cityOverview.replace('{city}', cityName),
+          },
+          country: {
+            href: countryLandingPath(country, locale),
+            label: en.clinicPdp.countryOverview.replace('{country}', countryName),
+          },
+        }}
       />
     </>
   )

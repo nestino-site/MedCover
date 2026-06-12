@@ -5,6 +5,8 @@ import { getTaxonomy, getCosts, listClinics, treatmentSlugSet } from '@/lib/api/
 import { loadPublishedPage, listPublishedPagesSafe } from '@/lib/api/content'
 import { ClinicsPlpTemplate } from '@/components/clinics/ClinicsPlpTemplate'
 import { ClinicFilters } from '@/components/clinics/ClinicFilters'
+import { ClinicFilterNavigationProvider } from '@/components/clinics/clinic-filter-navigation'
+import { ClinicPlpPageSkeleton } from '@/components/clinics/ClinicPlpSkeleton'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
 import { cmsMetadataForSlug, heroAnswerFromCmsPage } from '@/lib/seo/cms-seo'
 import { activeLocale } from '@/lib/i18n/locale'
@@ -14,7 +16,9 @@ import {
   findRelatedGuides,
 } from '@/lib/content/link-graph'
 import { primaryTreatmentSlugForCountry } from '@/lib/content/treatments'
+import { canonicalTreatmentSlug } from '@/lib/content/treatment-slugs'
 import {
+  cityLandingPath,
   clinicCityPath,
   clinicCountryPath,
   clinicCountryTreatmentPath,
@@ -39,15 +43,23 @@ type Props = {
 export async function generateStaticParams() {
   const taxonomy = await getTaxonomy()
   const params: { country: string; citySegment: string }[] = []
+  const seen = new Set<string>()
 
   for (const country of taxonomy.countries) {
     for (const city of country.cities) {
-      params.push({ country: country.slug, citySegment: city.slug })
+      const key = `${country.slug}/${city.slug}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        params.push({ country: country.slug, citySegment: city.slug })
+      }
     }
     for (const treatment of taxonomy.treatments) {
-      if (treatment.countries.includes(country.slug)) {
-        params.push({ country: country.slug, citySegment: treatment.slug })
-      }
+      if (!treatment.countries.includes(country.slug)) continue
+      const citySegment = canonicalTreatmentSlug(treatment.slug)
+      const key = `${country.slug}/${citySegment}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      params.push({ country: country.slug, citySegment })
     }
   }
 
@@ -69,8 +81,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default function ClinicSegment2Page(props: Props) {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-24 text-center text-[var(--color-neutral-500)]">Loading clinics…</div>}>
-      <ClinicSegment2Content {...props} />
+    <Suspense fallback={<ClinicPlpPageSkeleton />}>
+      <ClinicFilterNavigationProvider>
+        <ClinicSegment2Content {...props} />
+      </ClinicFilterNavigationProvider>
     </Suspense>
   )
 }
@@ -90,7 +104,9 @@ async function ClinicSegment2Content({ params, searchParams }: Props) {
 
   if (resolved.kind === 'country_treatment_plp') {
     const treatment = citySegment
-    const treatmentData = taxonomy.treatments.find((t) => t.slug === treatment)
+    const treatmentData = taxonomy.treatments.find(
+      (t) => t.slug === treatment || canonicalTreatmentSlug(t.slug) === treatment,
+    )
     const basePath = clinicCountryTreatmentPath(country, treatment, locale)
     const clinics = await listClinics(
       buildClinicListParams(filters, { country, treatment }),
@@ -195,6 +211,10 @@ async function ClinicSegment2Content({ params, searchParams }: Props) {
         editorialHtml={cms.status === 'ok' ? cms.page.htmlContent : null}
         faq={cms.status === 'ok' ? cms.page.faq : undefined}
         related={related}
+        overviewLink={{
+          href: cityLandingPath(country, citySegment, locale),
+          label: `${city.name} overview →`,
+        }}
         filters={
           <ClinicFilters
             taxonomy={taxonomy}

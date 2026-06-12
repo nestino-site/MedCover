@@ -117,6 +117,10 @@
   from { opacity: 1; }
   to   { opacity: 0; }
 }
+@keyframes skeletonShimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
 
 .mega-panel-enter {
   animation: megaPanelIn 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -132,6 +136,17 @@
 }
 .mobile-overlay[data-state="closed"] {
   animation: overlayFadeOut 220ms ease forwards;
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-neutral-100) 0%,
+    var(--color-neutral-50) 40%,
+    var(--color-neutral-100) 80%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
 }
 
 /* ─── Base styles ───────────────────────────────────────────────── */

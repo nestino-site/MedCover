@@ -1,7 +1,7 @@
 {
-  "name": "MedCover",
+  "name": "MedCover — IVF Abroad: Costs, Clinics & Patient Truth",
   "short_name": "MedCover",
-  "description": "Find and compare medical treatments abroad",
+  "description": "Compare IVF abroad with verified patient interviews, real treatment costs, and clinic Truth Scores.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

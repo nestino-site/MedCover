@@ -9,6 +9,8 @@ interface CityFeaturedGuideProps {
   countryKey: string
   cityKey: string
   cityName: string
+  /** Resolved guide slug (tags-first); falls back to legacy IVF pattern. */
+  guideSlug?: string
 }
 
 export function CityFeaturedGuide({
@@ -16,10 +18,11 @@ export function CityFeaturedGuide({
   countryKey,
   cityKey,
   cityName,
+  guideSlug: guideSlugProp,
 }: CityFeaturedGuideProps) {
   const t = en.cityLanding.featuredGuide
-  const guideSlug = `guides/${countryKey}/${cityKey}-ivf-guide`
-  const guideHref = `/${guideSlug}`
+  const guideSlug = guideSlugProp ?? `guides/${countryKey}/${cityKey}-ivf-guide`
+  const guideHref = `/${guideSlug.replace(/^\//, '')}`
   const seo = guide ? resolveGuideSeo(guide, guideSlug) : null
 
   if (!guide) {

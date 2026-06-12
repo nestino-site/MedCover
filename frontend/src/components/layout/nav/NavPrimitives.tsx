@@ -1,0 +1,326 @@
+'use client'
+
+import Link from 'next/link'
+import { ArrowRight, type LucideIcon } from 'lucide-react'
+import type { SiteHub } from '@/lib/content/site-nav'
+import { hubPath } from '@/lib/content/site-nav'
+import type { Locale } from '@/lib/i18n'
+
+export function NavSectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
+      {children}
+    </p>
+  )
+}
+
+export function NavHubCard({
+  hub,
+  label,
+  description,
+  locale,
+  onNavigate,
+  badge,
+  compact,
+}: {
+  hub: SiteHub
+  label: string
+  description: string
+  locale: Locale
+  onNavigate: () => void
+  badge?: string
+  compact?: boolean
+}) {
+  const Icon: LucideIcon = hub.icon
+  return (
+    <Link
+      href={hubPath(hub.id, locale)}
+      onClick={onNavigate}
+      className={`group flex items-start gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-neutral-50)]/60 transition-all hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)] hover:shadow-sm ${
+        compact ? 'p-2.5' : 'p-3'
+      }`}
+    >
+      <span
+        className={`flex flex-shrink-0 items-center justify-center rounded-lg bg-white text-[var(--color-primary-700)] shadow-sm ring-1 ring-[var(--color-border)] ${
+          compact ? 'h-8 w-8' : 'h-9 w-9'
+        }`}
+      >
+        <Icon size={compact ? 15 : 17} aria-hidden="true" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex items-center gap-1.5">
+          <span className="text-sm font-semibold text-[var(--color-neutral-900)] group-hover:text-[var(--color-primary-800)]">
+            {label}
+          </span>
+          {badge && (
+            <span className="rounded-md bg-[var(--color-neutral-100)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--color-neutral-400)]">
+              {badge}
+            </span>
+          )}
+          <ArrowRight
+            size={14}
+            className="ml-auto flex-shrink-0 text-[var(--color-primary-600)] opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100"
+            aria-hidden="true"
+          />
+        </span>
+        <span className="text-xs leading-relaxed text-[var(--color-neutral-500)]">{description}</span>
+      </span>
+    </Link>
+  )
+}
+
+export type NavCountryActionLabels = {
+  overview: string
+  clinics: string
+  guide: string
+}
+
+export type NavCountryRow = {
+  name: string
+  flag: string
+  countryHref: string
+  clinicHref: string
+  guideHref: string | null
+}
+
+export type NavCityRow = {
+  cityName: string
+  countryName: string
+  flag: string
+  overviewHref: string
+  clinicHref: string
+  guideHref: string | null
+}
+
+export function NavCountryActions({
+  countries,
+  labels,
+  onNavigate,
+  limit = 6,
+}: {
+  countries: NavCountryRow[]
+  labels: NavCountryActionLabels
+  onNavigate: () => void
+  limit?: number
+}) {
+  const rows = countries.slice(0, limit)
+
+  return (
+    <ul className="divide-y divide-[var(--color-border)] rounded-lg border border-[var(--color-border)] bg-white">
+      {rows.map((country) => (
+        <li
+          key={country.countryHref}
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5"
+        >
+          <span className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium text-[var(--color-neutral-800)]">
+            <span aria-hidden="true">{country.flag}</span>
+            {country.name}
+          </span>
+          <span className="flex flex-wrap items-center gap-1 text-xs">
+            <NavMicroLink href={country.countryHref} onClick={onNavigate}>
+              {labels.overview}
+            </NavMicroLink>
+            <span className="text-[var(--color-neutral-300)]" aria-hidden="true">
+              ·
+            </span>
+            <NavMicroLink href={country.clinicHref} onClick={onNavigate}>
+              {labels.clinics}
+            </NavMicroLink>
+            {country.guideHref && (
+              <>
+                <span className="text-[var(--color-neutral-300)]" aria-hidden="true">
+                  ·
+                </span>
+                <NavMicroLink href={country.guideHref} onClick={onNavigate}>
+                  {labels.guide}
+                </NavMicroLink>
+              </>
+            )}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+export function NavCityActions({
+  cities,
+  labels,
+  onNavigate,
+  limit = 8,
+}: {
+  cities: NavCityRow[]
+  labels: NavCountryActionLabels
+  onNavigate: () => void
+  limit?: number
+}) {
+  const rows = cities.slice(0, limit)
+
+  return (
+    <ul className="divide-y divide-[var(--color-border)] rounded-lg border border-[var(--color-border)] bg-white">
+      {rows.map((city) => (
+        <li
+          key={`${city.overviewHref}-${city.cityName}`}
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5"
+        >
+          <span className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium text-[var(--color-neutral-800)]">
+            <span aria-hidden="true">{city.flag}</span>
+            <span className="min-w-0 truncate">
+              {city.cityName}
+              <span className="font-normal text-[var(--color-neutral-500)]">, {city.countryName}</span>
+            </span>
+          </span>
+          <span className="flex flex-wrap items-center gap-1 text-xs">
+            <NavMicroLink href={city.overviewHref} onClick={onNavigate}>
+              {labels.overview}
+            </NavMicroLink>
+            <span className="text-[var(--color-neutral-300)]" aria-hidden="true">
+              ·
+            </span>
+            <NavMicroLink href={city.clinicHref} onClick={onNavigate}>
+              {labels.clinics}
+            </NavMicroLink>
+            {city.guideHref && (
+              <>
+                <span className="text-[var(--color-neutral-300)]" aria-hidden="true">
+                  ·
+                </span>
+                <NavMicroLink href={city.guideHref} onClick={onNavigate}>
+                  {labels.guide}
+                </NavMicroLink>
+              </>
+            )}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+export function NavCityPlps({
+  cities,
+  onNavigate,
+  limit = 8,
+}: {
+  cities: Array<{ cityName: string; countryName: string; href: string }>
+  onNavigate: () => void
+  limit?: number
+}) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {cities.slice(0, limit).map((city) => (
+        <Link
+          key={city.href}
+          href={city.href}
+          onClick={onNavigate}
+          className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-[var(--color-neutral-700)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]"
+        >
+          {city.cityName}
+          <span className="text-[var(--color-neutral-400)]">· {city.countryName}</span>
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+export function NavCountryPlps({
+  countries,
+  onNavigate,
+  limit = 6,
+}: {
+  countries: Array<{ name: string; flag: string; href: string }>
+  onNavigate: () => void
+  limit?: number
+}) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {countries.slice(0, limit).map((country) => (
+        <Link
+          key={country.href}
+          href={country.href}
+          onClick={onNavigate}
+          className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-[var(--color-neutral-700)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]"
+        >
+          <span aria-hidden="true">{country.flag}</span>
+          {country.name}
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+export function NavMicroLink({
+  href,
+  onClick,
+  children,
+}: {
+  href: string
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="rounded px-1.5 py-0.5 font-medium text-[var(--color-primary-700)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-900)]"
+    >
+      {children}
+    </Link>
+  )
+}
+
+export function NavTreatmentRow({
+  name,
+  treatmentHref,
+  costHref,
+  costLabel,
+  onNavigate,
+}: {
+  name: string
+  treatmentHref: string
+  costHref: string
+  costLabel: string
+  onNavigate: () => void
+}) {
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[var(--color-neutral-50)]">
+      <Link
+        href={treatmentHref}
+        onClick={onNavigate}
+        className="text-sm font-medium text-[var(--color-neutral-800)] hover:text-[var(--color-primary-800)]"
+      >
+        {name}
+      </Link>
+      <NavMicroLink href={costHref} onClick={onNavigate}>
+        {costLabel} →
+      </NavMicroLink>
+    </li>
+  )
+}
+
+export function NavMegaPanel({
+  panelRef,
+  panelKey,
+  onMouseEnter,
+  onMouseLeave,
+  children,
+}: {
+  panelRef: React.RefObject<HTMLDivElement | null>
+  panelKey: number
+  onMouseEnter: () => void
+  onMouseLeave: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      ref={panelRef}
+      key={panelKey}
+      className="mega-panel-enter absolute inset-x-0 top-full z-50 border-b border-[var(--color-border)] bg-white shadow-[var(--shadow-lg)]"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      role="menu"
+    >
+      <div className="py-4">{children}</div>
+    </div>
+  )
+}

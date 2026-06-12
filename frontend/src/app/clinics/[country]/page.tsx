@@ -5,6 +5,10 @@ import { getTaxonomy, getCosts, listClinics } from '@/lib/api/catalog'
 import { listPublishedPages, listPublishedPagesSafe, loadPublishedPage } from '@/lib/api/content'
 import { ClinicsPlpTemplate } from '@/components/clinics/ClinicsPlpTemplate'
 import { ClinicFilters } from '@/components/clinics/ClinicFilters'
+import {
+  ClinicFilterNavigationProvider,
+} from '@/components/clinics/clinic-filter-navigation'
+import { ClinicPlpPageSkeleton } from '@/components/clinics/ClinicPlpSkeleton'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
 import { cmsMetadataForSlug, heroAnswerFromCmsPage } from '@/lib/seo/cms-seo'
 import { activeLocale } from '@/lib/i18n/locale'
@@ -15,6 +19,7 @@ import {
   parseEntitiesFromSlug,
 } from '@/lib/content/link-graph'
 import {
+  countryLandingPath,
   clinicCountryPath,
   clinicsHubPath,
   cmsClinicCountrySlug,
@@ -45,8 +50,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default function ClinicCountryPlpPage(props: Props) {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-24 text-center text-neutral-500">Loading clinics…</div>}>
-      <ClinicCountryPlpContent {...props} />
+    <Suspense fallback={<ClinicPlpPageSkeleton />}>
+      <ClinicFilterNavigationProvider>
+        <ClinicCountryPlpContent {...props} />
+      </ClinicFilterNavigationProvider>
     </Suspense>
   )
 }
@@ -122,6 +129,10 @@ async function ClinicCountryPlpContent({ params, searchParams }: Props) {
         editorialHtml={editorialHtml}
         faq={faq}
         related={related}
+        overviewLink={{
+          href: countryLandingPath(country, locale),
+          label: `${countryData.name} overview →`,
+        }}
         filters={
           <ClinicFilters
             taxonomy={taxonomy}

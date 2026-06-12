@@ -33,12 +33,31 @@ export const en = {
       treatments: 'Treatments',
       guides: 'Guides',
       costs: 'Costs',
+      tools: 'Tools',
+    },
+    actions: {
+      overview: 'Overview',
+      clinics: 'Clinics',
+      guide: 'Guide',
+      costs: 'Costs',
+      compareDestinations: 'Compare destinations',
+      browseAllCities: 'Browse all cities',
+    },
+    quickLinks: {
+      clinics: 'Clinics',
+      destinations: 'Destinations',
+      costs: 'Costs',
+      compare: 'Compare',
+      guides: 'Guides',
     },
     expandMenu: 'Show {label} menu',
     browseHub: 'Browse all',
+    featuredCountries: 'Featured countries',
+    featuredCities: 'Popular cities',
     descriptions: {
-      countries: 'Browse treatment destinations by country',
-      cities: 'City-level clinic and travel guides',
+      countries: 'Country overviews, guides, and clinic listings in one place',
+      destinations: 'Country overviews, guides, and clinic listings in one place',
+      cities: 'City hubs with local clinics, guides, and travel tips',
       treatments: 'Clinical care directory',
       guides: 'Patient-verified destination reports',
       clinics: 'Match with verified clinics',
@@ -48,66 +67,71 @@ export const en = {
   },
   meta: {
     layout: {
-      title: 'MedCover — Verified Clinical Treatment Abroad',
+      title: 'MedCover — IVF Abroad: Costs, Clinics & Patient Truth',
       description:
-        'Independent patient interviews, real costs, and clinic Truth Scores for medical tourists. Starting with IVF — expanding to more treatments.',
+        'Compare IVF abroad with verified patient interviews, real treatment costs, and clinic Truth Scores. Independent guides — not clinic marketing.',
       keywords: [
-        'medical tourism',
-        'treatment abroad',
         'IVF abroad',
-        'verified clinic data',
-        'patient interviews',
+        'IVF cost abroad',
+        'IVF Spain',
+        'IVF Greece',
+        'IVF Czech Republic',
+        'medical tourism',
+        'clinic comparison',
+        'patient verified IVF',
+        'treatment abroad',
+        'fertility treatment abroad',
       ],
     },
     home: {
-      title: 'MedCover — Find Treatment Abroad Based on Patient Truth',
+      title: 'IVF Abroad: Costs, Clinics & Patient Truth',
       description:
-        'Independent patient interviews, real costs, and clinic Truth Scores for medical travel — verified data, not clinic marketing.',
+        'Compare IVF destinations with verified patient interviews, real treatment costs, and clinic Truth Scores. Independent data — not clinic marketing.',
     },
     countries: {
-      title: 'Treatment Destinations by Country',
+      title: 'IVF Destinations by Country',
       description:
-        'Browse medical travel destinations by country — available treatments, verified clinics, and patient data.',
+        'Explore top IVF destinations — Spain, Greece, Czech Republic & more. Verified costs, clinic Truth Scores, and patient guides for each country.',
     },
     cities: {
-      title: 'Medical Travel Cities',
+      title: 'IVF Cities Abroad — Local Clinics & Patient Guides',
       description:
-        'City-level medical travel hubs with local clinics, treatment options, and verified patient guides.',
+        'City-level IVF hubs with verified clinics, local cost data, and patient guides. Find the right city for your treatment abroad.',
     },
     treatments: {
-      title: 'Treatments — Clinical Care Directory',
+      title: 'Medical Treatments Abroad — IVF & Fertility Care',
       description:
-        'Explore treatment categories for medical travel. IVF is live — more specialties coming soon.',
+        'Browse clinical treatments for medical travel. IVF guides, cost data, and clinic Truth Scores — verified from real patient interviews.',
     },
     guides: {
-      title: 'Guides — Patient-Verified Destination Reports',
+      title: 'IVF Abroad Guides — Verified Patient Reports',
       description:
-        'Published MedCover guides from verified patient interviews — each link goes directly to the article.',
+        'In-depth destination guides built from verified patient interviews. Real IVF costs, clinic Truth Scores, legal rules, and outcomes — country by country.',
     },
     clinics: {
-      title: 'Clinic matching — Coming Soon',
+      title: 'Find IVF Clinics Abroad — Verified Match Tool',
       description:
-        'Match with verified clinics by treatment and destination — launching soon.',
+        'Browse and match with verified IVF clinics by country and city. Ranked by Truth Scores from real patient data — not paid listings.',
     },
     costs: {
-      title: 'IVF Treatment Costs Abroad — What Patients Pay',
+      title: 'IVF Cost Abroad — Real Prices by Country & City',
       description:
-        'Verified IVF cost ranges by country and city. Real prices from patient data — not clinic brochure estimates.',
+        'What patients actually paid for IVF abroad. Verified cost ranges by country and city — transparent pricing, not clinic brochure estimates.',
     },
     compare: {
-      title: 'Compare IVF Destinations Abroad — Side-by-Side Patient Data',
+      title: 'Compare IVF Destinations — Costs, Clinics & Outcomes',
       description:
-        'Compare IVF treatment in Spain, Greece, Czech Republic, and more. Real costs, clinic quality, and patient outcomes side by side — no sponsored results.',
+        'Side-by-side IVF comparisons for Spain, Greece, Czech Republic & more. Real costs, clinic Truth Scores, and patient outcomes — no sponsored results.',
     },
     start: {
-      title: 'Get Started — Coming Soon',
+      title: 'Get Matched with Verified IVF Clinics Abroad',
       description:
-        'Personalized patient reports and clinic partnerships — launching soon.',
+        'Tell us your treatment goals and get clinic recommendations ranked by verified patient data — real costs, Truth Scores, and outcomes.',
     },
     about: {
-      title: 'About MedCover',
+      title: 'About MedCover — Independent Patient-Verified Data',
       description:
-        'Independent, patient-verified guides for clinical treatment abroad — starting with IVF.',
+        'MedCover builds IVF abroad guides from verified patient interviews. Independent, transparent, and free from clinic marketing influence.',
     },
   },
   home: {
@@ -353,9 +377,19 @@ export const en = {
       cityGuidesLabel: 'City guides',
       viewGuide: 'View guide',
       sortLabel: 'Sort guides',
+      sortFeatured: 'Featured destinations',
       sortAlpha: 'A – Z',
       sortUpdated: 'Recently updated',
+      searchPlaceholder: 'Search guides by destination…',
+      searchLabel: 'Search guides',
+      faqTitle: 'IVF destination guides — common questions',
+      moreGuidesLabel: 'More guides',
+      resultsLabel: 'guides',
+      countryGuidesStat: 'country guides',
+      cityGuidesStat: 'city guides',
       empty: 'No published guides yet. New articles appear here after the backend publishes them.',
+      browseGuidesCta: 'Browse all patient guides',
+      browseGuidesDescription: 'Country and city reports from verified patient interviews.',
     },
     published: {
       empty: 'No published articles yet. New pages appear here after the backend publishes them.',
@@ -449,7 +483,8 @@ export const en = {
     },
     sections: {
       explore: 'Explore',
-      destinations: 'IVF destinations',
+      destinations: 'Destinations',
+      tools: 'Tools',
       company: 'Company',
       forClinics: 'For Clinics',
     },
@@ -490,6 +525,11 @@ export const en = {
     relatedPages: 'Related pages',
     tableOfContents: 'On this page',
     faqTitle: 'Frequently Asked Questions',
+    faqEyebrow: 'Common questions',
+    guideEyebrow: 'Patient guide',
+    readTime: '{minutes} min read',
+    planTripEyebrow: 'Next steps',
+    planTripTitle: 'Plan your trip',
     noDataYet: 'Data collection in progress',
   },
   countryGuide: {
@@ -559,6 +599,7 @@ export const en = {
       empty: 'City hubs coming soon',
       viewGuide: 'View guide',
       viewCity: 'View city hub',
+      browseClinics: 'Browse clinics',
     },
     treatmentsSection: {
       eyebrow: 'Available treatments',
@@ -573,6 +614,13 @@ export const en = {
       eyebrow: 'Patient guides',
       heading: 'Related articles',
       empty: 'Guide articles coming soon.',
+    },
+    clinicsSection: {
+      eyebrow: 'Verified clinics',
+      heading: 'Top clinics in {place}',
+      description: 'Ranked by patient ratings and independently verified data.',
+      viewAll: 'Browse all clinics →',
+      browseClinics: 'Browse clinics →',
     },
     treatmentComingSoon: {
       title: 'This treatment is not available yet',
@@ -615,6 +663,13 @@ export const en = {
       heading: 'Related articles',
       empty: 'Guide articles coming soon.',
     },
+    clinicsSection: {
+      eyebrow: 'Verified clinics',
+      heading: 'Top clinics in {city}',
+      description: 'Ranked by patient ratings and independently verified data.',
+      viewAll: 'Browse all clinics →',
+      browseClinics: 'Browse clinics →',
+    },
     treatmentComingSoon: {
       title: 'This treatment is not available yet',
       body: 'IVF city guides are live. Other treatments are coming soon — switch back to IVF to explore this city.',
@@ -626,11 +681,59 @@ export const en = {
   },
   treatmentHub: {
     viewCountryHub: 'View country hub',
+    browseClinics: 'Browse clinics →',
     relatedArticles: {
       eyebrow: 'Patient guides',
       heading: 'Related IVF guides',
       empty: 'Guide articles coming soon.',
     },
+    clinicsSection: {
+      eyebrow: 'Verified clinics',
+      heading: 'Top {treatment} clinics abroad',
+      description: 'Ranked by patient ratings and independently verified data.',
+      viewAll: 'View all clinics →',
+    },
+  },
+  featuredClinics: {
+    eyebrow: 'Verified clinics',
+    title: 'Top-rated clinics',
+    description: 'Ranked by patient ratings and independently verified data.',
+    viewAll: 'View all clinics →',
+  },
+  clinicPdp: {
+    speakableSummaryLabel: 'Clinic overview',
+    lastUpdated: 'Last updated',
+    cityOverview: '{city} overview →',
+    countryOverview: '{country} overview →',
+    planYourTreatment: 'Plan your treatment',
+    moreClinicsInCity: 'More clinics in {city}',
+    moreClinicsInCityDescription: 'Other verified clinics in the same city, ranked by patient ratings.',
+    otherTreatmentClinics: 'Other {treatment} clinics in {city}',
+    otherTreatmentClinicsDescription: 'Compare alternatives offering the same treatment in {city}.',
+    viewAllClinics: 'View all clinics →',
+    relatedArticles: {
+      eyebrow: 'Patient guides',
+      heading: 'Guides for your trip',
+      empty: 'Guide articles coming soon.',
+    },
+    sections: {
+      truthScore: { eyebrow: 'Verification', title: 'MedCover Truth Score', description: 'Based on verified patient interviews and transparency signals' },
+      treatments: { eyebrow: 'Services', title: 'Treatments offered' },
+      pricing: { eyebrow: 'Packages', title: 'Pricing packages' },
+      doctors: { eyebrow: 'Team', title: 'Medical team' },
+      patientVoices: { eyebrow: 'Interviews', title: 'Verified patient voices', description: 'Quotes from MedCover-verified patient interviews' },
+      about: { eyebrow: 'About', title: 'About this clinic' },
+      reviews: { eyebrow: 'Reviews', title: 'Google reviews' },
+      faq: { eyebrow: 'FAQ', title: 'Frequently asked questions' },
+    },
+    pricing: {
+      compareCosts: 'Compare {treatment} costs in {city} →',
+    },
+    reviews: {
+      showAll: 'Show all {count} reviews',
+      showLess: 'Show fewer reviews',
+    },
+    sectionNav: 'On this page',
   },
   costLanding: {
     relatedArticles: {

@@ -6,10 +6,14 @@ import {
 } from '@/lib/api/content'
 import type { ContentPage, ContentPageV22 } from '@/lib/api/types'
 import { resolveHeroImageForMetadata } from '@/lib/content/hero-image'
+import {
+  DEFAULT_OG_IMAGE,
+  resolvePageTitle,
+  siteMetadataDefaults,
+  siteOrigin,
+} from '@/lib/seo/site-metadata'
 
-function siteOrigin(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io').replace(/\/+$/, '')
-}
+export { siteOrigin }
 
 export function resolveSiteCanonical(slugPath: string, apiCanonical?: string | null): string {
   const canonicalPath = slugPath.endsWith('/') ? slugPath : `${slugPath}/`
@@ -38,45 +42,78 @@ export function parseRobotsMeta(robotsMeta?: string | null): Metadata['robots'] 
   return { index, follow }
 }
 
+function defaultShareImage(origin: string) {
+  return {
+    url: `${origin}${DEFAULT_OG_IMAGE.url}`,
+    width: DEFAULT_OG_IMAGE.width,
+    height: DEFAULT_OG_IMAGE.height,
+    alt: DEFAULT_OG_IMAGE.alt,
+  }
+}
+
+function mergeMetadata(fallback: Metadata, cms: Metadata): Metadata {
+  return {
+    ...fallback,
+    ...cms,
+    openGraph: { ...fallback.openGraph, ...cms.openGraph },
+    twitter: { ...fallback.twitter, ...cms.twitter },
+    alternates: { ...fallback.alternates, ...cms.alternates },
+  }
+}
+
 /** Next.js metadata from a published CMS page (single source of truth for SEO meta). */
 export function metadataFromCmsPage(
   page: ContentPage,
   slugPath: string,
+  fallback?: Metadata,
 ): Metadata {
+  const origin = siteOrigin()
   const canonical = resolveSiteCanonical(slugPath, page.seo.canonical)
-  const hero = resolveHeroImageForMetadata(page, siteOrigin())
+  const hero = resolveHeroImageForMetadata(page, origin)
+  const shareImage = hero ?? defaultShareImage(origin)
+  const pageTitle = page.seo.metaTitle ?? page.seo.title
+  const pageDescription = page.seo.metaDescription ?? undefined
+  const ogTitle = page.seo.og.title ?? pageTitle ?? undefined
+  const ogDescription = page.seo.og.description ?? pageDescription
+  const twitterTitle = page.seo.twitter.title ?? pageTitle ?? undefined
+  const twitterDescription = page.seo.twitter.description ?? pageDescription
 
-  return {
-    title: page.seo.metaTitle ?? page.seo.title ?? undefined,
-    description: page.seo.metaDescription ?? undefined,
+  const cms: Metadata = {
+    title: resolvePageTitle(pageTitle),
+    description: pageDescription,
     robots: parseRobotsMeta(page.seo.robotsMeta) ?? (page.seo.robotsMeta || 'index, follow'),
     alternates: { canonical },
     openGraph: {
-      title: page.seo.og.title ?? page.seo.metaTitle ?? page.seo.title ?? undefined,
-      description: page.seo.og.description ?? page.seo.metaDescription ?? undefined,
+      title: ogTitle,
+      description: ogDescription,
       url: resolveSiteCanonical(slugPath, page.seo.og.url ?? page.seo.canonical),
       type: page.seo.og.type === 'website' ? 'website' : 'article',
       siteName: 'MedCover',
-      images: hero ? [{ url: hero.url, alt: hero.alt }] : [],
+      locale: 'en_US',
+      images: [{ url: shareImage.url, alt: shareImage.alt ?? DEFAULT_OG_IMAGE.alt }],
     },
     twitter: {
       card: page.seo.twitter.card,
-      title: page.seo.twitter.title ?? page.seo.metaTitle ?? page.seo.title ?? undefined,
-      description: page.seo.twitter.description ?? page.seo.metaDescription ?? undefined,
-      images: hero ? [hero.url] : [],
+      site: '@medcover',
+      title: twitterTitle,
+      description: twitterDescription,
+      images: [shareImage.url],
     },
   }
+
+  return fallback ? mergeMetadata(fallback, cms) : cms
 }
 
 export async function cmsMetadataForSlug(
   slugPath: string,
   fallback?: Metadata,
 ): Promise<Metadata> {
+  const base = { ...siteMetadataDefaults(), ...fallback }
   const result = await loadPublishedPage(slugPath)
   if (result.status === 'ok') {
-    return metadataFromCmsPage(result.page, slugPath)
+    return metadataFromCmsPage(result.page, slugPath, base)
   }
-  return fallback ?? { title: 'MedCover' }
+  return base
 }
 
 /** JSON-LD graphs from backend — never synthesize on the frontend when this is present. */

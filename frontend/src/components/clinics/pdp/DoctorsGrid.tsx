@@ -1,5 +1,7 @@
 import Image from 'next/image'
 import type { ClinicDetail } from '@/lib/api/types'
+import { SectionHeading } from '@/components/ui/SectionHeading'
+import { en } from '@/lib/i18n/en'
 
 type DoctorsGridProps = {
   clinic: ClinicDetail
@@ -8,9 +10,11 @@ type DoctorsGridProps = {
 export function DoctorsGrid({ clinic }: DoctorsGridProps) {
   if (clinic.doctors.length === 0) return null
 
+  const copy = en.clinicPdp.sections.doctors
+
   return (
-    <section>
-      <h2 className="mb-6 text-2xl font-bold text-[var(--color-primary-950)]">Medical team</h2>
+    <section id="doctors" className="scroll-mt-28">
+      <SectionHeading eyebrow={copy.eyebrow} title={copy.title} className="mb-6" />
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {clinic.doctors.map((doctor) => (
           <article

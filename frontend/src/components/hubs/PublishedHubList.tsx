@@ -6,6 +6,8 @@ import { filterPagesByHub } from '@/lib/content/hubs'
 import { loadPublishedPostItems } from '@/lib/content/guide-posts'
 import { cacheTags } from '@/lib/cache/tags'
 import { getDictionary, type Locale } from '@/lib/i18n'
+import { CardGridSkeleton, GuidePostCardSkeleton } from '@/components/ui/skeletons'
+import { SkeletonStatus } from '@/components/ui/Skeleton'
 
 export async function PublishedHubList({
   locale,
@@ -75,10 +77,10 @@ export async function PublishedHubList({
 
 export function PublishedHubListSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="h-24 animate-pulse rounded-xl bg-[var(--color-neutral-100)]" />
-      ))}
-    </div>
+    <SkeletonStatus label="Loading articles">
+      <CardGridSkeleton count={4} gridClassName="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <GuidePostCardSkeleton variant="compact" />
+      </CardGridSkeleton>
+    </SkeletonStatus>
   )
 }

@@ -8,6 +8,7 @@ import {
   publishedCityGuideKeys,
 } from '@/lib/content/hubs'
 import { getTreatmentTagsForCountry } from '@/lib/content/treatments'
+import { clinicCityPath } from '@/lib/routes'
 import type { CityCardData } from '@/components/hubs/CityCard'
 
 export function buildCityCards(
@@ -27,6 +28,7 @@ export function buildCityCards(
       cards.push({
         slug: guideSlug,
         href: getCityHubPath(country.slug, city.slug, locale),
+        clinicHref: clinicCityPath(country.slug, city.slug, locale),
         guideHref: localizedPath(`/${guideSlug}`, locale),
         cityName: city.name,
         cityKey: city.slug,

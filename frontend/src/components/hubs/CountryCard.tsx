@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import type { getDictionary } from '@/lib/i18n'
 import type { CityDisplay } from '@/lib/content/hubs'
+import { clinicCountryTreatmentPath } from '@/lib/routes'
+import type { Locale } from '@/lib/i18n'
 import { trackCardClick } from '@/lib/analytics'
 
 export interface TreatmentTag {
@@ -36,30 +38,55 @@ function Pill({ children }: { children: ReactNode }) {
   )
 }
 
-function TreatmentTagBadge({ tag }: { tag: TreatmentTag }) {
+function TreatmentTagBadge({
+  tag,
+  countryKey,
+  linkTreatments,
+  locale = 'en',
+}: {
+  tag: TreatmentTag
+  countryKey: string
+  linkTreatments?: boolean
+  locale?: Locale
+}) {
   const isActive = tag.status === 'active'
-  return (
-    <span
-      className={
-        isActive
-          ? 'inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-50)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-accent-700)]'
-          : 'inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-neutral-500)]'
-      }
-    >
+  const className = isActive
+    ? 'inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-50)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]'
+    : 'inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-neutral-500)]'
+
+  const content = (
+    <>
       {tag.name}
       {!isActive && (
         <span className="text-[10px] font-bold uppercase tracking-wide opacity-70">Soon</span>
       )}
-    </span>
+    </>
   )
+
+  if (isActive && linkTreatments) {
+    return (
+      <Link
+        href={clinicCountryTreatmentPath(countryKey, tag.id, locale)}
+        className={className}
+      >
+        {content}
+      </Link>
+    )
+  }
+
+  return <span className={className}>{content}</span>
 }
 
 export function CountryCard({
   data,
   t,
+  linkTreatments = false,
+  locale = 'en',
 }: {
   data: CountryCardData
   t: ReturnType<typeof getDictionary>
+  linkTreatments?: boolean
+  locale?: Locale
 }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-white transition-colors hover:border-[var(--color-primary-200)]">
@@ -91,7 +118,13 @@ export function CountryCard({
           </p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {data.treatments.map((tag) => (
-              <TreatmentTagBadge key={tag.id} tag={tag} />
+              <TreatmentTagBadge
+                key={tag.id}
+                tag={tag}
+                countryKey={data.countryKey}
+                linkTreatments={linkTreatments}
+                locale={locale}
+              />
             ))}
           </div>
         </div>

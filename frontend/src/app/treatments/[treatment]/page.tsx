@@ -18,20 +18,32 @@ import {
 } from '@/lib/content/hubs'
 import { getTreatmentTagsForCountry } from '@/lib/content/treatments'
 import { loadGuideArticlesForEntities } from '@/lib/content/guide-display'
+import { loadFeaturedClinics } from '@/lib/content/clinic-discovery'
+import { TreatmentLandingSkeleton } from '@/components/hubs/TreatmentLandingSkeleton'
+import {
+  buildRelatedLandingsForEntities,
+  dedupeRelated,
+  findRelatedGuides,
+} from '@/lib/content/link-graph'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { EntityHero } from '@/components/shared/EntityHero'
 import { RelatedArticles } from '@/components/shared/RelatedArticles'
+import { RelatedLandingsGrid } from '@/components/shared/RelatedLandingsGrid'
 import { Button } from '@/components/ui/Button'
 import { SectionHeading } from '@/components/ui/SectionHeading'
+import { FeaturedClinicsSection } from '@/components/clinics/FeaturedClinicsSection'
 import { CountryCard, type CountryCardData } from '@/components/hubs/CountryCard'
 import { getDictionary, localizedPath } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 import { en } from '@/lib/i18n/en'
-import { costTreatmentPath } from '@/lib/routes'
+import {
+  clinicCountryTreatmentPath,
+  clinicsHubPath,
+  costTreatmentPath,
+  treatmentPath,
+} from '@/lib/routes'
 import type { FaqItem } from '@/lib/api/types'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.medcover.io'
 
 type Params = Promise<{ treatment: string }>
 
@@ -69,13 +81,12 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
 
   const allPages = await getContentListSafe()
   const { cities: cityPages } = partitionGuides(allPages, locale, taxonomy)
-  const relatedArticles = await loadGuideArticlesForEntities(
-    { treatment: treatmentSlug },
-    allPages,
-    locale,
-    taxonomy,
-  )
   const th = en.treatmentHub
+
+  const cityLinkOptions = {
+    treatment: treatmentSlug,
+    hrefMode: 'clinic_treatment' as const,
+  }
 
   const countryCards: CountryCardData[] = getFeaturedCountriesFromTaxonomy(taxonomy, locale)
     .filter((d) => {
@@ -87,23 +98,41 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
       return {
         slug: d.slug,
         countryKey: key,
-        href: d.href,
+        href: clinicCountryTreatmentPath(key, treatmentSlug, locale),
         guideHref: d.guideHref,
         name: d.name,
         flag: d.flag,
         tagline: d.tagline,
         cost: d.cost,
         clinics: d.clinics,
-        cities: getCitiesForCountry(key, cityPages, locale, taxonomy),
+        cities: getCitiesForCountry(key, cityPages, locale, taxonomy, cityLinkOptions),
         treatments: getTreatmentTagsForCountry(taxonomy, key),
         costNumeric: 0,
         clinicsNumeric: 0,
       }
     })
 
-  const cms = await loadPublishedPage(`/treatments/${treatmentSlug}`)
+  const firstCountry = countryCards[0]?.countryKey
+  const browseClinicsHref = firstCountry
+    ? clinicCountryTreatmentPath(firstCountry, treatmentSlug, locale)
+    : clinicsHubPath(locale)
+
+  const [cms, relatedArticles, featuredClinics] = await Promise.all([
+    loadPublishedPage(`/treatments/${treatmentSlug}`),
+    loadGuideArticlesForEntities({ treatment: treatmentSlug }, allPages, locale, taxonomy),
+    loadFeaturedClinics({ treatment: treatmentSlug, limit: 6 }),
+  ])
+
   const faqs: FaqItem[] = cms.status === 'ok' ? cms.page.faq : []
   const cmsAnswer = cms.status === 'ok' ? heroAnswerFromCmsPage(cms.page) : undefined
+
+  const relatedLandings = dedupeRelated(
+    [
+      ...buildRelatedLandingsForEntities({ treatment: treatmentSlug }, taxonomy, locale, allPages),
+      ...findRelatedGuides({ treatment: treatmentSlug }, allPages, locale, { taxonomy }),
+    ],
+    treatmentPath(treatmentSlug, locale),
+  )
 
   const breadcrumbs =
     cms.status === 'ok' && cms.page.breadcrumbs.length > 0
@@ -126,7 +155,10 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
           answerLabel="Quick Summary"
         >
           <div className="flex flex-wrap gap-3">
-            <Button href={costTreatmentPath(treatmentSlug, locale)} variant="primary">
+            <Button href={browseClinicsHref} variant="primary">
+              {th.browseClinics}
+            </Button>
+            <Button href={costTreatmentPath(treatmentSlug, locale)} variant="ghost">
               Compare costs →
             </Button>
             <Button
@@ -139,6 +171,15 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
         </EntityHero>
 
         <div className="space-y-12">
+          <FeaturedClinicsSection
+            clinics={featuredClinics}
+            viewAllHref={browseClinicsHref}
+            title={th.clinicsSection.heading.replace('{treatment}', cat.name)}
+            eyebrow={th.clinicsSection.eyebrow}
+            description={th.clinicsSection.description}
+            viewAllLabel={th.clinicsSection.viewAll}
+          />
+
           <section aria-labelledby="countries-heading">
             <SectionHeading
               title={`Destinations offering ${cat.name}`}
@@ -153,10 +194,20 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
             />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {countryCards.map((card) => (
-                <CountryCard key={card.countryKey} data={card} t={t} />
+                <CountryCard
+                  key={card.countryKey}
+                  data={card}
+                  t={t}
+                  linkTreatments
+                  locale={locale}
+                />
               ))}
             </div>
           </section>
+
+          {relatedLandings.length > 0 && (
+            <RelatedLandingsGrid items={relatedLandings} />
+          )}
 
           <RelatedArticles
             eyebrow={th.relatedArticles.eyebrow}
@@ -197,29 +248,14 @@ export default async function TreatmentPage({ params }: { params: Params }) {
 
   if (backendPage) {
     return (
-      <Suspense
-        fallback={
-          <div className="mx-auto max-w-5xl animate-pulse px-4 py-16 sm:px-6">
-            <div className="h-4 w-48 rounded bg-[var(--color-neutral-100)]" />
-            <div className="mt-8 h-12 w-96 rounded bg-[var(--color-neutral-100)]" />
-          </div>
-        }
-      >
+      <Suspense fallback={<TreatmentLandingSkeleton showGrid={false} />}>
         <PublishedArticleView slugPath={slugPath} locale={locale} />
       </Suspense>
     )
   }
 
   return (
-    <Suspense fallback={
-      <div className="mx-auto max-w-5xl animate-pulse px-4 py-16 sm:px-6">
-        <div className="h-4 w-48 rounded bg-[var(--color-neutral-100)]" />
-        <div className="mt-8 h-12 w-96 rounded bg-[var(--color-neutral-100)]" />
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          {[1, 2, 3].map((i) => <div key={i} className="h-48 rounded-2xl bg-[var(--color-neutral-100)]" />)}
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<TreatmentLandingSkeleton />}>
       <TreatmentPageContent treatmentSlug={treatment} />
     </Suspense>
   )

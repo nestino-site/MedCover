@@ -15,6 +15,7 @@ import {
   dedupeRelated,
   findRelatedGuides,
 } from '@/lib/content/link-graph'
+import { canonicalTreatmentSlug } from '@/lib/content/treatment-slugs'
 import { costHubPath, costTreatmentPath, cmsCostSlug } from '@/lib/routes'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
 import { cmsMetadataForSlug, heroAnswerFromCmsPage } from '@/lib/seo/cms-seo'
@@ -23,7 +24,15 @@ type Props = { params: Promise<{ treatment: string }> }
 
 export async function generateStaticParams() {
   const taxonomy = await getTaxonomy()
-  const params = taxonomy.treatments.map((t) => ({ treatment: t.slug }))
+  const seen = new Set<string>()
+  const params = taxonomy.treatments
+    .map((t) => {
+      const treatment = canonicalTreatmentSlug(t.slug)
+      if (seen.has(treatment)) return null
+      seen.add(treatment)
+      return { treatment }
+    })
+    .filter((p): p is { treatment: string } => p != null)
   return params.length > 0 ? params : [{ treatment: 'ivf' }]
 }
 
@@ -36,7 +45,9 @@ export default async function CostTreatmentPage({ params }: Props) {
   const { treatment } = await params
   const locale = activeLocale
   const taxonomy = await getTaxonomy()
-  const treatmentData = taxonomy.treatments.find((t) => t.slug === treatment)
+  const treatmentData = taxonomy.treatments.find(
+    (t) => t.slug === treatment || canonicalTreatmentSlug(t.slug) === treatment,
+  )
   if (!treatmentData) notFound()
 
   const costs = await getCosts(treatment)

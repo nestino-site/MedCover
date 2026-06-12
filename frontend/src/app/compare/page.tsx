@@ -7,12 +7,13 @@ import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
 import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 import { cmsPageSlug } from '@/lib/routes'
-import { cmsMetadataForSlug, hubCopyFromCmsPage, loadCmsPage } from '@/lib/seo/cms-seo'
+import { hubCopyFromCmsPage, loadCmsPage } from '@/lib/seo/cms-seo'
+import { cmsHubMetadata } from '@/lib/seo/site-metadata'
 
 const locale = activeLocale
 
 export async function generateMetadata(): Promise<Metadata> {
-  return cmsMetadataForSlug(cmsPageSlug('compare'))
+  return cmsHubMetadata('compare')
 }
 
 export default async function CompareHubPage() {

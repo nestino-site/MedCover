@@ -9,6 +9,8 @@ interface CityHeroProps {
   countryHubHref: string
   cost: string
   clinics: string
+  clinicHref?: string
+  costHref?: string
 }
 
 export function CityHero({
@@ -18,6 +20,8 @@ export function CityHero({
   countryHubHref,
   cost,
   clinics,
+  clinicHref,
+  costHref,
 }: CityHeroProps) {
   const t = en.cityLanding
 
@@ -83,7 +87,13 @@ export function CityHero({
                 <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary-400)]">
                   {t.stats.treatmentCost}
                 </p>
-                <p className="mt-1 text-lg font-bold text-white">{cost}</p>
+                {costHref ? (
+                  <Link href={costHref} className="mt-1 block text-lg font-bold text-white hover:text-[var(--color-accent-300)]">
+                    {cost}
+                  </Link>
+                ) : (
+                  <p className="mt-1 text-lg font-bold text-white">{cost}</p>
+                )}
               </div>
             )}
             {clinics && (
@@ -91,9 +101,26 @@ export function CityHero({
                 <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-primary-400)]">
                   {t.stats.verifiedClinics}
                 </p>
-                <p className="mt-1 text-lg font-bold text-white">{clinics}</p>
+                {clinicHref ? (
+                  <Link href={clinicHref} className="mt-1 block text-lg font-bold text-white hover:text-[var(--color-accent-300)]">
+                    {clinics}
+                  </Link>
+                ) : (
+                  <p className="mt-1 text-lg font-bold text-white">{clinics}</p>
+                )}
               </div>
             )}
+          </div>
+        )}
+
+        {clinicHref && (
+          <div className="mt-6">
+            <Link
+              href={clinicHref}
+              className="inline-flex items-center rounded-lg bg-[var(--color-accent-500)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-400)]"
+            >
+              {t.clinicsSection.browseClinics}
+            </Link>
           </div>
         )}
 

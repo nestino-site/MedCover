@@ -23,7 +23,7 @@ export function ActiveFilterSummary({
   itemLabel = 'results',
 }: ActiveFilterSummaryProps) {
   const searchParams = useSearchParams()
-  const { pushParams } = useFilterNavigationOptional()
+  const { isPending, pushParams } = useFilterNavigationOptional()
 
   const activeFilters = filters
     .map((f) => {
@@ -54,6 +54,7 @@ export function ActiveFilterSummary({
       className="flex flex-wrap items-center gap-2"
       aria-live="polite"
       aria-atomic="true"
+      aria-busy={isPending}
     >
       <span className="text-sm text-[var(--color-neutral-500)]">
         {filteredTotal === total
@@ -65,7 +66,9 @@ export function ActiveFilterSummary({
           key={f.paramKey}
           type="button"
           onClick={() => remove(f.paramKey)}
-          className="flex items-center gap-1 rounded-full bg-[var(--color-primary-100)] px-2.5 py-1 text-xs font-medium text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-200)]"
+          disabled={isPending}
+          aria-busy={isPending}
+          className="flex items-center gap-1 rounded-full bg-[var(--color-primary-100)] px-2.5 py-1 text-xs font-medium text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-200)] disabled:cursor-wait disabled:opacity-60"
         >
           {f.display}
           <X size={10} aria-hidden="true" />
@@ -75,7 +78,9 @@ export function ActiveFilterSummary({
         <button
           type="button"
           onClick={clearAll}
-          className="text-xs font-medium text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] underline"
+          disabled={isPending}
+          aria-busy={isPending}
+          className="text-xs font-medium text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)] underline disabled:cursor-wait disabled:opacity-60"
         >
           Clear all
         </button>

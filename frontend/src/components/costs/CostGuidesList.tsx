@@ -12,6 +12,8 @@ import {
   CostGuidesListView,
   type CostGuideItem,
 } from '@/components/costs/CostGuidesListView'
+import { CardGridSkeleton, GuidePostCardSkeleton } from '@/components/ui/skeletons'
+import { Skeleton, SkeletonStatus, SkeletonText } from '@/components/ui/Skeleton'
 
 export interface CostGuidesListProps {
   locale: Locale
@@ -58,21 +60,12 @@ export async function CostGuidesList({ locale, defaultTreatment }: CostGuidesLis
 
 export function CostGuidesListSkeleton() {
   return (
-    <div className="animate-pulse" role="status" aria-label="Loading cost guides">
-      <div className="mb-4 h-6 w-56 rounded bg-[var(--color-neutral-100)]" />
-      <div className="mb-8 h-4 w-full max-w-lg rounded bg-[var(--color-neutral-100)]" />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-32 rounded-2xl border border-[var(--color-border)] bg-white p-4">
-            <div className="mb-3 flex gap-2">
-              <div className="h-8 w-8 rounded-full bg-[var(--color-neutral-100)]" />
-              <div className="h-4 w-24 rounded bg-[var(--color-neutral-100)]" />
-            </div>
-            <div className="h-3 w-full rounded bg-[var(--color-neutral-100)]" />
-            <div className="mt-4 h-3 w-16 rounded bg-[var(--color-neutral-100)]" />
-          </div>
-        ))}
-      </div>
-    </div>
+    <SkeletonStatus label="Loading cost guides">
+      <Skeleton className="mb-4 h-6 w-56" rounded="md" />
+      <SkeletonText lines={1} className="mb-8 max-w-lg" widths={['w-full']} />
+      <CardGridSkeleton count={3}>
+        <GuidePostCardSkeleton variant="compact" />
+      </CardGridSkeleton>
+    </SkeletonStatus>
   )
 }
