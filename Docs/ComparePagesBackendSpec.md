@@ -24,12 +24,12 @@ Implement compare support using the **same architecture as costs and clinics**:
 
 ## 3. Canonical URL & slug format
 
-### New format (required)
+### Canonical format
 
 | Compare type | Public URL | CMS slug (`/content/by-slug`) |
 |-------------|-----------|-------------------------------|
-| Country vs country | `/compare/{a}-vs-{b}-for-{treatment}/` | `/compare/{a}-vs-{b}-for-{treatment}` |
-| City vs city | `/compare/{a}-vs-{b}-for-{treatment}/` | `/compare/{a}-vs-{b}-for-{treatment}` |
+| Country vs country | `/compare/{a}-vs-{b}-{treatment}/` | `/compare/{a}-vs-{b}-{treatment}` |
+| City vs city | `/compare/{a}-vs-{b}-{treatment}/` | `/compare/{a}-vs-{b}-{treatment}` |
 | Clinic vs clinic | `/compare/{a}-vs-{b}/` | `/compare/{a}-vs-{b}` |
 
 **Rules:**
@@ -37,7 +37,7 @@ Implement compare support using the **same architecture as costs and clinics**:
 - `{a}` and `{b}` are URL slugs, alphabetically ordered (`canonicalPair`: `greece-vs-spain`, never `spain-vs-greece`)
 - `{treatment}` is the canonical treatment slug (e.g. `ivf`, `hair-transplant`)
 - Trailing slash on public URLs; no trailing slash on API slugs
-- Legacy `/compare/{a}-vs-{b}-ivf/` must be migrated or aliased to `/compare/{a}-vs-{b}-for-ivf/`
+- Legacy `/compare/{a}-vs-{b}-for-{treatment}/` should redirect (301) to `/compare/{a}-vs-{b}-{treatment}/`
 
 ### Entity type disambiguation
 
@@ -163,12 +163,12 @@ See template spec: `Docs/MedCoverSEO.MD` → Template C (Comparison Page).
 
 ### Slug migration
 
-If existing CMS pages use legacy slugs (`/compare/spain-vs-greece-ivf`):
+If existing CMS pages use legacy slugs (`/compare/spain-vs-greece-for-ivf`):
 
-- **Option A (preferred):** Migrate slugs to `/compare/greece-vs-spain-for-ivf`
+- **Option A (preferred):** Migrate slugs to `/compare/greece-vs-spain-ivf`
 - **Option B:** Alias both slugs to the same content in `by-slug` lookup
 
-The frontend already falls back to legacy `-ivf` CMS slugs when loading editorial content.
+The frontend already falls back to legacy `-for-{treatment}` CMS slugs when loading editorial content.
 
 ---
 
@@ -188,16 +188,16 @@ pairs: C(n,2) with canonical ordering
 
 Example slugs to publish:
 
-- `/compare/czech-republic-vs-spain-for-ivf`
-- `/compare/greece-vs-spain-for-ivf`
-- `/compare/greece-vs-spain-for-hair-transplant`
+- `/compare/czech-republic-vs-spain-ivf`
+- `/compare/greece-vs-spain-ivf`
+- `/compare/greece-vs-spain-hair-transplant`
 
 ### City comparisons
 
 For each treatment, within each country, generate canonical pairs of cities with `clinicCount > 0`:
 
-- `/compare/athens-vs-thessaloniki-for-ivf`
-- `/compare/barcelona-vs-madrid-for-ivf`
+- `/compare/athens-vs-thessaloniki-ivf`
+- `/compare/barcelona-vs-madrid-ivf`
 
 ### Clinic comparisons
 
@@ -217,7 +217,7 @@ Example:
 On `page.published`, `page.updated`, `clinic.updated`, `clinic.published` events affecting compare entities, include in `affectedPaths`:
 
 ```
-/compare/greece-vs-spain-for-ivf/
+/compare/greece-vs-spain-ivf/
 /compare/
 ```
 
@@ -231,10 +231,10 @@ The frontend revalidates compare catalog cache tags when it detects `/compare/` 
 - [ ] `GET /content/compare?type=city&a=athens&b=thessaloniki&treatment=ivf` returns city-scoped data
 - [ ] `GET /content/compare?type=clinic&a={slug}&b={slug}` returns clinic-scoped data
 - [ ] Invalid entity slugs return `400` or `404` (not `500`)
-- [ ] CMS pages use new slug format `/compare/{a}-vs-{b}-for-{treatment}`
+- [ ] CMS pages use canonical slug format `/compare/{a}-vs-{b}-{treatment}`
 - [ ] `GET /content/pages` lists compare pages with `pageType: COMPARISON`
-- [ ] `GET /content/by-slug/compare/greece-vs-spain-for-ivf` returns editorial content
-- [ ] Legacy `-ivf` slugs migrated or aliased
+- [ ] `GET /content/by-slug/compare/greece-vs-spain-ivf` returns editorial content
+- [ ] Legacy `-for-{treatment}` slugs migrated or aliased
 - [ ] Taxonomy includes all countries/cities/clinics referenced in compare slugs
 
 ---

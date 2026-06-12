@@ -53,16 +53,7 @@ function parseTreatmentCompareTail(tail) {
 function buildCanonicalSlug(rawA, rawB, treatment) {
   const [entityA, entityB] = canonicalPair(rawA, rawB)
   const canonicalTreatment = canonicalTreatmentSlug(treatment)
-  return `${entityA}-vs-${entityB}-for-${canonicalTreatment}`
-}
-
-function legacyCompareToNew(pathname) {
-  const stripped = pathname.replace(/^\//, '').replace(/\/$/, '')
-  if (stripped.includes('-for-')) return null
-  const match = stripped.match(/^compare\/([^/]+)-vs-([^/]+)-ivf$/)
-  if (!match) return null
-  const [a, b] = canonicalPair(match[1], match[2])
-  return `/compare/${a}-vs-${b}-for-ivf/`
+  return `${entityA}-vs-${entityB}-${canonicalTreatment}`
 }
 
 function comparePublicRedirect(pathname) {
@@ -78,7 +69,7 @@ function comparePublicRedirect(pathname) {
 
 function cmsCompareSlug(a, b, treatment) {
   const [entityA, entityB] = canonicalPair(a, b)
-  return `/compare/${entityA}-vs-${entityB}-for-${canonicalTreatmentSlug(treatment)}`
+  return `/compare/${entityA}-vs-${entityB}-${canonicalTreatmentSlug(treatment)}`
 }
 
 function cmsCompareSlugCandidates(a, b, treatment) {
@@ -93,6 +84,7 @@ function cmsCompareSlugCandidates(a, b, treatment) {
   const [entityA, entityB] = canonicalPair(a, b)
   add(cmsCompareSlug(a, b, canonical))
   for (const variant of treatmentSlugVariants(canonical)) {
+    add(`/compare/${entityA}-vs-${entityB}-${variant}`)
     add(`/compare/${entityA}-vs-${entityB}-for-${variant}`)
   }
   return ordered
@@ -115,26 +107,25 @@ assert.equal(fixed.rawB, 'thessaloniki')
 assert.equal(fixed.treatment, 'ivf')
 assert.equal(fixed.normalized, 'athens-vs-thessaloniki-for-ivf')
 
-// Legacy middleware must not re-append -for-
+// Public redirect from -for- slug to canonical
 assert.equal(
-  legacyCompareToNew('/compare/athens-vs-thessaloniki-for-ivf/'),
-  null,
-)
-assert.equal(
-  legacyCompareToNew('/compare/athens-vs-thessaloniki-ivf/'),
-  '/compare/athens-vs-thessaloniki-for-ivf/',
+  comparePublicRedirect('/compare/athens-vs-thessaloniki-for-ivf/'),
+  '/compare/athens-vs-thessaloniki-ivf/',
 )
 
 // Public redirect from garbage to canonical
 assert.equal(
   comparePublicRedirect(`/compare/${garbage}/`),
-  '/compare/athens-vs-thessaloniki-for-ivf/',
+  '/compare/athens-vs-thessaloniki-ivf/',
 )
 
 // CMS slug variants for backend long treatment slugs
 assert.deepEqual(cmsCompareSlugCandidates('athens', 'thessaloniki', 'ivf'), [
+  '/compare/athens-vs-thessaloniki-ivf',
   '/compare/athens-vs-thessaloniki-for-ivf',
+  '/compare/athens-vs-thessaloniki-ivf-in-vitro-fertilisation',
   '/compare/athens-vs-thessaloniki-for-ivf-in-vitro-fertilisation',
+  '/compare/athens-vs-thessaloniki-ivf-in-vitro-fertilization',
   '/compare/athens-vs-thessaloniki-for-ivf-in-vitro-fertilization',
 ])
 

@@ -37,7 +37,7 @@ const items = [
   { id: 201, slug: 'costs/spain-ivf-financing-2026', language: 'en', updatedAt: '2026-05-01T10:00:00Z' },
   {
     id: 301,
-    slug: 'compare/athens-vs-thessaloniki-for-ivf',
+    slug: 'compare/athens-vs-thessaloniki-ivf',
     language: 'en',
     updatedAt: '2026-06-01T10:00:00Z',
     pageType: 'COMPARISON',
