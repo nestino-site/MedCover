@@ -13,7 +13,7 @@ import {
   type SiteHub,
 } from '@/lib/content/site-nav'
 import type { TreatmentCategoryDisplay } from '@/lib/content/treatments'
-import { treatmentPath } from '@/lib/routes'
+import { clinicCountryTreatmentPath, treatmentPath } from '@/lib/routes'
 import { localizedPath, type Locale, type Dictionary } from '@/lib/i18n'
 import type { getFeaturedCountriesFromTaxonomy, GuideCountryGroup } from '@/lib/content/hubs'
 
@@ -102,18 +102,31 @@ function PanelSectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
+function countryKeyFromFeatured(c: FeaturedCountry): string {
+  return c.slug.replace(/^guides\//, '').replace(/-ivf-guide$/, '')
+}
+
 function ClinicsPanel({
   t,
   locale,
   featuredCountries,
+  treatments,
   onNavigate,
 }: {
   t: Dictionary
   locale: Locale
   featuredCountries: FeaturedCountry[]
+  treatments: TreatmentCategoryDisplay[]
   onNavigate: () => void
 }) {
   const clinicsHub = getHubById('clinics')!
+  const activeTreatments = treatments.filter((c) => c.status === 'active')
+  const ivfTreatment = activeTreatments.find((tr) => tr.id === 'ivf')
+  const ivfDestinations = ivfTreatment
+    ? featuredCountries.filter((c) =>
+        ivfTreatment.countries.includes(countryKeyFromFeatured(c)),
+      )
+    : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -124,16 +137,43 @@ function ClinicsPanel({
         locale={locale}
         onNavigate={onNavigate}
       />
-      {featuredCountries.length > 0 && (
+      {ivfDestinations.length > 0 && ivfTreatment && (
         <div>
           <PanelSectionLabel>{t.nav.groups.featuredIvf}</PanelSectionLabel>
           <div className="flex flex-wrap gap-1">
-            {featuredCountries.map((c) => (
-              <CompactLink key={c.href} href={c.href} onClick={onNavigate}>
-                <span aria-hidden="true">{c.flag}</span>
-                {c.name}
-              </CompactLink>
-            ))}
+            {ivfDestinations.map((c) => {
+              const countryKey = countryKeyFromFeatured(c)
+              return (
+                <CompactLink
+                  key={countryKey}
+                  href={clinicCountryTreatmentPath(countryKey, ivfTreatment.id, locale)}
+                  onClick={onNavigate}
+                >
+                  <span aria-hidden="true">{c.flag}</span>
+                  {c.name}
+                </CompactLink>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {activeTreatments.length > 0 && (
+        <div>
+          <PanelSectionLabel>{t.breadcrumb.treatments}</PanelSectionLabel>
+          <div className="flex flex-wrap gap-1">
+            {activeTreatments.map((treatment) => {
+              const country = treatment.countries[0]
+              if (!country) return null
+              return (
+                <CompactLink
+                  key={treatment.id}
+                  href={clinicCountryTreatmentPath(country, treatment.id, locale)}
+                  onClick={onNavigate}
+                >
+                  {treatment.name}
+                </CompactLink>
+              )
+            })}
           </div>
         </div>
       )}
@@ -430,6 +470,7 @@ export function NavMegaMenu({ locale, t, featuredCountries, guideGroups, treatme
             t={t}
             locale={locale}
             featuredCountries={featuredCountries}
+            treatments={treatments}
             onNavigate={close}
           />
         )

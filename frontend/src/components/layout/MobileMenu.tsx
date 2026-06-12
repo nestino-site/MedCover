@@ -8,7 +8,7 @@ import { getDictionary, localizedPath, type Locale } from '@/lib/i18n'
 import type { getFeaturedCountriesFromTaxonomy, GuideCountryGroup } from '@/lib/content/hubs'
 import type { TreatmentCategoryDisplay } from '@/lib/content/treatments'
 import { DIRECT_NAV_HUB_IDS, MEGA_GROUPS, SITE_HUBS, hubPath, type SiteHub } from '@/lib/content/site-nav'
-import { treatmentPath } from '@/lib/routes'
+import { clinicCountryTreatmentPath, treatmentPath } from '@/lib/routes'
 import { SearchTriggerButton } from '@/components/search/SearchModal'
 
 type FeaturedCountry = ReturnType<typeof getFeaturedCountriesFromTaxonomy>[number]
@@ -97,12 +97,21 @@ function HubItem({
   )
 }
 
+function countryKeyFromFeatured(c: FeaturedCountry): string {
+  return c.slug.replace(/^guides\//, '').replace(/-ivf-guide$/, '')
+}
+
 export function MobileMenu({ locale, guideGroups, featuredCountries, treatments }: MobileMenuProps) {
   const [open, setOpen] = useState(false)
   const t = getDictionary(locale)
   const close = () => setOpen(false)
 
   const featured = featuredCountries.slice(0, 6)
+  const activeTreatments = treatments.filter((tr) => tr.status === 'active')
+  const ivfTreatment = activeTreatments.find((tr) => tr.id === 'ivf')
+  const ivfDestinations = ivfTreatment
+    ? featured.filter((c) => ivfTreatment.countries.includes(countryKeyFromFeatured(c)))
+    : []
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -266,14 +275,40 @@ export function MobileMenu({ locale, guideGroups, featuredCountries, treatments 
                     </div>
                   )}
 
-                  {(group.id === 'clinics' || group.id === 'destinations') && featured.length > 0 && (
+                  {group.id === 'destinations' && featured.length > 0 && (
                     <div className="mt-2 px-3">
                       <p className="mb-2 text-[9px] font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
                         {t.nav.groups.featuredIvf}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {featured.map((dest) => {
-                          const href = group.id === 'destinations' ? dest.countryHref : dest.href
+                        {featured.map((dest) => (
+                          <Link
+                            key={dest.countryHref}
+                            href={dest.countryHref}
+                            onClick={close}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-neutral-700)] transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]"
+                          >
+                            <span aria-hidden="true">{dest.flag}</span>
+                            {dest.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {group.id === 'clinics' && ivfDestinations.length > 0 && ivfTreatment && (
+                    <div className="mt-2 px-3">
+                      <p className="mb-2 text-[9px] font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
+                        {t.nav.groups.featuredIvf}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ivfDestinations.map((dest) => {
+                          const countryKey = countryKeyFromFeatured(dest)
+                          const href = clinicCountryTreatmentPath(
+                            countryKey,
+                            ivfTreatment.id,
+                            locale,
+                          )
                           return (
                             <Link
                               key={href}
@@ -283,6 +318,31 @@ export function MobileMenu({ locale, guideGroups, featuredCountries, treatments 
                             >
                               <span aria-hidden="true">{dest.flag}</span>
                               {dest.name}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {group.id === 'clinics' && activeTreatments.length > 0 && (
+                    <div className="mt-2 px-3">
+                      <p className="mb-2 text-[9px] font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
+                        {t.breadcrumb.treatments}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {activeTreatments.map((treatment) => {
+                          const country = treatment.countries[0]
+                          if (!country) return null
+                          const href = clinicCountryTreatmentPath(country, treatment.id, locale)
+                          return (
+                            <Link
+                              key={treatment.id}
+                              href={href}
+                              onClick={close}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-accent-800)] transition-colors hover:bg-[var(--color-accent-100)]"
+                            >
+                              {treatment.name}
                             </Link>
                           )
                         })}
