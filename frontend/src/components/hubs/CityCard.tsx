@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import type { getDictionary } from '@/lib/i18n'
 import type { TreatmentTag } from '@/components/hubs/CountryCard'
 import { clinicCityTreatmentPath } from '@/lib/routes'
@@ -35,8 +36,8 @@ function TreatmentTagBadge({
 }) {
   const isActive = tag.status === 'active'
   const className = isActive
-    ? 'inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-50)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]'
-    : 'inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-neutral-500)]'
+    ? 'inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-50)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]'
+    : 'inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-neutral-500)]'
 
   const content = (
     <>
@@ -71,43 +72,54 @@ export function CityCard({
   t: ReturnType<typeof getDictionary>
   locale?: Locale
 }) {
+  const activeTreatments = data.treatments.filter((tag) => tag.status === 'active')
+
   return (
     <Link
       href={data.href}
-      className="group flex flex-col rounded-xl border border-[var(--color-border)] bg-white px-4 py-3 transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]/30"
+      className="group flex h-full flex-col rounded-2xl border border-[var(--color-border)] bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-[var(--color-primary-200)] hover:shadow-lg"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
-            {data.cityName}
-          </p>
-          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--color-neutral-500)]">
-            <span aria-hidden="true">{data.countryFlag}</span>
-            {data.countryName}
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary-50)] text-xl leading-none"
+            aria-hidden="true"
+          >
+            {data.countryFlag}
+          </span>
+          <div className="min-w-0">
+            <p className="font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
+              {data.cityName}
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--color-neutral-500)]">{data.countryName}</p>
+          </div>
         </div>
-        <span className="shrink-0 text-sm font-medium text-[var(--color-accent-600)]">→</span>
+        <ArrowRight
+          size={16}
+          className="mt-1 shrink-0 text-[var(--color-primary-600)] opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100"
+          aria-hidden="true"
+        />
       </div>
 
-      {data.treatments.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1">
-          {data.treatments
-            .filter((tag) => tag.status === 'active')
-            .slice(0, 2)
-            .map((tag) => (
-              <TreatmentTagBadge
-                key={tag.id}
-                tag={tag}
-                countryKey={data.countryKey}
-                cityKey={data.cityKey}
-                locale={locale}
-              />
-            ))}
-          {data.treatments.filter((tx) => tx.status === 'active').length === 0 && (
-            <span className="text-xs text-[var(--color-neutral-400)]">{t.hubs.cities.comingSoonLabel}</span>
-          )}
+      {activeTreatments.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {activeTreatments.slice(0, 3).map((tag) => (
+            <TreatmentTagBadge
+              key={tag.id}
+              tag={tag}
+              countryKey={data.countryKey}
+              cityKey={data.cityKey}
+              locale={locale}
+            />
+          ))}
         </div>
+      ) : (
+        <p className="mt-3 text-xs text-[var(--color-neutral-400)]">{t.hubs.cities.comingSoonLabel}</p>
       )}
+
+      <p className="mt-auto pt-3 text-xs font-semibold text-[var(--color-accent-600)]">
+        View city guide →
+      </p>
     </Link>
   )
 }

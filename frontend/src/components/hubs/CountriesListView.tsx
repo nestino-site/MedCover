@@ -72,7 +72,7 @@ export function CountriesListView({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       {filtered.map((card) => (
         <CountryCard key={card.slug} data={card} t={t} locale={locale} />
       ))}

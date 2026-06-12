@@ -130,6 +130,7 @@ function MobilePanelContent({
           <NavHubCard
             hub={countriesHub}
             label={t.nav.triggers.destinations}
+            description={t.nav.descriptions.destinations}
             locale={locale}
             onNavigate={onNavigate}
             variant="nav"
@@ -172,6 +173,7 @@ function MobilePanelContent({
           <NavHubCard
             hub={clinicsHub}
             label={t.nav.triggers.clinics}
+            description={t.nav.descriptions.clinics}
             locale={locale}
             onNavigate={onNavigate}
             variant="nav"
