@@ -384,15 +384,21 @@ export function NavCountryActions({
           key={country.countryHref}
           className="flex items-center gap-2 rounded-lg border border-transparent px-1.5 py-1 transition-colors hover:border-[var(--color-border)] hover:bg-white"
         >
-          <span
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[var(--color-primary-50)] text-base leading-none"
-            aria-hidden="true"
+          <Link
+            href={country.countryHref}
+            onClick={onNavigate}
+            className="group/name flex min-w-0 flex-1 items-center gap-2"
           >
-            {country.flag}
-          </span>
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--color-primary-950)]">
-            {country.name}
-          </span>
+            <span
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[var(--color-primary-50)] text-base leading-none"
+              aria-hidden="true"
+            >
+              {country.flag}
+            </span>
+            <span className="truncate text-sm font-medium text-[var(--color-primary-950)] group-hover/name:text-[var(--color-primary-700)]">
+              {country.name}
+            </span>
+          </Link>
           <div className="flex shrink-0 flex-wrap justify-end gap-1">
             <NavActionChip href={country.countryHref} onClick={onNavigate} primary>
               {labels.overview}
@@ -432,20 +438,28 @@ export function NavCityActions({
           key={`${city.overviewHref}-${city.cityName}`}
           className="flex items-center gap-2 rounded-lg border border-transparent px-1.5 py-1 transition-colors hover:border-[var(--color-border)] hover:bg-white"
         >
-          <span
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[var(--color-primary-50)] text-base leading-none"
-            aria-hidden="true"
+          <Link
+            href={city.overviewHref}
+            onClick={onNavigate}
+            className="group/name min-w-0 flex-1"
           >
-            {city.flag}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium text-[var(--color-primary-950)]">
-              {city.cityName}
+            <span className="flex items-center gap-2">
+              <span
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[var(--color-primary-50)] text-base leading-none"
+                aria-hidden="true"
+              >
+                {city.flag}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-[var(--color-primary-950)] group-hover/name:text-[var(--color-primary-700)]">
+                  {city.cityName}
+                </span>
+                <span className="block truncate text-[10px] text-[var(--color-neutral-500)]">
+                  {city.countryName}
+                </span>
+              </span>
             </span>
-            <span className="block truncate text-[10px] text-[var(--color-neutral-500)]">
-              {city.countryName}
-            </span>
-          </span>
+          </Link>
           <div className="flex shrink-0 flex-wrap justify-end gap-1">
             <NavActionChip href={city.overviewHref} onClick={onNavigate} primary>
               {labels.overview}
