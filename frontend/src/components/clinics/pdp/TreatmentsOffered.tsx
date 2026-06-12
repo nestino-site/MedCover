@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { ClinicDetail } from '@/lib/api/types'
 import { SectionHeading } from '@/components/ui/SectionHeading'
+import { TreatmentIconBadge } from '@/components/shared/TreatmentIconBadge'
 import { clinicCityTreatmentPath } from '@/lib/routes'
 import type { Locale } from '@/lib/i18n'
 import { en } from '@/lib/i18n/en'
@@ -25,8 +26,9 @@ export function TreatmentsOffered({ clinic, country, city, locale = 'en' }: Trea
           <Link
             key={t.slug}
             href={clinicCityTreatmentPath(country, city, t.slug, locale)}
-            className="rounded-full border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-4 py-2 text-sm font-medium text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-100)]"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-4 py-2 text-sm font-medium text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-100)]"
           >
+            <TreatmentIconBadge treatmentId={t.slug} size="sm" />
             {t.name}
           </Link>
         ))}

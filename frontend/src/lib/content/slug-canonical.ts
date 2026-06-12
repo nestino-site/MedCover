@@ -1,6 +1,8 @@
 import type { ContentListItem } from '@/lib/api/types'
 import { canonicalSlugPath } from '@/lib/api/content'
-import { canonicalPair } from '@/lib/routes'
+import { canonicalCompareTail, canonicalPair } from '@/lib/routes'
+
+export { canonicalCompareTail, isTreatmentCompareTail } from '@/lib/routes'
 
 const REDIRECTED_STUB_PATTERNS = [
   /^\/for-clinics\/?$/,
@@ -10,9 +12,6 @@ const REDIRECTED_STUB_PATTERNS = [
 ]
 
 const COST_TAIL_RE = /^([^/]+)-ivf-cost-(\d{4})$/
-const COMPARE_LEGACY_TAIL_RE = /^(.+)-vs-(.+)-ivf$/
-const COMPARE_FOR_TAIL_RE = /^(.+)-vs-(.+)-for-(.+)$/
-const COMPARE_CLINIC_TAIL_RE = /^(.+)-vs-(.+)$/
 
 function stripLeadingSlash(slug: string): string {
   return slug.replace(/^\//, '').replace(/\/+$/, '')
@@ -65,37 +64,6 @@ export function resolveCostCanonicalSlug(
   if (!canonical || canonical === normalized) return null
 
   return canonical
-}
-
-export function canonicalCompareTail(tail: string): string | null {
-  const forMatch = tail.match(COMPARE_FOR_TAIL_RE)
-  if (forMatch) {
-    const [, rawA, rawB, treatment] = forMatch
-    const [a, b] = canonicalPair(rawA, rawB)
-    return `${a}-vs-${b}-for-${treatment}`
-  }
-
-  const legacyMatch = tail.match(COMPARE_LEGACY_TAIL_RE)
-  if (legacyMatch) {
-    const [, rawA, rawB] = legacyMatch
-    const [a, b] = canonicalPair(rawA, rawB)
-    return `${a}-vs-${b}-for-ivf`
-  }
-
-  const clinicMatch = tail.match(COMPARE_CLINIC_TAIL_RE)
-  if (clinicMatch) {
-    const [, rawA, rawB] = clinicMatch
-    const [a, b] = canonicalPair(rawA, rawB)
-    return `${a}-vs-${b}`
-  }
-
-  return null
-}
-
-/** Country/city compares include `-for-{treatment}`; clinic compares do not. */
-export function isTreatmentCompareTail(tail: string): boolean {
-  const canonical = canonicalCompareTail(tail)
-  return Boolean(canonical?.includes('-for-'))
 }
 
 export function resolveCompareCanonicalSlug(

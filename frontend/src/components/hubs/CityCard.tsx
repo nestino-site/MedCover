@@ -6,6 +6,7 @@ import type { getDictionary } from '@/lib/i18n'
 import type { TreatmentTag } from '@/components/hubs/CountryCard'
 import { clinicCityTreatmentPath } from '@/lib/routes'
 import type { Locale } from '@/lib/i18n'
+import { TreatmentIconBadge } from '@/components/shared/TreatmentIconBadge'
 
 export interface CityCardData {
   slug: string
@@ -41,6 +42,7 @@ function TreatmentTagBadge({
 
   const content = (
     <>
+      <TreatmentIconBadge treatmentId={tag.id} size="xs" />
       {tag.name}
       {!isActive && (
         <span className="text-[9px] font-bold uppercase tracking-wide opacity-70">Soon</span>

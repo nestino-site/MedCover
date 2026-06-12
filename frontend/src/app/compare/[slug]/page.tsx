@@ -4,8 +4,9 @@ import { listPublishedPagesSafe } from '@/lib/api/content'
 import { generateCompareStaticParams } from '@/lib/compare/static-params'
 import { CompareDetailContent } from '@/components/compare/CompareDetailContent'
 import { CompareDetailSkeleton } from '@/components/compare/CompareDetailSkeleton'
-import { cmsCompareSlug } from '@/lib/routes'
+import { cmsCompareSlug, parseCompareSlug, resolveCompareCanonicalSlug } from '@/lib/routes'
 import { cmsMetadataForSlug } from '@/lib/seo/cms-seo'
+import { getTaxonomy } from '@/lib/api/catalog'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -16,13 +17,16 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const forMatch = slug.match(/^(.+)-vs-(.+)-for-(.+)$/)
-  if (forMatch) {
-    return cmsMetadataForSlug(cmsCompareSlug(forMatch[1], forMatch[2], forMatch[3]))
+  const taxonomy = await getTaxonomy()
+  const parsed = resolveCompareCanonicalSlug(slug, taxonomy)
+  if (parsed) {
+    return cmsMetadataForSlug(cmsCompareSlug(parsed.entityA, parsed.entityB, parsed.treatment))
   }
-  const vsMatch = slug.match(/^(.+)-vs-(.+)$/)
-  if (vsMatch) {
-    return cmsMetadataForSlug(cmsCompareSlug(vsMatch[1], vsMatch[2]))
+  const fallback = parseCompareSlug(slug)
+  if (fallback?.treatment) {
+    return cmsMetadataForSlug(
+      cmsCompareSlug(fallback.entityA, fallback.entityB, fallback.treatment),
+    )
   }
   return cmsMetadataForSlug(`/compare/${slug}`)
 }

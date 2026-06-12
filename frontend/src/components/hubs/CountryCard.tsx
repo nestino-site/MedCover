@@ -8,6 +8,7 @@ import type { CityDisplay } from '@/lib/content/hubs'
 import { clinicCountryTreatmentPath } from '@/lib/routes'
 import type { Locale } from '@/lib/i18n'
 import { trackCardClick } from '@/lib/analytics'
+import { TreatmentIconBadge } from '@/components/shared/TreatmentIconBadge'
 
 export interface TreatmentTag {
   id: string
@@ -51,7 +52,14 @@ function TreatmentTagBadge({
   locale?: Locale
 }) {
   const className =
-    'inline-flex items-center rounded-full bg-[var(--color-accent-50)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]'
+    'inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-50)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]'
+
+  const content = (
+    <>
+      <TreatmentIconBadge treatmentId={tag.id} size="xs" />
+      {tag.name}
+    </>
+  )
 
   if (linkTreatments) {
     return (
@@ -60,12 +68,12 @@ function TreatmentTagBadge({
         className={className}
         onClick={(e) => e.stopPropagation()}
       >
-        {tag.name}
+        {content}
       </Link>
     )
   }
 
-  return <span className={className}>{tag.name}</span>
+  return <span className={className}>{content}</span>
 }
 
 export function CountryCard({

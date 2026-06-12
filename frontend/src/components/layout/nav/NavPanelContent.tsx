@@ -5,12 +5,12 @@ import type { TreatmentCategoryDisplay } from '@/lib/content/treatments'
 import type { getFeaturedCountriesFromTaxonomy, NavFeaturedCity } from '@/lib/content/hubs'
 import {
   clinicTreatmentBrowsePath,
-  compareHubPath,
   clinicsHubPath,
   countriesHubPath,
   treatmentPath,
 } from '@/lib/routes'
 import type { Locale, Dictionary } from '@/lib/i18n'
+import { TreatmentIconBadge } from '@/components/shared/TreatmentIconBadge'
 import {
   NAV_PREVIEW_LIMIT,
   NavCityActions,
@@ -19,10 +19,9 @@ import {
   NavCountryList,
   NavFlatLink,
   NavHubCard,
-  NavMicroLink,
   NavPanelTabs,
   NavSectionLabel,
-  NavTreatmentChip,
+  NavTreatmentGrid,
   NavTreatmentRow,
   NavViewAllLink,
   type NavCityRow,
@@ -82,18 +81,13 @@ function DestinationsContent({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <NavHubCard
-          hub={countriesHub}
-          label={t.nav.triggers.destinations}
-          locale={locale}
-          onNavigate={onNavigate}
-          layout="inline"
-        />
-        <NavMicroLink href={compareHubPath(locale)} onClick={onNavigate}>
-          {t.nav.actions.compareDestinations} →
-        </NavMicroLink>
-      </div>
+      <NavHubCard
+        hub={countriesHub}
+        label={t.nav.triggers.destinations}
+        locale={locale}
+        onNavigate={onNavigate}
+        layout="inline"
+      />
 
       {tabs.length > 0 && (
         <NavPanelTabs tabs={tabs}>
@@ -160,7 +154,6 @@ function ClinicsContent({
   onNavigate: () => void
 }) {
   const clinicsHub = getHubById('clinics')!
-  const activeTreatments = treatments.filter((tr) => tr.status === 'active')
   const tabs = [
     ...(featuredCountries.length > 0
       ? [{ id: 'countries', label: t.nav.sections.byDestination, count: featuredCountries.length }]
@@ -168,22 +161,20 @@ function ClinicsContent({
     ...(featuredCities.length > 0
       ? [{ id: 'cities', label: t.nav.sections.popularCities, count: featuredCities.length }]
       : []),
+    ...(treatments.length > 0
+      ? [{ id: 'treatments', label: t.nav.sections.byTreatment, count: treatments.length }]
+      : []),
   ]
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <NavHubCard
-          hub={clinicsHub}
-          label={t.nav.triggers.clinics}
-          locale={locale}
-          onNavigate={onNavigate}
-          layout="inline"
-        />
-        <NavMicroLink href={clinicsHubPath(locale)} onClick={onNavigate}>
-          {t.nav.actions.browseAllClinics} →
-        </NavMicroLink>
-      </div>
+      <NavHubCard
+        hub={clinicsHub}
+        label={t.nav.triggers.clinics}
+        locale={locale}
+        onNavigate={onNavigate}
+        layout="inline"
+      />
 
       {tabs.length > 0 && (
         <NavPanelTabs tabs={tabs}>
@@ -233,29 +224,33 @@ function ClinicsContent({
                   )}
                 </>
               )}
+              {activeTab === 'treatments' && treatments.length > 0 && (
+                <NavTreatmentGrid
+                  treatments={treatments.map((treatment) => ({
+                    id: treatment.id,
+                    name: treatment.name,
+                    status: treatment.status,
+                    clinicCount: treatment.clinicCount,
+                    href:
+                      treatment.status === 'active'
+                        ? clinicTreatmentBrowsePath(
+                            treatment.id,
+                            treatment.countries,
+                            locale,
+                          )
+                        : undefined,
+                  }))}
+                  onNavigate={onNavigate}
+                  labels={{
+                    browseClinics: t.nav.actions.browseTreatmentClinics,
+                    clinicCount: t.nav.actions.treatmentClinicCount,
+                    soon: t.nav.soon,
+                  }}
+                />
+              )}
             </div>
           )}
         </NavPanelTabs>
-      )}
-
-      {activeTreatments.length > 0 && (
-        <div>
-          <NavSectionLabel>{t.nav.sections.byTreatment}</NavSectionLabel>
-          <div className="flex flex-wrap gap-1.5">
-            {activeTreatments.map((treatment) => (
-              <NavTreatmentChip
-                key={treatment.id}
-                name={treatment.name}
-                treatmentHref={clinicTreatmentBrowsePath(
-                  treatment.id,
-                  treatment.countries,
-                  locale,
-                )}
-                onNavigate={onNavigate}
-              />
-            ))}
-          </div>
-        </div>
       )}
     </div>
   )
@@ -293,6 +288,7 @@ function TreatmentsContent({
             {activeTreatments.map((treatment) => (
               <NavTreatmentRow
                 key={treatment.id}
+                treatmentId={treatment.id}
                 name={treatment.name}
                 treatmentHref={treatmentPath(treatment.id, locale)}
                 onNavigate={onNavigate}
@@ -309,8 +305,9 @@ function TreatmentsContent({
             {comingSoonTreatments.map((treatment) => (
               <span
                 key={treatment.id}
-                className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-white px-2 py-1 text-xs text-[var(--color-neutral-500)]"
+                className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] bg-white px-2 py-1 text-xs text-[var(--color-neutral-500)]"
               >
+                <TreatmentIconBadge treatmentId={treatment.id} size="xs" />
                 {treatment.name}
                 <span className="rounded bg-[var(--color-neutral-100)] px-1 py-0.5 text-[9px] font-bold uppercase text-[var(--color-neutral-400)]">
                   {t.nav.soon}

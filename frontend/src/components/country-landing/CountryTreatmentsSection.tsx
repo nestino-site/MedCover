@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { TreatmentCategoryDisplay } from '@/lib/content/treatments'
 import { localizedPath, type Locale } from '@/lib/i18n'
 import { en } from '@/lib/i18n/en'
+import { TreatmentIconBadge } from '@/components/shared/TreatmentIconBadge'
 
 interface CountryTreatmentsSectionProps {
   countryName: string
@@ -39,31 +40,36 @@ export function CountryTreatmentsSection({
                   : 'border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] opacity-60'
               }`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <p className={`font-bold ${isActive ? 'text-[var(--color-primary-950)]' : 'text-[var(--color-neutral-500)]'}`}>
-                  {treatment.name}
-                </p>
-                <span
-                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    isActive
-                      ? 'bg-[var(--color-accent-100)] text-[var(--color-accent-700)]'
-                      : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)]'
-                  }`}
-                >
-                  {isActive ? t.active : t.comingSoon}
-                </span>
-              </div>
+              <div className="flex items-start gap-3">
+                <TreatmentIconBadge treatmentId={treatment.id} size="lg" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className={`font-bold ${isActive ? 'text-[var(--color-primary-950)]' : 'text-[var(--color-neutral-500)]'}`}>
+                      {treatment.name}
+                    </p>
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        isActive
+                          ? 'bg-[var(--color-accent-100)] text-[var(--color-accent-700)]'
+                          : 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)]'
+                      }`}
+                    >
+                      {isActive ? t.active : t.comingSoon}
+                    </span>
+                  </div>
 
-              {isActive && (
-                <div className="mt-4">
-                  <Link
-                    href={localizedPath(`/treatments/${treatment.id}`, locale)}
-                    className="inline-flex rounded-lg border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-4 py-2 text-sm font-semibold text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-100)]"
-                  >
-                    {t.viewTreatmentHub} →
-                  </Link>
+                  {isActive && (
+                    <div className="mt-4">
+                      <Link
+                        href={localizedPath(`/treatments/${treatment.id}`, locale)}
+                        className="inline-flex rounded-lg border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-4 py-2 text-sm font-semibold text-[var(--color-primary-800)] transition-colors hover:bg-[var(--color-primary-100)]"
+                      >
+                        {t.viewTreatmentHub} →
+                      </Link>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           )
         })}

@@ -45,6 +45,8 @@ export const en = {
       browseAllClinics: 'Browse all clinics',
       viewAllCountries: 'View all {count} countries',
       viewAllCities: 'View all {count} cities',
+      browseTreatmentClinics: 'Browse clinics',
+      treatmentClinicCount: '{count} clinics',
     },
     sections: {
       byDestination: 'By destination',

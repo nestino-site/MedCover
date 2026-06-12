@@ -7,6 +7,8 @@ import type { SiteHub } from '@/lib/content/site-nav'
 import { hubPath } from '@/lib/content/site-nav'
 import type { Locale } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
+import { TreatmentIconBadge } from '@/components/shared/TreatmentIconBadge'
+import { getTreatmentIconStyle } from '@/lib/content/treatment-icons'
 
 export const NAV_PREVIEW_LIMIT = 5
 
@@ -560,11 +562,13 @@ export function NavCityList({
 }
 
 export function NavTreatmentRow({
+  treatmentId,
   name,
   treatmentHref,
   onNavigate,
   badge,
 }: {
+  treatmentId: string
   name: string
   treatmentHref: string
   onNavigate: () => void
@@ -578,6 +582,7 @@ export function NavTreatmentRow({
         className="group flex items-center justify-between rounded-lg border border-transparent px-2.5 py-1.5 text-sm font-medium text-[var(--color-neutral-800)] transition-all hover:border-[var(--color-border)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]"
       >
         <span className="flex items-center gap-2">
+          <TreatmentIconBadge treatmentId={treatmentId} size="sm" />
           {name}
           {badge && (
             <span className="rounded-md bg-[var(--color-neutral-100)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--color-neutral-400)]">
@@ -595,30 +600,99 @@ export function NavTreatmentRow({
   )
 }
 
-export function NavTreatmentChip({
-  name,
-  treatmentHref,
-  onNavigate,
-  badge,
-}: {
+export type NavTreatmentGridItem = {
+  id: string
   name: string
-  treatmentHref: string
+  status: 'active' | 'coming_soon'
+  href?: string
+  clinicCount?: number
+}
+
+export function NavTreatmentGrid({
+  treatments,
+  onNavigate,
+  labels,
+}: {
+  treatments: NavTreatmentGridItem[]
   onNavigate: () => void
-  badge?: string
+  labels: {
+    browseClinics: string
+    clinicCount: string
+    soon: string
+  }
 }) {
   return (
-    <Link
-      href={treatmentHref}
-      onClick={onNavigate}
-      className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] bg-white px-2 py-1 text-xs font-medium text-[var(--color-neutral-700)] transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]"
-    >
-      {name}
-      {badge && (
-        <span className="rounded bg-[var(--color-neutral-100)] px-1 py-0.5 text-[9px] font-bold uppercase text-[var(--color-neutral-400)]">
-          {badge}
-        </span>
-      )}
-    </Link>
+    <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {treatments.map((treatment) => {
+        const iconStyle = getTreatmentIconStyle(treatment.id)
+        const clinicMeta =
+          treatment.clinicCount && treatment.clinicCount > 0
+            ? labels.clinicCount.replace('{count}', String(treatment.clinicCount))
+            : null
+
+        if (treatment.status === 'active' && treatment.href) {
+          return (
+            <li key={treatment.id}>
+              <Link
+                href={treatment.href}
+                onClick={onNavigate}
+                className={cn(
+                  'group flex h-full flex-col gap-2.5 rounded-xl border border-[var(--color-border)] bg-white p-3 transition-all',
+                  'hover:border-[var(--color-primary-200)] hover:shadow-sm',
+                  iconStyle.bg,
+                )}
+              >
+                <span className="flex items-start gap-2.5">
+                  <TreatmentIconBadge treatmentId={treatment.id} size="md" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-800)]">
+                      {treatment.name}
+                    </span>
+                    {clinicMeta && (
+                      <span className="mt-0.5 block text-[11px] text-[var(--color-neutral-500)]">
+                        {clinicMeta}
+                      </span>
+                    )}
+                  </span>
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-accent-600)] group-hover:text-[var(--color-accent-700)]">
+                  {labels.browseClinics}
+                  <ArrowRight
+                    size={12}
+                    className="transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </span>
+              </Link>
+            </li>
+          )
+        }
+
+        return (
+          <li key={treatment.id}>
+            <div
+              className={cn(
+                'flex h-full flex-col gap-2.5 rounded-xl border border-dashed border-[var(--color-border)] p-3',
+                iconStyle.bg,
+                'opacity-80',
+              )}
+            >
+              <span className="flex items-start gap-2.5">
+                <TreatmentIconBadge treatmentId={treatment.id} size="md" className="opacity-60" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-[var(--color-neutral-600)]">
+                    {treatment.name}
+                  </span>
+                </span>
+                <span className="shrink-0 rounded-full bg-[var(--color-neutral-100)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--color-neutral-400)]">
+                  {labels.soon}
+                </span>
+              </span>
+            </div>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 

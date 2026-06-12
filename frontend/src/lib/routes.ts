@@ -188,23 +188,66 @@ export interface ParsedCompareSlug {
 const COMPARE_FOR_RE = /^(.+)-vs-(.+)-for-(.+)$/
 const COMPARE_VS_RE = /^(.+)-vs-(.+)$/
 
+/** Legacy CMS/public tails: `greece-vs-spain-ivf` (no `-for-`). Longest suffix first. */
+const LEGACY_COMPARE_TREATMENT_SUFFIXES = [
+  'hair-transplant',
+  'ivf',
+  'dental',
+  'cosmetic',
+  'hair',
+] as const
+
+function stripCompareSlug(rawSlug: string): string {
+  return rawSlug.replace(/^\//, '').replace(/^compare\//, '').replace(/\/$/, '')
+}
+
+function parseLegacyCompareTail(
+  tail: string,
+): { entityA: string; entityB: string; treatment: string; isCanonicalOrder: boolean } | null {
+  for (const treatment of LEGACY_COMPARE_TREATMENT_SUFFIXES) {
+    const suffix = `-${treatment}`
+    if (!tail.endsWith(suffix)) continue
+    const base = tail.slice(0, -suffix.length)
+    const vsMatch = base.match(COMPARE_VS_RE)
+    if (!vsMatch) continue
+    const [, rawA, rawB] = vsMatch
+    if (!rawA || !rawB) continue
+    const [entityA, entityB] = canonicalPair(rawA, rawB)
+    return { entityA, entityB, treatment, isCanonicalOrder: rawA === entityA }
+  }
+  return null
+}
+
+function buildTreatmentCompareParsed(
+  rawA: string,
+  rawB: string,
+  treatment: string,
+): ParsedCompareSlug {
+  const [entityA, entityB] = canonicalPair(rawA, rawB)
+  const canonicalTreatment = canonicalTreatmentSlug(treatment)
+  return {
+    type: 'country',
+    entityA,
+    entityB,
+    treatment: canonicalTreatment,
+    canonicalSlug: `${entityA}-vs-${entityB}-for-${canonicalTreatment}`,
+    isCanonicalOrder: rawA === entityA,
+  }
+}
+
 export function parseCompareSlug(rawSlug: string): ParsedCompareSlug | null {
-  const slug = rawSlug.replace(/^\//, '').replace(/^compare\//, '').replace(/\/$/, '')
+  const slug = stripCompareSlug(rawSlug)
   if (!slug) return null
 
   const forMatch = slug.match(COMPARE_FOR_RE)
   if (forMatch) {
     const [, rawA, rawB, treatment] = forMatch
-    const [entityA, entityB] = canonicalPair(rawA, rawB)
-    const isCanonicalOrder = rawA === entityA
-    return {
-      type: 'country',
-      entityA,
-      entityB,
-      treatment,
-      canonicalSlug: `${entityA}-vs-${entityB}-for-${treatment}`,
-      isCanonicalOrder,
-    }
+    return buildTreatmentCompareParsed(rawA, rawB, treatment)
+  }
+
+  const legacy = parseLegacyCompareTail(slug)
+  if (legacy) {
+    return buildTreatmentCompareParsed(legacy.entityA, legacy.entityB, legacy.treatment)
   }
 
   const vsMatch = slug.match(COMPARE_VS_RE)
@@ -222,6 +265,21 @@ export function parseCompareSlug(rawSlug: string): ParsedCompareSlug | null {
   }
 
   return null
+}
+
+/** Canonical compare tail (`greece-vs-spain-for-ivf`) from any backend or public slug tail. */
+export function canonicalCompareTail(tail: string): string | null {
+  return parseCompareSlug(tail)?.canonicalSlug ?? null
+}
+
+/** Country/city compares include `-for-{treatment}`; clinic compares do not. */
+export function isTreatmentCompareTail(tail: string): boolean {
+  const parsed = parseCompareSlug(tail)
+  return Boolean(parsed?.treatment)
+}
+
+export function compareDetailPath(canonicalSlug: string, locale: Locale = 'en'): string {
+  return localizedPath(`/compare/${canonicalSlug}`, locale)
 }
 
 export function compareSlugFromParsed(parsed: ParsedCompareSlug): string {

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Clock, Globe, Search, Stethoscope, Star, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { TruthScoreBadge } from '@/components/shared/TruthScoreBadge'
+import { TreatmentIconBadge } from '@/components/shared/TreatmentIconBadge'
 import { SearchResultSkeleton } from '@/components/search/SearchResultSkeleton'
 import type { ClinicCard } from '@/lib/api/types'
 import { trackSearch } from '@/lib/analytics'
@@ -401,8 +402,9 @@ export function SearchModal({ open: controlledOpen, onOpenChange, trigger }: Sea
                         key={t.slug}
                         href={`/treatments/${t.slug}/`}
                         onClick={() => handleSelect({ title: t.name, href: `/treatments/${t.slug}/` })}
-                        className="block rounded-lg px-3 py-2.5 hover:bg-[var(--color-primary-50)]"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-[var(--color-primary-50)]"
                       >
+                        <TreatmentIconBadge treatmentId={t.slug} size="sm" />
                         <p className="font-medium text-[var(--color-primary-900)]">{t.name}</p>
                       </Link>
                     ))}

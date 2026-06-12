@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { getTaxonomy, listAllClinics, treatmentSlugSet } from '@/lib/api/catalog'
 import { listPublishedPages } from '@/lib/api/content'
+import { comparePublicPathFromPageSlug } from '@/lib/compare/static-params'
 import { filterSitemapPublishedPages } from '@/lib/content/slug-canonical'
 import { filterPagesByLocale } from '@/lib/content/site-graph'
 import { getSitemapHubs, hubPath } from '@/lib/content/site-nav'
@@ -197,8 +198,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const isCityGuide = /^\/guides\/[^/]+\/.+-ivf-guide$/.test(slugPath)
       const isCostPage = slugPath.startsWith('/cost/')
       const isComparePage = slugPath.startsWith('/compare/')
+      const compareUrl = isComparePage
+        ? comparePublicPathFromPageSlug(page.slug, taxonomy, locale)
+        : null
       entries.push({
-        url: absoluteUrl(localizedPath(slugPath, locale), SITE_URL),
+        url: absoluteUrl(compareUrl ?? localizedPath(slugPath, locale), SITE_URL),
         lastModified: new Date(page.updatedAt),
         changeFrequency: isCountryGuide ? 'weekly' : 'monthly',
         priority: isCostPage ? 0.8 : isComparePage ? 0.75 : isCountryGuide ? 0.85 : isCityGuide ? 0.75 : 0.8,

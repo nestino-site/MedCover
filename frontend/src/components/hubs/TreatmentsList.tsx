@@ -21,6 +21,7 @@ import type { ContentListItem } from '@/lib/api/types'
 import type { Taxonomy } from '@/lib/api/types'
 import { Card } from '@/components/ui/Card'
 import { Skeleton, SkeletonStatus, SkeletonText } from '@/components/ui/Skeleton'
+import { TreatmentIconBadge } from '@/components/shared/TreatmentIconBadge'
 
 interface CountryPill {
   slug: string
@@ -121,6 +122,7 @@ export async function TreatmentsList({ locale }: TreatmentsListProps) {
               className="rounded-xl border border-[var(--color-border)] bg-white p-5"
             >
               <div className="flex flex-wrap items-center gap-2">
+                <TreatmentIconBadge treatmentId={cat.id} size="md" />
                 <h2 className="text-lg font-bold text-[var(--color-primary-950)]">{cat.name}</h2>
                 <span className="rounded-full bg-[var(--color-accent-100)] px-2 py-0.5 text-xs font-semibold text-[var(--color-accent-700)]">
                   {t.hubs.treatments.activeBadge}
@@ -185,8 +187,9 @@ export async function TreatmentsList({ locale }: TreatmentsListProps) {
             className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-subtle)] p-5"
           >
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-bold text-[var(--color-primary-950)]">{cat.name}</h2>
-              <span className="rounded-full bg-[var(--color-neutral-100)] px-2 py-0.5 text-xs font-semibold text-[var(--color-neutral-500)]">
+                <TreatmentIconBadge treatmentId={cat.id} size="md" />
+                <h2 className="text-lg font-bold text-[var(--color-primary-950)]">{cat.name}</h2>
+                <span className="rounded-full bg-[var(--color-neutral-100)] px-2 py-0.5 text-xs font-semibold text-[var(--color-neutral-500)]">
                 {t.hubs.treatments.soonBadge}
               </span>
             </div>

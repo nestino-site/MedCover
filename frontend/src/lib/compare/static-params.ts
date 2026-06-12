@@ -1,13 +1,13 @@
 import { canonicalSlugPath } from '@/lib/api/content'
 import type { ContentListItem, Taxonomy } from '@/lib/api/types'
-import {
-  canonicalCompareTail,
-  isTreatmentCompareTail,
-} from '@/lib/content/slug-canonical'
-import { canonicalTreatmentSlug } from '@/lib/content/treatment-slugs'
+import { isTreatmentCompareTail } from '@/lib/content/slug-canonical'
 import {
   compareCityPath,
   compareCountryPath,
+  compareDetailPath,
+  canonicalCompareTail,
+  parseCompareSlug,
+  resolveCompareCanonicalSlug,
   resolveCompareType,
   type CompareType,
 } from '@/lib/routes'
@@ -62,26 +62,21 @@ function hubItemFromCompareTail(
   locale: Locale,
   title?: string,
 ): CompareHubItem | null {
-  const forMatch = canonicalTail.match(/^(.+)-vs-(.+)-for-(.+)$/)
-  if (!forMatch) return null
-
-  const [, entityA, entityB, treatmentRaw] = forMatch
-  const treatmentKey = canonicalTreatmentSlug(treatmentRaw)
-  const type = resolveCompareType(entityA, entityB, true, taxonomy)
-  if (!type || type === 'clinic') return null
+  const parsed = resolveCompareCanonicalSlug(canonicalTail, taxonomy)
+  if (!parsed || parsed.type === 'clinic' || !parsed.treatment) return null
 
   const href =
-    type === 'country'
-      ? compareCountryPath(entityA, entityB, treatmentKey, locale)
-      : compareCityPath(entityA, entityB, treatmentKey, locale)
+    parsed.type === 'country'
+      ? compareCountryPath(parsed.entityA, parsed.entityB, parsed.treatment, locale)
+      : compareCityPath(parsed.entityA, parsed.entityB, parsed.treatment, locale)
 
   return {
-    slug: canonicalTail,
+    slug: parsed.canonicalSlug,
     href,
-    type,
-    treatmentKey,
-    entityA,
-    entityB,
+    type: parsed.type,
+    treatmentKey: parsed.treatment,
+    entityA: parsed.entityA,
+    entityB: parsed.entityB,
     title,
   }
 }
@@ -114,9 +109,21 @@ export function generateCompareStaticParams(pages: ContentListItem[]): { slug: s
 }
 
 export function compareSlugType(slug: string, taxonomy: Taxonomy): CompareType {
-  const forMatch = slug.match(/^(.+)-vs-(.+)-for-(.+)$/)
-  if (!forMatch) return 'clinic'
-  const [, rawA, rawB] = forMatch
-  const type = resolveCompareType(rawA, rawB, true, taxonomy)
+  const parsed = parseCompareSlug(slug)
+  if (!parsed?.treatment) return 'clinic'
+  const type = resolveCompareType(parsed.entityA, parsed.entityB, true, taxonomy)
   return type ?? 'city'
+}
+
+/** Canonical public path for a CMS compare page slug. */
+export function comparePublicPathFromPageSlug(
+  pageSlug: string,
+  taxonomy: Taxonomy,
+  locale: Locale,
+): string | null {
+  const canonicalTail = compareTailFromPageSlug(pageSlug)
+  if (!canonicalTail) return null
+  const parsed = resolveCompareCanonicalSlug(canonicalTail, taxonomy)
+  if (!parsed || parsed.type === 'clinic') return null
+  return compareDetailPath(parsed.canonicalSlug, locale)
 }

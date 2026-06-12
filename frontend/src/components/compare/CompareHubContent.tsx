@@ -5,6 +5,7 @@ import { listPublishedPagesSafe } from '@/lib/api/content'
 import { flagEmojiForCountry } from '@/lib/content/country-flags'
 import { buildCompareHubItemsFromPages } from '@/lib/compare/static-params'
 import { getCountryDisplayFromTaxonomy } from '@/lib/content/hubs'
+import { getTreatmentIcon } from '@/lib/content/treatment-icons'
 import { cacheTags } from '@/lib/cache/tags'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import {
@@ -81,6 +82,7 @@ function ComparisonCard({
   const treatmentKey = item.treatmentKey ?? 'ivf'
   const treatment = TREATMENT_LABELS[treatmentKey] ?? slugToLabel(treatmentKey)
   const badgeClass = TREATMENT_BADGE_CLASS[treatmentKey] ?? TREATMENT_BADGE_CLASS.ivf
+  const TreatmentIcon = getTreatmentIcon(treatmentKey)
 
   const nameA = entityDisplayName(item.entityA, item.type, locationMeta, cityMeta)
   const nameB = entityDisplayName(item.entityB, item.type, locationMeta, cityMeta)
@@ -103,7 +105,8 @@ function ComparisonCard({
     >
       <div className="flex flex-wrap items-center gap-2">
         {item.type !== 'clinic' && (
-          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${badgeClass}`}>
+          <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${badgeClass}`}>
+            <TreatmentIcon size={12} aria-hidden="true" />
             {treatment}
           </span>
         )}

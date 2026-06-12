@@ -3,8 +3,10 @@ import { ArrowRight } from 'lucide-react'
 import { getTaxonomy, getCosts } from '@/lib/api/catalog'
 import { Card } from '@/components/ui/Card'
 import { SectionHeading } from '@/components/ui/SectionHeading'
+import { TreatmentIconBadge } from '@/components/shared/TreatmentIconBadge'
 import type { Locale } from '@/lib/i18n'
 import { costTreatmentPath } from '@/lib/routes'
+import { canonicalTreatmentSlug } from '@/lib/content/treatment-slugs'
 
 export async function CostHubTreatmentGrid({ locale }: { locale: Locale }) {
   const taxonomy = await getTaxonomy()
@@ -27,9 +29,12 @@ export async function CostHubTreatmentGrid({ locale }: { locale: Locale }) {
                 href={costTreatmentPath(treatment.slug, locale)}
                 className="flex h-full flex-col gap-3 p-6"
               >
-                <h3 className="text-lg font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
-                  {treatment.name}
-                </h3>
+                <div className="flex items-center gap-3">
+                  <TreatmentIconBadge treatmentId={canonicalTreatmentSlug(treatment.slug)} size="lg" />
+                  <h3 className="text-lg font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
+                    {treatment.name}
+                  </h3>
+                </div>
                 {costs.overall ? (
                   <p className="text-2xl font-bold tabular-nums text-[var(--color-primary-900)]">
                     €{costs.overall.min.toLocaleString()}–€{costs.overall.max.toLocaleString()}
