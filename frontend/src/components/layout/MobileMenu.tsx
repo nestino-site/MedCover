@@ -90,7 +90,7 @@ function MobilePanelContent({
   const featured = featuredCountries.slice(0, FEATURED_COUNTRY_LIMIT)
   const cities = featuredCities.slice(0, FEATURED_CITY_LIMIT)
   const activeTreatments = treatments.filter((tr) => tr.status === 'active')
-  const browseAllCitiesHref = `${countriesHubPath(locale)}#cities`
+  const browseAllCitiesHref = countriesHubPath(locale)
 
   switch (panelId) {
     case 'destinations': {

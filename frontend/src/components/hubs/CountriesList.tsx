@@ -1,7 +1,6 @@
 import { Suspense } from 'react'
-import { getTaxonomy } from '@/lib/api/catalog'
-import { listPublishedPagesSafe } from '@/lib/api/content'
 import { getDictionary, type Locale } from '@/lib/i18n'
+import type { ContentListItem, Taxonomy } from '@/lib/api/types'
 import {
   getFeaturedCountriesFromTaxonomy,
   getCountryDisplayFromTaxonomy,
@@ -30,11 +29,12 @@ function parseClinicsNumeric(clinics: string): number {
 
 export interface CountriesListProps {
   locale: Locale
+  taxonomy: Taxonomy
+  pages: ContentListItem[]
 }
 
-export async function CountriesList({ locale }: CountriesListProps) {
+export function CountriesList({ locale, taxonomy, pages }: CountriesListProps) {
   const t = getDictionary(locale)
-  const [taxonomy, pages] = await Promise.all([getTaxonomy(), listPublishedPagesSafe()])
   const { countries: countryPages, cities: cityPages } = partitionGuides(pages, locale, taxonomy)
 
   const baseCountries =
@@ -82,7 +82,7 @@ export async function CountriesList({ locale }: CountriesListProps) {
 export function CountriesListSkeleton() {
   return (
     <SkeletonStatus label="Loading countries">
-      <CardGridSkeleton count={6} gridClassName="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <CardGridSkeleton count={6} gridClassName="grid grid-cols-1 gap-3">
         <CountryCardSkeleton />
       </CardGridSkeleton>
     </SkeletonStatus>

@@ -5,6 +5,7 @@ import { getDictionary, type Locale } from '@/lib/i18n'
 import type { Taxonomy } from '@/lib/api/types'
 import { countryMatchesTreatmentFilter, treatmentsForDisplay } from '@/lib/content/treatments'
 import { useHubFilters } from '@/components/filters/use-hub-filters'
+import { useFilterNavigationOptional } from '@/components/filters/filter-navigation'
 import { CountryCard, type CountryCardData } from '@/components/hubs/CountryCard'
 
 export function CountriesListView({
@@ -18,6 +19,7 @@ export function CountriesListView({
 }) {
   const t = getDictionary(locale)
   const { treatment, sort } = useHubFilters()
+  const { pushParams } = useFilterNavigationOptional()
   const treatmentCategories = treatmentsForDisplay(taxonomy)
 
   const filtered = useMemo(() => {
@@ -43,18 +45,36 @@ export function CountriesListView({
     const isComingSoon = selectedTreatment?.status === 'coming_soon'
 
     return (
-      <p className="py-8 text-center text-[var(--color-neutral-500)]">
-        {isComingSoon
-          ? t.hubs.countries.emptyComingSoon.replace('{treatment}', selectedTreatment?.name ?? treatment ?? '')
-          : t.hubs.countries.emptyFilter}
-      </p>
+      <div className="rounded-xl border border-dashed border-[var(--color-border)] px-6 py-8 text-center">
+        <p className="text-sm text-[var(--color-neutral-600)]">
+          {isComingSoon
+            ? t.hubs.countries.emptyComingSoon.replace(
+                '{treatment}',
+                selectedTreatment?.name ?? treatment ?? '',
+              )
+            : t.hubs.countries.emptyFilter}
+        </p>
+        {treatment && (
+          <button
+            type="button"
+            onClick={() =>
+              pushParams((params) => {
+                params.delete('treatment')
+              })
+            }
+            className="mt-4 text-sm font-medium text-[var(--color-accent-600)] transition-colors hover:text-[var(--color-accent-700)] hover:underline"
+          >
+            {t.hubs.countries.clearFilter}
+          </button>
+        )}
+      </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3">
       {filtered.map((card) => (
-        <CountryCard key={card.slug} data={card} t={t} />
+        <CountryCard key={card.slug} data={card} t={t} locale={locale} />
       ))}
     </div>
   )

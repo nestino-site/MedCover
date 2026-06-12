@@ -1,41 +1,36 @@
-import { Skeleton, SkeletonText } from '@/components/ui/Skeleton'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils/cn'
 
 export function CountryCardSkeleton({ className }: { className?: string }) {
   return (
     <article
       className={cn(
-        'flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-white',
+        'rounded-xl border border-[var(--color-border)] bg-white px-4 py-3.5',
         className,
       )}
       aria-hidden="true"
     >
-      <div className="flex flex-col px-4 pt-4 pb-3">
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-8 w-8 shrink-0" rounded="full" />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <Skeleton className="h-7 w-7 shrink-0" rounded="full" />
           <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-5 w-2/3" rounded="sm" />
-            <Skeleton className="h-3.5 w-full" rounded="sm" />
+            <Skeleton className="h-5 w-36" rounded="sm" />
+            <Skeleton className="h-3.5 w-full max-w-xs" rounded="sm" />
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Skeleton className="h-6 w-24" rounded="full" />
-          <Skeleton className="h-6 w-20" rounded="full" />
+        <div className="flex items-center gap-2 pl-11 sm:pl-0">
+          <Skeleton className="h-3.5 w-20" rounded="sm" />
+          <Skeleton className="h-3.5 w-16" rounded="sm" />
         </div>
       </div>
-      <div className="px-4 pb-3">
-        <Skeleton className="h-2.5 w-20" rounded="sm" />
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          <Skeleton className="h-5 w-14" rounded="full" />
-          <Skeleton className="h-5 w-16" rounded="full" />
-          <Skeleton className="h-5 w-12" rounded="full" />
+      <div className="mt-2.5 flex flex-col gap-1.5 pl-11">
+        <div className="flex flex-wrap gap-1.5">
+          <Skeleton className="h-5 w-10" rounded="full" />
         </div>
-      </div>
-      <div className="border-t border-[var(--color-border)] px-4 py-3">
-        <Skeleton className="h-2.5 w-14" rounded="sm" />
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          <Skeleton className="h-5 w-16" rounded="md" />
-          <Skeleton className="h-5 w-20" rounded="md" />
+        <div className="flex flex-wrap gap-1">
+          <Skeleton className="h-3 w-16" rounded="sm" />
+          <Skeleton className="h-3 w-14" rounded="sm" />
+          <Skeleton className="h-3 w-20" rounded="sm" />
         </div>
       </div>
     </article>

@@ -57,7 +57,7 @@ function DestinationsPanel({
   onNavigate: () => void
 }) {
   const countriesHub = getHubById('countries')!
-  const browseAllCitiesHref = `${countriesHubPath(locale)}#cities`
+  const browseAllCitiesHref = countriesHubPath(locale)
 
   return (
     <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-8">

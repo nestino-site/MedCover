@@ -68,7 +68,7 @@ export async function Footer({ locale }: FooterProps) {
   const toolsHubs = getFooterToolsHubs()
   const featured = getFeaturedCountriesFromTaxonomy(taxonomy, locale).slice(0, 5)
   const featuredCities = getFeaturedCitiesForNav(taxonomy, locale, 5, publishedGuideKeys)
-  const browseAllCitiesHref = `${countriesHubPath(locale)}#cities`
+  const browseAllCitiesHref = countriesHubPath(locale)
 
   const mobileEssential = MOBILE_QUICK_LINKS.map((hubId) => ({
     label: mobileQuickLinkLabel(hubId, t),

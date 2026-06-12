@@ -1,9 +1,8 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { getTaxonomy } from '@/lib/api/catalog'
-import { loadPublishedPage } from '@/lib/api/content'
+import { loadPublishedPage, listPublishedPagesSafe } from '@/lib/api/content'
 import { CountriesList, CountriesListSkeleton } from '@/components/hubs/CountriesList'
-import { CitiesList, CitiesListSkeleton } from '@/components/hubs/CitiesList'
 import { HubHero } from '@/components/hubs/HubHero'
 import { HubPageLayout } from '@/components/hubs/HubPageLayout'
 import { FilterBar } from '@/components/filters/FilterBar'
@@ -16,11 +15,9 @@ import {
 } from '@/components/filters/filter-navigation'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
-import { SectionHeading } from '@/components/ui/SectionHeading'
 import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 import { treatmentsForDisplay } from '@/lib/content/treatments'
-import { cmsPageSlug } from '@/lib/routes'
 import { hubCopyFromCmsPage } from '@/lib/seo/cms-seo'
 import { cmsHubMetadata } from '@/lib/seo/site-metadata'
 import type { FaqItem } from '@/lib/api/types'
@@ -32,9 +29,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function CountriesHubPage() {
   const locale = activeLocale
   const t = getDictionary(locale)
-  const [taxonomy, cms] = await Promise.all([
+  const [taxonomy, cms, pages] = await Promise.all([
     getTaxonomy(),
     loadPublishedPage('/countries'),
+    listPublishedPagesSafe(),
   ])
   const hubFaqs: FaqItem[] = cms.status === 'ok' ? cms.page.faq : []
   const treatmentOptions = treatmentsForDisplay(taxonomy).map((c) => ({
@@ -81,22 +79,10 @@ export default async function CountriesHubPage() {
               </FilterBar>
             </Suspense>
             <FilteredResultsRegion fallback={<CountriesListSkeleton />}>
-              <Suspense fallback={<CountriesListSkeleton />}>
-                <CountriesList locale={locale} />
-              </Suspense>
+              <CountriesList locale={locale} taxonomy={taxonomy} pages={pages} />
             </FilteredResultsRegion>
           </div>
         </FilterNavigationProvider>
-
-        <section id="cities" className="mt-16 border-t border-[var(--color-border)] pt-10">
-          <SectionHeading
-            title={t.hubs.cities.title}
-            description={t.hubs.cities.description}
-          />
-          <Suspense fallback={<CitiesListSkeleton />}>
-            <CitiesList locale={locale} />
-          </Suspense>
-        </section>
 
         {hubFaqs.length > 0 && (
           <div className="mt-14 border-t border-[var(--color-border)] pt-8">

@@ -303,6 +303,7 @@ export const en = {
       readIvfGuide: 'Read IVF guide article',
       treatmentsLabel: 'Treatments',
       emptyFilter: 'No countries match the selected filter.',
+      clearFilter: 'Clear filter',
       emptyComingSoon: '{treatment} is not available at any destination yet — coming soon.',
       treatmentFilterLabel: 'Treatment',
       treatmentFilterAll: 'All treatments',

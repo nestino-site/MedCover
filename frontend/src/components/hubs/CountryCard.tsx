@@ -30,9 +30,9 @@ export interface CountryCardData {
   clinicsNumeric: number
 }
 
-function Pill({ children }: { children: ReactNode }) {
+function MetaPill({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-full border border-[var(--color-primary-100)] bg-[var(--color-primary-50)] px-2.5 py-1 text-xs font-medium text-[var(--color-primary-700)]">
+    <span className="text-xs font-medium text-[var(--color-primary-700)]">
       {children}
     </span>
   )
@@ -49,37 +49,27 @@ function TreatmentTagBadge({
   linkTreatments?: boolean
   locale?: Locale
 }) {
-  const isActive = tag.status === 'active'
-  const className = isActive
-    ? 'inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-50)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]'
-    : 'inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--color-border)] bg-[var(--color-neutral-50)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-neutral-500)]'
+  const className =
+    'inline-flex items-center rounded-full bg-[var(--color-accent-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]'
 
-  const content = (
-    <>
-      {tag.name}
-      {!isActive && (
-        <span className="text-[10px] font-bold uppercase tracking-wide opacity-70">Soon</span>
-      )}
-    </>
-  )
-
-  if (isActive && linkTreatments) {
+  if (linkTreatments) {
     return (
       <Link
         href={clinicCountryTreatmentPath(countryKey, tag.id, locale)}
         className={className}
+        onClick={(e) => e.stopPropagation()}
       >
-        {content}
+        {tag.name}
       </Link>
     )
   }
 
-  return <span className={className}>{content}</span>
+  return <span className={className}>{tag.name}</span>
 }
 
 export function CountryCard({
   data,
-  t,
+  t: _t,
   linkTreatments = false,
   locale = 'en',
 }: {
@@ -88,64 +78,84 @@ export function CountryCard({
   linkTreatments?: boolean
   locale?: Locale
 }) {
+  const activeTreatments = data.treatments.filter((tag) => tag.status === 'active')
+  const metaParts = [data.cost, data.clinics].filter(Boolean)
+
   return (
-    <article className="group flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-white transition-colors hover:border-[var(--color-primary-200)]">
-      <Link href={data.href} onClick={() => trackCardClick({ content_type: 'country', item_id: data.slug, item_name: data.name })} className="flex flex-col px-4 pt-4 pb-3">
-        <div className="flex items-center gap-3">
-          <span className="text-3xl leading-none" role="img" aria-label={data.name}>
+    <article className="group rounded-xl border border-[var(--color-border)] bg-white px-4 py-3.5 transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]/20">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <Link
+          href={data.href}
+          onClick={() =>
+            trackCardClick({ content_type: 'country', item_id: data.slug, item_name: data.name })
+          }
+          className="flex min-w-0 flex-1 items-start gap-3"
+        >
+          <span className="text-2xl leading-none" role="img" aria-label={data.name}>
             {data.flag}
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="font-semibold text-[var(--color-primary-950)] group-hover:text-[var(--color-primary-700)]">
               {data.name}
             </h2>
-            <p className="text-sm text-[var(--color-neutral-500)]">{data.tagline}</p>
+            {data.tagline && (
+              <p className="mt-0.5 text-sm text-[var(--color-neutral-500)]">{data.tagline}</p>
+            )}
           </div>
-        </div>
+        </Link>
 
-        {(data.cost || data.clinics) && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {data.cost && <Pill>{data.cost}</Pill>}
-            {data.clinics && <Pill>{data.clinics}</Pill>}
+        {metaParts.length > 0 && (
+          <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 pl-11 sm:pl-0">
+            {metaParts.map((part, i) => (
+              <span key={part} className="flex items-center gap-2">
+                {i > 0 && (
+                  <span className="text-[var(--color-neutral-300)]" aria-hidden="true">
+                    ·
+                  </span>
+                )}
+                <MetaPill>{part}</MetaPill>
+              </span>
+            ))}
           </div>
         )}
-      </Link>
+      </div>
 
-      {data.treatments.length > 0 && (
-        <div className="px-4 pb-3">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
-            {t.hubs.countries.treatmentsLabel}
-          </p>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {data.treatments.map((tag) => (
-              <TreatmentTagBadge
-                key={tag.id}
-                tag={tag}
-                countryKey={data.countryKey}
-                linkTreatments={linkTreatments}
-                locale={locale}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {(activeTreatments.length > 0 || data.cities.length > 0) && (
+        <div className="mt-2.5 flex flex-col gap-1.5 pl-11">
+          {activeTreatments.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {activeTreatments.map((tag) => (
+                <TreatmentTagBadge
+                  key={tag.id}
+                  tag={tag}
+                  countryKey={data.countryKey}
+                  linkTreatments={linkTreatments}
+                  locale={locale}
+                />
+              ))}
+            </div>
+          )}
 
-      {data.cities.length > 0 && (
-        <div className="border-t border-[var(--color-border)] px-4 py-3">
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
-            {t.hubs.countries.citiesLabel}
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {data.cities.map((city) => (
-              <Link
-                key={city.cityKey}
-                href={city.href}
-                className="rounded-md bg-[var(--color-surface-subtle)] px-2 py-0.5 text-xs text-[var(--color-neutral-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]"
-              >
-                {city.cityName}
-              </Link>
-            ))}
-          </div>
+          {data.cities.length > 0 && (
+            <p className="text-[11px] leading-relaxed text-[var(--color-neutral-500)]">
+              {data.cities.map((city, i) => (
+                <span key={city.cityKey}>
+                  {i > 0 && (
+                    <span className="mx-1 text-[var(--color-neutral-300)]" aria-hidden="true">
+                      ·
+                    </span>
+                  )}
+                  <Link
+                    href={city.href}
+                    className="text-[var(--color-neutral-600)] transition-colors hover:text-[var(--color-primary-800)] hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {city.cityName}
+                  </Link>
+                </span>
+              ))}
+            </p>
+          )}
         </div>
       )}
     </article>
