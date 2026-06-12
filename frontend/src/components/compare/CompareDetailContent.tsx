@@ -4,11 +4,13 @@ import { loadPublishedPage, listPublishedPagesSafe } from '@/lib/api/content'
 import { isPublishedCompareSlug } from '@/lib/compare/static-params'
 import { EntityHero } from '@/components/shared/EntityHero'
 import { ComparisonTable } from '@/components/shared/ComparisonTable'
-import { ContentHtml } from '@/components/shared/ContentHtml'
-import { FaqAccordion } from '@/components/shared/FaqAccordion'
-import { ClinicCard } from '@/components/clinics/ClinicCard'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { RelatedLandingsGrid } from '@/components/shared/RelatedLandingsGrid'
+import { ClinicCard } from '@/components/clinics/ClinicCard'
+import { PdpEditorialSection } from '@/components/layout/PdpEditorialSection'
+import { PdpFaqSection } from '@/components/layout/PdpFaqSection'
+import { PdpFooterBlock, PdpPageShell } from '@/components/layout/PdpPageShell'
+import { SectionHeading } from '@/components/ui/SectionHeading'
 import { dedupeRelated, findRelatedGuides } from '@/lib/content/link-graph'
 import { activeLocale } from '@/lib/i18n/locale'
 import {
@@ -20,7 +22,8 @@ import {
   validateCompareEntities,
 } from '@/lib/routes'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
-import { heroAnswerFromCmsPage } from '@/lib/seo/cms-seo'
+import { heroAnswerFromCmsPage, siteOrigin } from '@/lib/seo/cms-seo'
+import { normalizeContentHtml } from '@/lib/content/html-content-images'
 import type { PageFetchResult } from '@/lib/api/content'
 
 async function loadCompareCms(
@@ -112,6 +115,10 @@ export async function CompareDetailContent({ slug }: { slug: string }) {
     : []
 
   const cmsAnswer = cms.status === 'ok' ? heroAnswerFromCmsPage(cms.page) : undefined
+  const editorialHtml =
+    cms.status === 'ok' && cms.page.htmlContent
+      ? normalizeContentHtml(cms.page.htmlContent, siteOrigin())
+      : null
 
   const relatedGuides =
     parsed.type === 'country'
@@ -124,7 +131,25 @@ export async function CompareDetailContent({ slug }: { slug: string }) {
   return (
     <>
       <CmsPageJsonLd result={cms} />
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <PdpPageShell
+        footer={
+          <>
+            {relatedGuides.length > 0 && (
+              <PdpFooterBlock>
+                <RelatedLandingsGrid title="Patient guides" items={relatedGuides} />
+              </PdpFooterBlock>
+            )}
+            {cms.status === 'ok' && cms.page.faq.length > 0 && (
+              <PdpFooterBlock>
+                <PdpFaqSection title="Frequently asked questions" faqs={cms.page.faq} />
+              </PdpFooterBlock>
+            )}
+            <PdpFooterBlock>
+              <CtaBlock variant="compact" />
+            </PdpFooterBlock>
+          </>
+        }
+      >
         <EntityHero
           breadcrumbs={[
             { name: 'Home', slug: '/', position: 1 },
@@ -135,49 +160,39 @@ export async function CompareDetailContent({ slug }: { slug: string }) {
           answer={cmsAnswer}
         />
 
-        {rows.length > 0 && (
-          <div className="mb-12">
+        <div className="mt-10 space-y-12">
+          {rows.length > 0 && (
             <ComparisonTable titleA={titleA} titleB={titleB} rows={rows} />
-          </div>
-        )}
+          )}
 
-        {compareData && (
-          <div className="mb-12 grid gap-8 lg:grid-cols-2">
-            {[compareData.entityA, compareData.entityB].map((entity) => (
-              <section key={entity.slug}>
-                <h2 className="mb-4 text-xl font-bold text-[var(--color-primary-950)]">{entity.name}</h2>
-                {entity.topClinics.length > 0 && (
-                  <div className="space-y-4">
-                    {entity.topClinics.slice(0, 3).map((c) => (
-                      <ClinicCard key={c.urlPath} clinic={c} />
-                    ))}
-                  </div>
-                )}
-              </section>
-            ))}
-          </div>
-        )}
+          {compareData && (
+            <div className="grid gap-8 lg:grid-cols-2">
+              {[compareData.entityA, compareData.entityB].map((entity) => (
+                <section key={entity.slug}>
+                  <SectionHeading title={entity.name} className="mb-4" />
+                  {entity.topClinics.length > 0 && (
+                    <div className="space-y-4">
+                      {entity.topClinics.slice(0, 3).map((c) => (
+                        <ClinicCard key={c.urlPath} clinic={c} />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              ))}
+            </div>
+          )}
 
-        {cms.status === 'ok' && cms.page.htmlContent && (
-          <div className="prose prose-neutral mb-12 max-w-none">
-            <ContentHtml html={cms.page.htmlContent} />
-          </div>
-        )}
-
-        {relatedGuides.length > 0 && (
-          <div className="mb-12">
-            <RelatedLandingsGrid title="Patient guides" items={relatedGuides} />
-          </div>
-        )}
-
-        {cms.status === 'ok' && cms.page.faq.length > 0 && (
-          <div className="mb-12">
-            <FaqAccordion faqs={cms.page.faq} defaultOpen={false} />
-          </div>
-        )}
-
-        <CtaBlock />
-      </div>
+          {editorialHtml && (
+            <PdpEditorialSection
+              id="overview"
+              eyebrow="Comparison"
+              title="Full comparison"
+              html={editorialHtml}
+              tableOfContents={cms.page.tableOfContents}
+            />
+          )}
+        </div>
+      </PdpPageShell>
     </>
   )
 }

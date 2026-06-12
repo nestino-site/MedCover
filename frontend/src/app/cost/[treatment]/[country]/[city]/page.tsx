@@ -3,11 +3,13 @@ import { notFound } from 'next/navigation'
 import { getTaxonomy, getCosts } from '@/lib/api/catalog'
 import { listPublishedPagesSafe, loadPublishedPage } from '@/lib/api/content'
 import { EntityHero } from '@/components/shared/EntityHero'
-import { ContentHtml } from '@/components/shared/ContentHtml'
-import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { RelatedLandingsGrid } from '@/components/shared/RelatedLandingsGrid'
 import { ClinicCard } from '@/components/clinics/ClinicCard'
+import { PdpEditorialSection } from '@/components/layout/PdpEditorialSection'
+import { PdpFaqSection } from '@/components/layout/PdpFaqSection'
+import { PdpFooterBlock, PdpPageShell } from '@/components/layout/PdpPageShell'
+import { SectionHeading } from '@/components/ui/SectionHeading'
 import {
   buildRelatedLandingsForEntities,
   dedupeRelated,
@@ -15,6 +17,7 @@ import {
 } from '@/lib/content/link-graph'
 import { activeLocale } from '@/lib/i18n/locale'
 import { canonicalTreatmentSlug } from '@/lib/content/treatment-slugs'
+import { normalizeContentHtml } from '@/lib/content/html-content-images'
 import {
   costCityPath,
   costCountryPath,
@@ -23,7 +26,7 @@ import {
   cmsCostSlug,
 } from '@/lib/routes'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
-import { cmsMetadataForSlug, heroAnswerFromCmsPage } from '@/lib/seo/cms-seo'
+import { cmsMetadataForSlug, heroAnswerFromCmsPage, siteOrigin } from '@/lib/seo/cms-seo'
 
 type Props = {
   params: Promise<{ treatment: string; country: string; city: string }>
@@ -89,63 +92,76 @@ export default async function CostCityPage({ params }: Props) {
     notFound()
   }
 
+  const editorialHtml =
+    cms.status === 'ok' && cms.page.htmlContent
+      ? normalizeContentHtml(cms.page.htmlContent, siteOrigin())
+      : null
+
   return (
     <>
-    <CmsPageJsonLd result={cms} />
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <EntityHero
-        breadcrumbs={[
-          { name: 'Home', slug: '/', position: 1 },
-          { name: 'Cost', slug: costHubPath(locale), position: 2 },
-          { name: treatmentData.name, slug: costTreatmentPath(treatment, locale), position: 3 },
-          {
-            name: countryData.name,
-            slug: costCountryPath(treatment, country, locale),
-            position: 4,
-          },
-          {
-            name: cityData.name,
-            slug: costCityPath(treatment, country, city, locale),
-            position: 5,
-          },
-        ]}
-        title={`${treatmentData.name} Cost in ${cityData.name}, ${countryData.name}`}
-        answer={answer}
-      />
+      <CmsPageJsonLd result={cms} />
+      <PdpPageShell
+        footer={
+          <>
+            {related.length > 0 && (
+              <PdpFooterBlock>
+                <RelatedLandingsGrid items={related} />
+              </PdpFooterBlock>
+            )}
+            {cms.status === 'ok' && cms.page.faq.length > 0 && (
+              <PdpFooterBlock>
+                <PdpFaqSection title="Frequently asked questions" faqs={cms.page.faq} />
+              </PdpFooterBlock>
+            )}
+            <PdpFooterBlock>
+              <CtaBlock variant="compact" />
+            </PdpFooterBlock>
+          </>
+        }
+      >
+        <EntityHero
+          breadcrumbs={[
+            { name: 'Home', slug: '/', position: 1 },
+            { name: 'Cost', slug: costHubPath(locale), position: 2 },
+            { name: treatmentData.name, slug: costTreatmentPath(treatment, locale), position: 3 },
+            {
+              name: countryData.name,
+              slug: costCountryPath(treatment, country, locale),
+              position: 4,
+            },
+            {
+              name: cityData.name,
+              slug: costCityPath(treatment, country, city, locale),
+              position: 5,
+            },
+          ]}
+          title={`${treatmentData.name} Cost in ${cityData.name}, ${countryData.name}`}
+          answer={answer}
+        />
 
-      {costs.topClinics.length > 0 && (
-        <section className="mb-12">
-          <h2 className="mb-6 text-2xl font-bold text-[var(--color-primary-950)]">
-            Clinics in {cityData.name}
-          </h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {costs.topClinics.slice(0, 6).map((c) => (
-              <ClinicCard key={c.urlPath} clinic={c} />
-            ))}
-          </div>
-        </section>
-      )}
+        <div className="mt-10 space-y-12">
+          {costs.topClinics.length > 0 && (
+            <section>
+              <SectionHeading title={`Clinics in ${cityData.name}`} className="mb-6" />
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {costs.topClinics.slice(0, 6).map((c) => (
+                  <ClinicCard key={c.urlPath} clinic={c} />
+                ))}
+              </div>
+            </section>
+          )}
 
-      {cms.status === 'ok' && cms.page.htmlContent && (
-        <div className="prose prose-neutral mb-12 max-w-none">
-          <ContentHtml html={cms.page.htmlContent} />
+          {editorialHtml && (
+            <PdpEditorialSection
+              id="overview"
+              eyebrow="Cost guide"
+              title={`${treatmentData.name} cost in ${cityData.name}`}
+              html={editorialHtml}
+              tableOfContents={cms.status === 'ok' ? cms.page.tableOfContents : undefined}
+            />
+          )}
         </div>
-      )}
-
-      {related.length > 0 && (
-        <div className="mb-12">
-          <RelatedLandingsGrid items={related} />
-        </div>
-      )}
-
-      {cms.status === 'ok' && cms.page.faq.length > 0 && (
-        <div className="mb-12">
-          <FaqAccordion faqs={cms.page.faq} defaultOpen={false} />
-        </div>
-      )}
-
-      <CtaBlock />
-    </div>
+      </PdpPageShell>
     </>
   )
 }

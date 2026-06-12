@@ -12,19 +12,19 @@ import {
 import type { ContentListItem } from '@/lib/api/types'
 import { cacheTags } from '@/lib/cache/tags'
 import { JsonLd } from '@/components/shared/JsonLd'
-import { Breadcrumb } from '@/components/layout/Breadcrumb'
+import { EntityHero } from '@/components/shared/EntityHero'
 import { ContentHtml } from '@/components/shared/ContentHtml'
-import { RelatedPages } from '@/components/shared/RelatedPages'
 import { RelatedCostArticles } from '@/components/costs/RelatedCostArticles'
-import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { GuideArticleLayout } from '@/components/guides/GuideArticleLayout'
+import { PdpFaqSection } from '@/components/layout/PdpFaqSection'
+import { PdpFooterBlock, PdpPageShell } from '@/components/layout/PdpPageShell'
 import { resolveGuideSeo } from '@/lib/content/guide-display'
 import { pageTitleFromSlug } from '@/lib/content/hubs'
 import { getRelatedForGuide, resolvePageRelations } from '@/lib/content/link-graph'
 import { guideDimensionsFromRelations } from '@/lib/content/site-graph'
 import { getTaxonomy } from '@/lib/api/catalog'
-import { isNextImageOptimizable, resolveHeroImage, resolveHeroImageForMetadata } from '@/lib/content/hero-image'
+import { isNextImageOptimizable, resolveHeroImage } from '@/lib/content/hero-image'
 import { normalizeContentHtml } from '@/lib/content/html-content-images'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
@@ -60,6 +60,7 @@ function slugToRouteParams(
 import {
   metadataFromCmsPage,
   resolveSiteCanonical,
+  heroAnswerFromCmsPage,
 } from '@/lib/seo/cms-seo'
 import { en } from '@/lib/i18n/en'
 import { siteMetadataDefaults } from '@/lib/seo/site-metadata'
@@ -143,14 +144,67 @@ async function CachedArticleBody({
     )
   }
 
+  const hasToc = page.tableOfContents.some((item) => item.level === 2)
+  const pageTitle = page.seo.title ?? pageTitleFromSlug(slugPath)
+
+  if (hasToc) {
+    return (
+      <>
+        <JsonLd schema={page.schemaMarkup} />
+        <GuideArticleLayout
+          breadcrumbs={page.breadcrumbs}
+          tableOfContents={page.tableOfContents}
+          faqs={page.faq}
+          htmlContent={htmlContent}
+          hero={hero}
+          title={pageTitle}
+          description={page.seo.metaDescription ?? undefined}
+          updatedAt={page.updatedAt}
+          locale={locale}
+        />
+        {hubSegment === 'costs' && (
+          <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
+            <RelatedCostArticles slugPath={slugPath} locale={locale} />
+          </div>
+        )}
+      </>
+    )
+  }
+
   return (
     <>
       <JsonLd schema={page.schemaMarkup} />
-      <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
-        {page.breadcrumbs.length > 0 && <Breadcrumb items={page.breadcrumbs} />}
+      <PdpPageShell
+        width="narrow"
+        footer={
+          <>
+            {hubSegment === 'costs' && (
+              <PdpFooterBlock>
+                <RelatedCostArticles slugPath={slugPath} locale={locale} />
+              </PdpFooterBlock>
+            )}
+            {page.faq.length > 0 && (
+              <PdpFooterBlock>
+                <PdpFaqSection title={t.page.faqTitle} eyebrow={t.page.faqEyebrow} faqs={page.faq} />
+              </PdpFooterBlock>
+            )}
+            <PdpFooterBlock>
+              <CtaBlock variant="compact" />
+            </PdpFooterBlock>
+          </>
+        }
+      >
+        <EntityHero
+          breadcrumbs={
+            page.breadcrumbs.length > 0 ? page.breadcrumbs.slice(1) : [{ name: 'Home', slug: '/', position: 1 }]
+          }
+          title={pageTitle}
+          description={page.seo.metaDescription ?? undefined}
+          answer={heroAnswerFromCmsPage(page)}
+        />
 
         {hero && (
-          <div className="mt-4 overflow-hidden rounded-2xl">
+          <div className="mt-6 overflow-hidden rounded-2xl">
             {isNextImageOptimizable(hero.url) ? (
               <Image
                 src={hero.url}
@@ -174,20 +228,11 @@ async function CachedArticleBody({
           </div>
         )}
 
-        {htmlContent && <ContentHtml html={htmlContent} className="mt-8" />}
-
-        {page.tableOfContents.length > 0 && <RelatedPages toc={page.tableOfContents} />}
-
-        {page.faq.length > 0 && <FaqAccordion faqs={page.faq} />}
-
-        {hubSegment === 'costs' && (
-          <RelatedCostArticles slugPath={slugPath} locale={locale} />
+        {htmlContent && (
+          <div className="mt-8">
+            <ContentHtml html={htmlContent} variant="guide" />
+          </div>
         )}
-
-        <CtaBlock
-          headline="Get Your Personalized IVF Report"
-          description="Based on verified patient interviews — not clinic marketing materials."
-        />
 
         {page.updatedAt && (
           <p className="mt-8 text-center text-xs text-[var(--color-neutral-400)]">
@@ -201,7 +246,7 @@ async function CachedArticleBody({
             </time>
           </p>
         )}
-      </div>
+      </PdpPageShell>
     </>
   )
 }

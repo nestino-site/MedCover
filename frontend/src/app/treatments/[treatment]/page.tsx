@@ -3,10 +3,9 @@ import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { getTaxonomy } from '@/lib/api/catalog'
-import { getContentListSafe, getPageBySlug, listPublishedPagesSafe, loadPublishedPage } from '@/lib/api/content'
-import { PublishedArticleView } from '@/lib/content/published-page-route'
+import { getContentListSafe, listPublishedPagesSafe, loadPublishedPage } from '@/lib/api/content'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
-import { cmsMetadataForSlug, heroAnswerFromCmsPage } from '@/lib/seo/cms-seo'
+import { cmsMetadataForSlug, heroAnswerFromCmsPage, siteOrigin } from '@/lib/seo/cms-seo'
 import {
   treatmentsFromTaxonomy,
   countryHasTreatment,
@@ -25,11 +24,14 @@ import {
   dedupeRelated,
   findRelatedGuides,
 } from '@/lib/content/link-graph'
-import { FaqAccordion } from '@/components/shared/FaqAccordion'
+import { normalizeContentHtml } from '@/lib/content/html-content-images'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { EntityHero } from '@/components/shared/EntityHero'
 import { RelatedArticles } from '@/components/shared/RelatedArticles'
 import { RelatedLandingsGrid } from '@/components/shared/RelatedLandingsGrid'
+import { PdpEditorialSection } from '@/components/layout/PdpEditorialSection'
+import { PdpFaqSection } from '@/components/layout/PdpFaqSection'
+import { PdpFooterBlock, PdpPageShell } from '@/components/layout/PdpPageShell'
 import { Button } from '@/components/ui/Button'
 import { SectionHeading } from '@/components/ui/SectionHeading'
 import { FeaturedClinicsSection } from '@/components/clinics/FeaturedClinicsSection'
@@ -125,6 +127,10 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
 
   const faqs: FaqItem[] = cms.status === 'ok' ? cms.page.faq : []
   const cmsAnswer = cms.status === 'ok' ? heroAnswerFromCmsPage(cms.page) : undefined
+  const editorialHtml =
+    cms.status === 'ok' && cms.page.htmlContent
+      ? normalizeContentHtml(cms.page.htmlContent, siteOrigin())
+      : null
 
   const relatedLandings = dedupeRelated(
     [
@@ -146,7 +152,46 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
   return (
     <>
       <CmsPageJsonLd result={cms} />
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <PdpPageShell
+        footer={
+          <>
+            {relatedLandings.length > 0 && (
+              <PdpFooterBlock>
+                <RelatedLandingsGrid items={relatedLandings} />
+              </PdpFooterBlock>
+            )}
+
+            {relatedArticles.length > 0 && (
+              <PdpFooterBlock>
+                <RelatedArticles
+                  eyebrow={th.relatedArticles.eyebrow}
+                  heading={th.relatedArticles.heading}
+                  articles={relatedArticles}
+                  emptyMessage={th.relatedArticles.empty}
+                />
+              </PdpFooterBlock>
+            )}
+
+            {faqs.length > 0 && (
+              <PdpFooterBlock>
+                <PdpFaqSection
+                  eyebrow="FAQ"
+                  title="Frequently asked questions"
+                  faqs={faqs}
+                />
+              </PdpFooterBlock>
+            )}
+
+            <PdpFooterBlock>
+              <CtaBlock
+                variant="compact"
+                headline={`Find the Right Clinic for ${cat.name} Abroad`}
+                description="Matched based on verified patient data — not clinic marketing materials."
+              />
+            </PdpFooterBlock>
+          </>
+        }
+      >
         <EntityHero
           breadcrumbs={breadcrumbs.slice(1)}
           eyebrow="Treatment Guide"
@@ -170,7 +215,7 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
           </div>
         </EntityHero>
 
-        <div className="space-y-12">
+        <div className="mt-10 space-y-12">
           <FeaturedClinicsSection
             clinics={featuredClinics}
             viewAllHref={browseClinicsHref}
@@ -205,54 +250,23 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
             </div>
           </section>
 
-          {relatedLandings.length > 0 && (
-            <RelatedLandingsGrid items={relatedLandings} />
-          )}
-
-          <RelatedArticles
-            eyebrow={th.relatedArticles.eyebrow}
-            heading={th.relatedArticles.heading}
-            articles={relatedArticles}
-            emptyMessage={th.relatedArticles.empty}
-          />
-
-          {faqs.length > 0 && (
-            <section aria-labelledby="faq-heading">
-              <h2
-                id="faq-heading"
-                className="mb-6 text-2xl font-bold tracking-tight text-[var(--color-primary-950)]"
-              >
-                Frequently asked questions
-              </h2>
-              <div data-speakable="true">
-                <FaqAccordion faqs={faqs} title="" defaultOpen={false} />
-              </div>
-            </section>
+          {editorialHtml && (
+            <PdpEditorialSection
+              id="overview"
+              eyebrow="Overview"
+              title={`About ${cat.name} abroad`}
+              html={editorialHtml}
+              tableOfContents={cms.status === 'ok' ? cms.page.tableOfContents : undefined}
+            />
           )}
         </div>
-      </div>
-
-      <CtaBlock
-        headline={`Find the Right Clinic for ${cat.name} Abroad`}
-        description="Matched based on verified patient data — not clinic marketing materials."
-      />
+      </PdpPageShell>
     </>
   )
 }
 
 export default async function TreatmentPage({ params }: { params: Params }) {
-  const locale = activeLocale
   const { treatment } = await params
-  const slugPath = `/treatments/${treatment}`
-  const backendPage = await getPageBySlug(slugPath)
-
-  if (backendPage) {
-    return (
-      <Suspense fallback={<TreatmentLandingSkeleton showGrid={false} />}>
-        <PublishedArticleView slugPath={slugPath} locale={locale} />
-      </Suspense>
-    )
-  }
 
   return (
     <Suspense fallback={<TreatmentLandingSkeleton />}>

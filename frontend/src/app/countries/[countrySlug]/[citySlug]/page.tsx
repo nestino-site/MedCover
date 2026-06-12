@@ -5,8 +5,6 @@ import { getCosts, getTaxonomy } from '@/lib/api/catalog'
 import { getContentBySlugOptional, getContentListSafe } from '@/lib/api/content'
 import {
   getCountryDisplayFromTaxonomy,
-  getCountryLandingPath,
-  partitionGuides,
 } from '@/lib/content/hubs'
 import { loadGuideArticlesForEntities } from '@/lib/content/guide-display'
 import { loadFeaturedClinics } from '@/lib/content/clinic-discovery'
@@ -19,22 +17,27 @@ import {
 } from '@/lib/content/link-graph'
 import { primaryTreatmentSlugForCountry, treatmentsForDisplay } from '@/lib/content/treatments'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
-import { cmsMetadataForSlug } from '@/lib/seo/cms-seo'
+import { cmsMetadataForSlug, heroAnswerFromCmsPage } from '@/lib/seo/cms-seo'
 import {
   cityLandingPath,
   clinicCityPath,
   cmsPageSlug,
   costCityPath,
+  countriesHubPath,
+  countryLandingPath,
 } from '@/lib/routes'
 import { loadPublishedPage } from '@/lib/api/content'
 import { CtaBlock } from '@/components/shared/CtaBlock'
+import { EntityHero } from '@/components/shared/EntityHero'
 import { CityLandingSkeleton } from '@/components/city-landing/CityLandingSkeleton'
 import { RelatedArticles } from '@/components/shared/RelatedArticles'
 import { RelatedLandingsGrid } from '@/components/shared/RelatedLandingsGrid'
 import { PlacePillars } from '@/components/shared/PlacePillars'
+import { PdpFooterBlock, PdpPageShell } from '@/components/layout/PdpPageShell'
+import { Button } from '@/components/ui/Button'
 import { FeaturedClinicsSection } from '@/components/clinics/FeaturedClinicsSection'
-import { CityHero } from '@/components/city-landing/CityHero'
 import { CityFeaturedGuide } from '@/components/city-landing/CityFeaturedGuide'
+import { getDictionary } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 import { en } from '@/lib/i18n/en'
 
@@ -64,6 +67,7 @@ async function CityLandingContent({
   citySlug: string
 }) {
   const locale = activeLocale
+  const t = getDictionary(locale)
   const ctl = en.cityLanding
   const taxonomy = await getTaxonomy()
   const country = taxonomy.countries.find((c) => c.slug === countrySlug)
@@ -136,22 +140,74 @@ async function CityLandingContent({
     costs?.overall &&
     `€${costs.overall.min.toLocaleString()}–€${costs.overall.max.toLocaleString()}`
 
+  const cmsAnswer = landingCms.status === 'ok' ? heroAnswerFromCmsPage(landingCms.page) : undefined
+
+  const heroStats: { label: string; value: string; href?: string }[] = []
+  if (costDisplay) {
+    heroStats.push({
+      label: ctl.stats.treatmentCost,
+      value: costDisplay,
+      href: costHref,
+    })
+  }
+  if (city.clinicCount > 0) {
+    heroStats.push({
+      label: ctl.stats.verifiedClinics,
+      value: String(city.clinicCount),
+      href: clinicPlpHref,
+    })
+  }
+
   return (
     <>
       <CmsPageJsonLd result={landingCms} />
-      <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
-        <div className="py-8">
-          <CityHero
-            cityName={city.name}
-            countryName={display.name}
-            countryFlag={display.flag}
-            countryHubHref={getCountryLandingPath(countrySlug, locale)}
-            cost={costDisplay ?? ''}
-            clinics={city.clinicCount > 0 ? String(city.clinicCount) : ''}
-            clinicHref={clinicPlpHref}
-            costHref={costHref}
-          />
-        </div>
+      <PdpPageShell
+        width="narrow"
+        footer={
+          <PdpFooterBlock>
+            <CtaBlock
+              variant="compact"
+              headline={ctl.cta.headline.replace('{city}', city.name)}
+              description={ctl.cta.description}
+            />
+          </PdpFooterBlock>
+        }
+      >
+        <EntityHero
+          breadcrumbs={[
+            { name: t.breadcrumb.home, slug: '/', position: 1 },
+            { name: t.nav.countries, slug: countriesHubPath(locale), position: 2 },
+            {
+              name: display.name,
+              slug: countryLandingPath(countrySlug, locale),
+              position: 3,
+            },
+            { name: city.name, slug: landingPath, position: 4 },
+          ].slice(1)}
+          eyebrow={ctl.heroEyebrow}
+          flag={display.flag}
+          title={city.name}
+          description={ctl.heroSubtitle}
+          stats={heroStats.length > 0 ? heroStats : undefined}
+          answer={cmsAnswer}
+          answerLabel={ctl.speakableSummaryLabel}
+        >
+          <div className="flex flex-wrap gap-2">
+            {ctl.trustChips.map((chip) => (
+              <span
+                key={chip}
+                className="rounded-full border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3 py-1 text-xs font-medium text-[var(--color-accent-900)]"
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+          {clinicPlpHref && (
+            <Button href={clinicPlpHref} variant="primary">
+              {ctl.clinicsSection.browseClinics}
+            </Button>
+          )}
+        </EntityHero>
 
         <div className="space-y-12">
           <PlacePillars
@@ -189,13 +245,8 @@ async function CityLandingContent({
             articles={relatedArticles}
             emptyMessage={ctl.relatedArticles.empty}
           />
-
-          <CtaBlock
-            headline={ctl.cta.headline.replace('{city}', city.name)}
-            description={ctl.cta.description}
-          />
         </div>
-      </div>
+      </PdpPageShell>
     </>
   )
 }

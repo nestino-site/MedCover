@@ -5,10 +5,12 @@ import type { BreadcrumbItem, FaqItem, TocItem } from '@/lib/api/types'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import { TableOfContents } from '@/components/layout/TableOfContents'
 import { ContentHtml } from '@/components/shared/ContentHtml'
-import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { RelatedLandingsGrid, type RelatedLanding } from '@/components/shared/RelatedLandingsGrid'
 import { CrossHubNav } from '@/components/hubs/CrossHubNav'
+import { PdpFaqSection } from '@/components/layout/PdpFaqSection'
+import { PdpFooterBlock } from '@/components/layout/PdpPageShell'
+import { SectionHeading } from '@/components/ui/SectionHeading'
 import { isNextImageOptimizable } from '@/lib/content/hero-image'
 import { flagEmojiForCountry } from '@/lib/content/country-flags'
 import type { GuideDimensions } from '@/lib/content/site-graph'
@@ -229,30 +231,6 @@ function ArticleShell({
   )
 }
 
-function SectionHeading({
-  eyebrow,
-  title,
-  id,
-}: {
-  eyebrow: string
-  title: string
-  id?: string
-}) {
-  return (
-    <div className="mb-6">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-600)]">
-        {eyebrow}
-      </p>
-      <h2
-        id={id}
-        className="mt-1 text-2xl font-bold tracking-tight text-[var(--color-primary-950)] sm:text-3xl"
-      >
-        {title}
-      </h2>
-    </div>
-  )
-}
-
 export function GuideArticleLayout({
   breadcrumbs,
   tableOfContents,
@@ -305,32 +283,24 @@ export function GuideArticleLayout({
 
       {planItems.length > 0 && (
         <section className="mt-16 border-t border-[var(--color-border)] pt-16">
-          <SectionHeading eyebrow={t.page.planTripEyebrow} title={t.page.planTripTitle} />
+          <SectionHeading eyebrow={t.page.planTripEyebrow} title={t.page.planTripTitle} className="mb-6" />
           <RelatedLandingsGrid items={planItems} />
         </section>
       )}
 
       {faqs.length > 0 && (
-        <section
-          className="mt-16 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-surface-subtle)] to-white shadow-[var(--shadow-sm)]"
-          aria-labelledby="guide-faq-heading"
-        >
-          <div className="border-b border-[var(--color-border)] bg-white/60 px-6 py-5 sm:px-8">
-            <SectionHeading
-              eyebrow={t.page.faqEyebrow}
-              title={t.page.faqTitle}
-              id="guide-faq-heading"
-            />
-          </div>
-          <div className="px-6 sm:px-8">
-            <FaqAccordion faqs={faqs} variant="compact" title="" defaultOpen={false} />
-          </div>
-        </section>
+        <PdpFooterBlock>
+          <PdpFaqSection
+            eyebrow={t.page.faqEyebrow}
+            title={t.page.faqTitle}
+            faqs={faqs}
+          />
+        </PdpFooterBlock>
       )}
 
-      <div className="mt-16">
+      <PdpFooterBlock>
         <CtaBlock variant="compact" />
-      </div>
+      </PdpFooterBlock>
 
       {guideSlug && (
         <CrossHubNav

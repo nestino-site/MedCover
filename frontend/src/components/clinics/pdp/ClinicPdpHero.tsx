@@ -6,7 +6,6 @@ import Link from 'next/link'
 import type { BreadcrumbItem, ClinicDetail } from '@/lib/api/types'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import { EntityHero, type EntityHeroStat } from '@/components/shared/EntityHero'
-import { TruthScoreBadge } from '@/components/shared/TruthScoreBadge'
 import { cn } from '@/lib/utils/cn'
 import { formatPriceRange } from '@/lib/clinics/format'
 import { en } from '@/lib/i18n/en'
@@ -98,14 +97,6 @@ export function ClinicPdpHero({
     })
   }
 
-  if (clinic.truthScore?.composite != null) {
-    stats.push({
-      label: 'Truth Score',
-      value: `${clinic.truthScore.composite}`,
-      href: '#truth-score',
-    })
-  }
-
   if (clinic.treatments.length > 0) {
     stats.push({
       label: 'Treatments',
@@ -152,12 +143,6 @@ export function ClinicPdpHero({
           className="mb-0"
         >
           <div className="flex flex-wrap items-center gap-3">
-            {clinic.truthScore?.composite != null && (
-              <TruthScoreBadge
-                composite={clinic.truthScore.composite}
-                grade={clinic.truthScore.grade}
-              />
-            )}
             {clinic.accreditations.map((acc) => (
               <span
                 key={acc.code}

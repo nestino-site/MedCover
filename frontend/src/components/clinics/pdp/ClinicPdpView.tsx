@@ -7,13 +7,13 @@ import type {
 import type { RelatedLanding } from '@/components/shared/RelatedLandingsGrid'
 import type { RelatedClinicsForPdp } from '@/lib/content/clinic-discovery'
 import type { GuideArticleItem } from '@/lib/content/hubs'
-import { ContentHtml } from '@/components/shared/ContentHtml'
-import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { RelatedLandingsGrid } from '@/components/shared/RelatedLandingsGrid'
 import { RelatedArticles } from '@/components/shared/RelatedArticles'
 import { RelatedClinicsSections } from '@/components/clinics/RelatedClinicsSections'
-import { TableOfContents } from '@/components/layout/TableOfContents'
+import { PdpEditorialSection } from '@/components/layout/PdpEditorialSection'
+import { PdpFaqSection } from '@/components/layout/PdpFaqSection'
+import { PdpFooterBlock, PdpPageShell } from '@/components/layout/PdpPageShell'
 import { SectionHeading } from '@/components/ui/SectionHeading'
 import { ClinicPdpHero } from './ClinicPdpHero'
 import { ClinicFactsSidebar } from './ClinicFactsSidebar'
@@ -24,7 +24,6 @@ import { PricingPackagesSection } from './PricingPackagesSection'
 import { DoctorsGrid } from './DoctorsGrid'
 import { PatientVoices } from './PatientVoices'
 import { GoogleReviewsSection } from './GoogleReviewsSection'
-import { cn } from '@/lib/utils/cn'
 import type { Locale } from '@/lib/i18n'
 import { en } from '@/lib/i18n/en'
 
@@ -50,7 +49,11 @@ type ClinicPdpViewProps = {
   }
 }
 
-function buildSectionNav(clinic: ClinicDetail, faq?: FaqItem[]): ClinicSectionNavItem[] {
+function buildSectionNav(
+  clinic: ClinicDetail,
+  faq?: FaqItem[],
+  editorialHtml?: string | null,
+): ClinicSectionNavItem[] {
   const sections: ClinicSectionNavItem[] = []
   const copy = en.clinicPdp.sections
 
@@ -69,7 +72,7 @@ function buildSectionNav(clinic: ClinicDetail, faq?: FaqItem[]): ClinicSectionNa
   if ((clinic.interviews?.length ?? 0) > 0) {
     sections.push({ id: 'patient-voices', label: copy.patientVoices.title })
   }
-  if (clinic.shortDescription) {
+  if (clinic.shortDescription || editorialHtml) {
     sections.push({ id: 'about', label: copy.about.title })
   }
   if ((clinic.googleReviews?.length ?? 0) > 0) {
@@ -100,13 +103,44 @@ export function ClinicPdpView({
   relatedArticles,
   overviewLinks,
 }: ClinicPdpViewProps) {
-  const sectionNav = buildSectionNav(clinic, faq)
-  const hasToc = (tableOfContents?.length ?? 0) > 0
+  const sectionNav = buildSectionNav(clinic, faq, editorialHtml)
   const aboutCopy = en.clinicPdp.sections.about
   const faqCopy = en.clinicPdp.sections.faq
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <PdpPageShell
+      footer={
+        <>
+          <RelatedClinicsSections
+            relatedClinics={relatedClinics}
+            country={country}
+            city={city}
+            cityName={cityName}
+            locale={locale}
+          />
+
+          {related.length > 0 && (
+            <PdpFooterBlock>
+              <RelatedLandingsGrid title={en.clinicPdp.planYourTreatment} items={related} />
+            </PdpFooterBlock>
+          )}
+
+          {relatedArticles.length > 0 && (
+            <PdpFooterBlock>
+              <RelatedArticles
+                eyebrow={en.clinicPdp.relatedArticles.eyebrow}
+                heading={en.clinicPdp.relatedArticles.heading}
+                articles={relatedArticles}
+              />
+            </PdpFooterBlock>
+          )}
+
+          <PdpFooterBlock>
+            <CtaBlock variant="compact" />
+          </PdpFooterBlock>
+        </>
+      }
+    >
       <ClinicPdpHero
         clinic={clinic}
         breadcrumbs={breadcrumbs}
@@ -118,12 +152,7 @@ export function ClinicPdpView({
 
       <ClinicSectionNav sections={sectionNav} />
 
-      <div
-        className={cn(
-          'grid gap-12',
-          hasToc ? 'lg:grid-cols-[1fr_280px_300px]' : 'lg:grid-cols-[1fr_300px]',
-        )}
-      >
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 space-y-10">
           <TruthScorePanel clinic={clinic} />
           <TreatmentsOffered clinic={clinic} country={country} city={city} locale={locale} />
@@ -145,57 +174,23 @@ export function ClinicPdpView({
           )}
 
           {editorialHtml && (
-            <div id="about" className="scroll-mt-28 prose prose-neutral max-w-none">
-              <ContentHtml html={editorialHtml} variant="guide" />
-            </div>
+            <PdpEditorialSection
+              eyebrow={aboutCopy.eyebrow}
+              title={aboutCopy.title}
+              html={editorialHtml}
+              tableOfContents={tableOfContents}
+            />
           )}
 
           <GoogleReviewsSection clinic={clinic} />
 
           {faq && faq.length > 0 && (
-            <section id="faq" className="scroll-mt-28" data-speakable="true">
-              <SectionHeading eyebrow={faqCopy.eyebrow} title={faqCopy.title} className="mb-6" />
-              <FaqAccordion faqs={faq} variant="compact" title="" defaultOpen={false} />
-            </section>
+            <PdpFaqSection eyebrow={faqCopy.eyebrow} title={faqCopy.title} faqs={faq} />
           )}
         </div>
 
-        {hasToc && tableOfContents && (
-          <div className="order-last lg:order-none">
-            <TableOfContents items={tableOfContents} variant="card" />
-          </div>
-        )}
-
         <ClinicFactsSidebar clinic={clinic} className="order-first lg:order-last" />
       </div>
-
-      <RelatedClinicsSections
-        relatedClinics={relatedClinics}
-        country={country}
-        city={city}
-        cityName={cityName}
-        locale={locale}
-      />
-
-      {related.length > 0 && (
-        <div className="mt-16">
-          <RelatedLandingsGrid title={en.clinicPdp.planYourTreatment} items={related} />
-        </div>
-      )}
-
-      {relatedArticles.length > 0 && (
-        <div className="mt-16">
-          <RelatedArticles
-            eyebrow={en.clinicPdp.relatedArticles.eyebrow}
-            heading={en.clinicPdp.relatedArticles.heading}
-            articles={relatedArticles}
-          />
-        </div>
-      )}
-
-      <div className="mt-16">
-        <CtaBlock />
-      </div>
-    </div>
+    </PdpPageShell>
   )
 }

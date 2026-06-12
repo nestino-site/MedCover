@@ -9,6 +9,7 @@ type SectionHeadingProps = {
   action?: ReactNode
   align?: 'left' | 'center'
   as?: 'h2' | 'h3'
+  id?: string
   className?: string
 }
 
@@ -23,6 +24,7 @@ export function SectionHeading({
   action,
   align = 'left',
   as: Heading = 'h2',
+  id,
   className,
 }: SectionHeadingProps) {
   return (
@@ -39,7 +41,7 @@ export function SectionHeading({
             {eyebrow}
           </p>
         )}
-        <Heading className="text-2xl font-bold tracking-tight text-[var(--color-primary-950)]">
+        <Heading id={id} className="text-2xl font-bold tracking-tight text-[var(--color-primary-950)]">
           {title}
         </Heading>
         {description && (

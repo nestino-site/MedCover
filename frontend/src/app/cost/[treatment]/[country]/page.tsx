@@ -4,11 +4,13 @@ import { getTaxonomy, getCosts } from '@/lib/api/catalog'
 import { listPublishedPagesSafe, loadPublishedPage } from '@/lib/api/content'
 import { EntityHero } from '@/components/shared/EntityHero'
 import { PriceRangeTable } from '@/components/shared/PriceRangeTable'
-import { ContentHtml } from '@/components/shared/ContentHtml'
-import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { RelatedLandingsGrid } from '@/components/shared/RelatedLandingsGrid'
 import { ClinicCard } from '@/components/clinics/ClinicCard'
+import { PdpEditorialSection } from '@/components/layout/PdpEditorialSection'
+import { PdpFaqSection } from '@/components/layout/PdpFaqSection'
+import { PdpFooterBlock, PdpPageShell } from '@/components/layout/PdpPageShell'
+import { SectionHeading } from '@/components/ui/SectionHeading'
 import {
   buildRelatedLandingsForEntities,
   dedupeRelated,
@@ -16,6 +18,7 @@ import {
 } from '@/lib/content/link-graph'
 import { activeLocale } from '@/lib/i18n/locale'
 import { canonicalTreatmentSlug } from '@/lib/content/treatment-slugs'
+import { normalizeContentHtml } from '@/lib/content/html-content-images'
 import {
   costCityPath,
   costCountryPath,
@@ -24,7 +27,7 @@ import {
   cmsCostSlug,
 } from '@/lib/routes'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
-import { cmsMetadataForSlug, heroAnswerFromCmsPage } from '@/lib/seo/cms-seo'
+import { cmsMetadataForSlug, heroAnswerFromCmsPage, siteOrigin } from '@/lib/seo/cms-seo'
 
 type Props = {
   params: Promise<{ treatment: string; country: string }>
@@ -79,68 +82,81 @@ export default async function CostCountryPage({ params }: Props) {
       ? `${treatmentData.name} in ${countryData.name} costs €${costs.overall.min.toLocaleString()}–€${costs.overall.max.toLocaleString()}${costs.overall.sampleSize ? ` based on ${costs.overall.sampleSize} verified packages` : ''}.`
       : undefined)
 
+  const editorialHtml =
+    cms.status === 'ok' && cms.page.htmlContent
+      ? normalizeContentHtml(cms.page.htmlContent, siteOrigin())
+      : null
+
   return (
     <>
-    <CmsPageJsonLd result={cms} />
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <EntityHero
-        breadcrumbs={[
-          { name: 'Home', slug: '/', position: 1 },
-          { name: 'Cost', slug: costHubPath(locale), position: 2 },
-          { name: treatmentData.name, slug: costTreatmentPath(treatment, locale), position: 3 },
-          { name: countryData.name, slug: costCountryPath(treatment, country, locale), position: 4 },
-        ]}
-        title={`${treatmentData.name} Cost in ${countryData.name}`}
-        answer={answer}
-      />
+      <CmsPageJsonLd result={cms} />
+      <PdpPageShell
+        footer={
+          <>
+            {related.length > 0 && (
+              <PdpFooterBlock>
+                <RelatedLandingsGrid items={related} />
+              </PdpFooterBlock>
+            )}
+            {cms.status === 'ok' && cms.page.faq.length > 0 && (
+              <PdpFooterBlock>
+                <PdpFaqSection title="Frequently asked questions" faqs={cms.page.faq} />
+              </PdpFooterBlock>
+            )}
+            <PdpFooterBlock>
+              <CtaBlock variant="compact" />
+            </PdpFooterBlock>
+          </>
+        }
+      >
+        <EntityHero
+          breadcrumbs={[
+            { name: 'Home', slug: '/', position: 1 },
+            { name: 'Cost', slug: costHubPath(locale), position: 2 },
+            { name: treatmentData.name, slug: costTreatmentPath(treatment, locale), position: 3 },
+            { name: countryData.name, slug: costCountryPath(treatment, country, locale), position: 4 },
+          ]}
+          title={`${treatmentData.name} Cost in ${countryData.name}`}
+          answer={answer}
+        />
 
-      {costs.byCity.length > 0 && (
-        <div className="mb-12">
-          <PriceRangeTable
-            title="Cost by city"
-            rows={costs.byCity.map((row) => ({
-              label: row.city.name,
-              min: row.min,
-              max: row.max,
-              currency: row.currency,
-              href: costCityPath(treatment, country, row.city.slug, locale),
-              meta: row.clinicCount ? `${row.clinicCount} clinics` : undefined,
-            }))}
-          />
+        <div className="mt-10 space-y-12">
+          {costs.byCity.length > 0 && (
+            <PriceRangeTable
+              title="Cost by city"
+              rows={costs.byCity.map((row) => ({
+                label: row.city.name,
+                min: row.min,
+                max: row.max,
+                currency: row.currency,
+                href: costCityPath(treatment, country, row.city.slug, locale),
+                meta: row.clinicCount ? `${row.clinicCount} clinics` : undefined,
+              }))}
+            />
+          )}
+
+          {costs.topClinics.length > 0 && (
+            <section>
+              <SectionHeading title="Top clinics by price" className="mb-6" />
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {costs.topClinics.slice(0, 6).map((c) => (
+                  <ClinicCard key={c.urlPath} clinic={c} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {editorialHtml && (
+            <PdpEditorialSection
+              id="overview"
+              eyebrow="Cost guide"
+              title={`${treatmentData.name} cost in ${countryData.name}`}
+              html={editorialHtml}
+              tableOfContents={cms.status === 'ok' ? cms.page.tableOfContents : undefined}
+            />
+          )}
         </div>
-      )}
-
-      {costs.topClinics.length > 0 && (
-        <section className="mb-12">
-          <h2 className="mb-6 text-2xl font-bold text-[var(--color-primary-950)]">Top clinics by price</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {costs.topClinics.slice(0, 6).map((c) => (
-              <ClinicCard key={c.urlPath} clinic={c} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {cms.status === 'ok' && cms.page.htmlContent && (
-        <div className="prose prose-neutral mb-12 max-w-none">
-          <ContentHtml html={cms.page.htmlContent} />
-        </div>
-      )}
-
-      {related.length > 0 && (
-        <div className="mb-12">
-          <RelatedLandingsGrid items={related} />
-        </div>
-      )}
-
-      {cms.status === 'ok' && cms.page.faq.length > 0 && (
-        <div className="mb-12">
-          <FaqAccordion faqs={cms.page.faq} defaultOpen={false} />
-        </div>
-      )}
-
-      <CtaBlock />
-    </div>
+      </PdpPageShell>
     </>
   )
 }

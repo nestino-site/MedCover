@@ -50,7 +50,7 @@ export function ClinicFactsSidebar({ clinic, className }: ClinicFactsSidebarProp
   return (
     <aside
       className={cn(
-        'rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-sm lg:sticky lg:top-24',
+        'rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-sm lg:sticky lg:top-28 lg:self-start',
         className,
       )}
     >

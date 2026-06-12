@@ -28,6 +28,7 @@ import { EntityHero } from '@/components/shared/EntityHero'
 import { RelatedArticles } from '@/components/shared/RelatedArticles'
 import { RelatedLandingsGrid } from '@/components/shared/RelatedLandingsGrid'
 import { PlacePillars } from '@/components/shared/PlacePillars'
+import { PdpFooterBlock, PdpPageShell } from '@/components/layout/PdpPageShell'
 import { Button } from '@/components/ui/Button'
 import { FeaturedClinicsSection } from '@/components/clinics/FeaturedClinicsSection'
 import { CountryFeaturedGuide } from '@/components/country-landing/CountryFeaturedGuide'
@@ -122,7 +123,18 @@ async function CountryLandingContent({ countrySlug }: { countrySlug: string }) {
   return (
     <>
       <CmsPageJsonLd result={landingCms} />
-      <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6 lg:px-8">
+      <PdpPageShell
+        width="narrow"
+        footer={
+          <PdpFooterBlock>
+            <CtaBlock
+              variant="compact"
+              headline={cl.cta.headline.replace('{country}', display.name)}
+              description={cl.cta.description}
+            />
+          </PdpFooterBlock>
+        }
+      >
         <EntityHero
           breadcrumbs={breadcrumbs.slice(1)}
           eyebrow={cl.heroEyebrow}
@@ -178,13 +190,8 @@ async function CountryLandingContent({ countrySlug }: { countrySlug: string }) {
             articles={relatedArticles}
             emptyMessage={cl.relatedArticles.empty}
           />
-
-          <CtaBlock
-            headline={cl.cta.headline.replace('{country}', display.name)}
-            description={cl.cta.description}
-          />
         </div>
-      </div>
+      </PdpPageShell>
     </>
   )
 }

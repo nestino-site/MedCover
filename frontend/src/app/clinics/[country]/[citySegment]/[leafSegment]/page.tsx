@@ -40,7 +40,7 @@ import { ensureStaticParams } from '@/lib/static-params'
 import { ClinicsPlpTemplate } from '@/components/clinics/ClinicsPlpTemplate'
 import { ClinicFilters } from '@/components/clinics/ClinicFilters'
 import { ClinicFilterNavigationProvider } from '@/components/clinics/clinic-filter-navigation'
-import { ClinicPlpPageSkeleton } from '@/components/clinics/ClinicPlpSkeleton'
+import { ClinicPdpSkeleton } from '@/components/clinics/pdp/ClinicPdpSkeleton'
 import { ClinicPdpView } from '@/components/clinics/pdp/ClinicPdpView'
 import { en } from '@/lib/i18n/en'
 import {
@@ -111,13 +111,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   )
 }
 
+function ClinicLeafPageSkeleton() {
+  return <ClinicPdpSkeleton />
+}
+
 export default function ClinicLeafPage(props: Props) {
   return (
-    <Suspense fallback={<ClinicPlpPageSkeleton />}>
-      <ClinicFilterNavigationProvider>
+    <ClinicFilterNavigationProvider>
+      <Suspense fallback={<ClinicLeafPageSkeleton />}>
         <ClinicLeafContent {...props} />
-      </ClinicFilterNavigationProvider>
-    </Suspense>
+      </Suspense>
+    </ClinicFilterNavigationProvider>
   )
 }
 
