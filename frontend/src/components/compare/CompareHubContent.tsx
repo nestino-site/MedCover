@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { cacheLife, cacheTag } from 'next/cache'
-import { getTaxonomy, listAllClinics } from '@/lib/api/catalog'
+import { getTaxonomy } from '@/lib/api/catalog'
+import { listPublishedPagesSafe } from '@/lib/api/content'
 import { flagEmojiForCountry } from '@/lib/content/country-flags'
-import { buildCompareHubItems } from '@/lib/compare/static-params'
+import { buildCompareHubItemsFromPages } from '@/lib/compare/static-params'
 import { getCountryDisplayFromTaxonomy } from '@/lib/content/hubs'
 import { cacheTags } from '@/lib/cache/tags'
 import { getDictionary, type Locale } from '@/lib/i18n'
@@ -170,8 +171,8 @@ export async function CompareHubContent({ locale }: { locale: Locale }) {
   cacheTag(cacheTags.publishedPages, cacheTags.hub('compare'))
 
   const t = getDictionary(locale)
-  const [taxonomy, clinics] = await Promise.all([getTaxonomy(), listAllClinics()])
-  const items = buildCompareHubItems(taxonomy, locale, clinics)
+  const [taxonomy, pages] = await Promise.all([getTaxonomy(), listPublishedPagesSafe()])
+  const items = buildCompareHubItemsFromPages(pages, taxonomy, locale)
 
   const locationMeta = Object.fromEntries(
     taxonomy.countries.map((country) => {

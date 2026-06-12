@@ -67,7 +67,7 @@ export function resolveCostCanonicalSlug(
   return canonical
 }
 
-function canonicalCompareTail(tail: string): string | null {
+export function canonicalCompareTail(tail: string): string | null {
   const forMatch = tail.match(COMPARE_FOR_TAIL_RE)
   if (forMatch) {
     const [, rawA, rawB, treatment] = forMatch
@@ -90,6 +90,12 @@ function canonicalCompareTail(tail: string): string | null {
   }
 
   return null
+}
+
+/** Country/city compares include `-for-{treatment}`; clinic compares do not. */
+export function isTreatmentCompareTail(tail: string): boolean {
+  const canonical = canonicalCompareTail(tail)
+  return Boolean(canonical?.includes('-for-'))
 }
 
 export function resolveCompareCanonicalSlug(

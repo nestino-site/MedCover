@@ -309,7 +309,7 @@ export function validateCompareEntities(
   taxonomy: Taxonomy,
 ): boolean {
   if (parsed.type === 'clinic') {
-    return true
+    return false
   }
 
   if (parsed.type === 'country') {

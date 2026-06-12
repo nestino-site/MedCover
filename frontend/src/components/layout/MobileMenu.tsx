@@ -14,27 +14,9 @@ import {
   hubPath,
   type NavPanelId,
 } from '@/lib/content/site-nav'
-import {
-  clinicTreatmentBrowsePath,
-  compareHubPath,
-  clinicsHubPath,
-  countriesHubPath,
-  treatmentPath,
-} from '@/lib/routes'
 import { SearchTriggerButton } from '@/components/search/SearchModal'
-import {
-  NavCityActions,
-  NavCountryActions,
-  NavCityList,
-  NavCountryList,
-  NavFlatLink,
-  NavHubCard,
-  NavMicroLink,
-  NavSectionLabel,
-  NavTreatmentRow,
-  type NavCityRow,
-  type NavCountryRow,
-} from './nav/NavPrimitives'
+import { NavFlatLink } from './nav/NavPrimitives'
+import { NavPanelContent } from './nav/NavPanelContent'
 
 type FeaturedCountry = ReturnType<typeof getFeaturedCountriesFromTaxonomy>[number]
 
@@ -43,30 +25,6 @@ type MobileMenuProps = {
   featuredCountries: FeaturedCountry[]
   featuredCities: NavFeaturedCity[]
   treatments: TreatmentCategoryDisplay[]
-}
-
-const FEATURED_COUNTRY_LIMIT = 6
-const FEATURED_CITY_LIMIT = 6
-
-function toCountryRows(countries: FeaturedCountry[]): NavCountryRow[] {
-  return countries.map((country) => ({
-    name: country.name,
-    flag: country.flag,
-    countryHref: country.countryHref,
-    clinicHref: country.href,
-    guideHref: country.guideHref || null,
-  }))
-}
-
-function toCityRows(cities: NavFeaturedCity[]): NavCityRow[] {
-  return cities.map((city) => ({
-    cityName: city.cityName,
-    countryName: city.countryName,
-    flag: city.flag,
-    overviewHref: city.overviewHref,
-    clinicHref: city.clinicHref,
-    guideHref: city.guideHref,
-  }))
 }
 
 function AccordionSection({
@@ -98,190 +56,6 @@ function AccordionSection({
       {open && <div className="px-4 pb-4">{children}</div>}
     </div>
   )
-}
-
-function MobilePanelContent({
-  panelId,
-  t,
-  locale,
-  featuredCountries,
-  featuredCities,
-  treatments,
-  onNavigate,
-}: {
-  panelId: NavPanelId
-  t: ReturnType<typeof getDictionary>
-  locale: Locale
-  featuredCountries: FeaturedCountry[]
-  featuredCities: NavFeaturedCity[]
-  treatments: TreatmentCategoryDisplay[]
-  onNavigate: () => void
-}) {
-  const featured = featuredCountries.slice(0, FEATURED_COUNTRY_LIMIT)
-  const cities = featuredCities.slice(0, FEATURED_CITY_LIMIT)
-  const activeTreatments = treatments.filter((tr) => tr.status === 'active')
-  const browseAllCitiesHref = countriesHubPath(locale)
-
-  switch (panelId) {
-    case 'destinations': {
-      const countriesHub = getHubById('countries')!
-      return (
-        <div className="space-y-4">
-          <NavHubCard
-            hub={countriesHub}
-            label={t.nav.triggers.destinations}
-            description={t.nav.descriptions.destinations}
-            locale={locale}
-            onNavigate={onNavigate}
-            variant="nav"
-          />
-          {featured.length > 0 && (
-            <>
-              <NavSectionLabel>{t.nav.featuredCountries}</NavSectionLabel>
-              <NavCountryActions
-                countries={toCountryRows(featured)}
-                labels={t.nav.actions}
-                onNavigate={onNavigate}
-                limit={FEATURED_COUNTRY_LIMIT}
-              />
-            </>
-          )}
-          {cities.length > 0 && (
-            <>
-              <NavSectionLabel>{t.nav.featuredCities}</NavSectionLabel>
-              <NavCityActions
-                cities={toCityRows(cities)}
-                labels={t.nav.actions}
-                onNavigate={onNavigate}
-                limit={FEATURED_CITY_LIMIT}
-              />
-              <NavMicroLink href={browseAllCitiesHref} onClick={onNavigate}>
-                {t.nav.actions.browseAllCities} →
-              </NavMicroLink>
-            </>
-          )}
-          <NavMicroLink href={compareHubPath(locale)} onClick={onNavigate}>
-            {t.nav.actions.compareDestinations} →
-          </NavMicroLink>
-        </div>
-      )
-    }
-    case 'clinics': {
-      const clinicsHub = getHubById('clinics')!
-      return (
-        <div className="space-y-4">
-          <NavHubCard
-            hub={clinicsHub}
-            label={t.nav.triggers.clinics}
-            description={t.nav.descriptions.clinics}
-            locale={locale}
-            onNavigate={onNavigate}
-            variant="nav"
-          />
-          <NavMicroLink href={clinicsHubPath(locale)} onClick={onNavigate}>
-            {t.nav.actions.browseAllClinics} →
-          </NavMicroLink>
-          {featured.length > 0 && (
-            <>
-              <NavSectionLabel>{t.nav.sections.byDestination}</NavSectionLabel>
-              <NavCountryList
-                countries={featured.map((country) => ({
-                  name: country.name,
-                  flag: country.flag,
-                  href: country.href,
-                  clinicCount: country.clinics ? `${country.clinics} clinics` : undefined,
-                }))}
-                onNavigate={onNavigate}
-                limit={FEATURED_COUNTRY_LIMIT}
-              />
-            </>
-          )}
-          {cities.length > 0 && (
-            <>
-              <NavSectionLabel>{t.nav.sections.popularCities}</NavSectionLabel>
-              <NavCityList
-                cities={cities.map((city) => ({
-                  cityName: city.cityName,
-                  countryName: city.countryName,
-                  href: city.clinicHref,
-                }))}
-                onNavigate={onNavigate}
-                limit={FEATURED_CITY_LIMIT}
-              />
-            </>
-          )}
-          {activeTreatments.length > 0 && (
-            <>
-              <NavSectionLabel>{t.nav.sections.byTreatment}</NavSectionLabel>
-              <ul className="space-y-0.5">
-                {activeTreatments.map((treatment) => (
-                  <NavTreatmentRow
-                    key={treatment.id}
-                    name={treatment.name}
-                    treatmentHref={clinicTreatmentBrowsePath(
-                      treatment.id,
-                      treatment.countries,
-                      locale,
-                    )}
-                    onNavigate={onNavigate}
-                  />
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
-      )
-    }
-    case 'treatments': {
-      const treatmentsHub = getHubById('treatments')!
-      return (
-        <div className="space-y-4">
-          <NavHubCard
-            hub={treatmentsHub}
-            label={t.nav.treatments}
-            locale={locale}
-            onNavigate={onNavigate}
-            variant="nav"
-          />
-          {activeTreatments.length > 0 && (
-            <>
-              <NavSectionLabel>{t.breadcrumb.treatments}</NavSectionLabel>
-              <ul className="space-y-0.5">
-                {activeTreatments.map((treatment) => (
-                  <NavTreatmentRow
-                    key={treatment.id}
-                    name={treatment.name}
-                    treatmentHref={treatmentPath(treatment.id, locale)}
-                    onNavigate={onNavigate}
-                  />
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
-      )
-    }
-    case 'tools': {
-      const costsHub = getHubById('costs')!
-      const compareHub = getHubById('compare')!
-      return (
-        <div className="flex flex-col gap-0.5">
-          <NavFlatLink
-            href={hubPath(costsHub.id, locale)}
-            label={t.nav.costs}
-            onNavigate={onNavigate}
-            icon={costsHub.icon}
-          />
-          <NavFlatLink
-            href={hubPath(compareHub.id, locale)}
-            label={t.nav.compare}
-            onNavigate={onNavigate}
-            icon={compareHub.icon}
-          />
-        </div>
-      )
-    }
-  }
 }
 
 export function MobileMenu({ locale, featuredCountries, featuredCities, treatments }: MobileMenuProps) {
@@ -344,7 +118,7 @@ export function MobileMenu({ locale, featuredCountries, featuredCities, treatmen
                   open={expandedPanel === item.panel}
                   onToggle={() => togglePanel(item.panel!)}
                 >
-                  <MobilePanelContent
+                  <NavPanelContent
                     panelId={item.panel}
                     t={t}
                     locale={locale}

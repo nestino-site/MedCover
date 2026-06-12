@@ -43,6 +43,8 @@ export const en = {
       compareDestinations: 'Compare destinations',
       browseAllCities: 'Browse all cities',
       browseAllClinics: 'Browse all clinics',
+      viewAllCountries: 'View all {count} countries',
+      viewAllCities: 'View all {count} cities',
     },
     sections: {
       byDestination: 'By destination',

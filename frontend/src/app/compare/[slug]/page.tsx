@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { getTaxonomy, listAllClinics } from '@/lib/api/catalog'
 import { listPublishedPagesSafe } from '@/lib/api/content'
 import { generateCompareStaticParams } from '@/lib/compare/static-params'
 import { CompareDetailContent } from '@/components/compare/CompareDetailContent'
@@ -11,12 +10,8 @@ import { cmsMetadataForSlug } from '@/lib/seo/cms-seo'
 type Props = { params: Promise<{ slug: string }> }
 
 export async function generateStaticParams() {
-  const [taxonomy, pages, clinics] = await Promise.all([
-    getTaxonomy(),
-    listPublishedPagesSafe(),
-    listAllClinics(),
-  ])
-  return generateCompareStaticParams(taxonomy, pages, clinics)
+  const pages = await listPublishedPagesSafe()
+  return generateCompareStaticParams(pages)
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

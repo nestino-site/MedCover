@@ -28,8 +28,6 @@ import {
   buildClinicListFromPages,
   getClinicDetailFromPage,
   buildEmptyCosts,
-  buildCompareFromTaxonomy,
-  countrySlugForCity,
 } from './catalog-adapters'
 
 const SITE_ID = process.env.SITE_ID ?? ''
@@ -157,66 +155,7 @@ export async function getCompare(
   const qs = new URLSearchParams({ type, a, b })
   if (treatment) qs.set('treatment', treatment)
 
-  const api = await fetchJson(`/content/compare?${qs}`, CompareResponseSchema)
-  if (api) return api
-
-  const taxonomy = await getTaxonomy()
-
-  if (type === 'clinic') {
-    const allClinics = await listAllClinics()
-    const clinicA = allClinics.find((c) => c.slug === a) ?? null
-    const clinicB = allClinics.find((c) => c.slug === b) ?? null
-    if (!clinicA || !clinicB) return null
-
-    const detailA =
-      clinicA.country?.slug && clinicA.city?.slug
-        ? await getClinic(clinicA.country.slug, clinicA.city.slug, clinicA.slug)
-        : null
-    const detailB =
-      clinicB.country?.slug && clinicB.city?.slug
-        ? await getClinic(clinicB.country.slug, clinicB.city.slug, clinicB.slug)
-        : null
-
-    return buildCompareFromTaxonomy(type, a, b, treatment, taxonomy, {
-      clinicsA: [],
-      clinicsB: [],
-      clinicA: detailA ?? clinicA,
-      clinicB: detailB ?? clinicB,
-    })
-  }
-
-  if (!treatment) return null
-
-  const costs = await getCosts(treatment)
-
-  if (type === 'country') {
-    const [clinicsA, clinicsB] = await Promise.all([
-      listClinics({ country: a, treatment, limit: 48 }),
-      listClinics({ country: b, treatment, limit: 48 }),
-    ])
-    return buildCompareFromTaxonomy(type, a, b, treatment, taxonomy, {
-      clinicsA: clinicsA.items,
-      clinicsB: clinicsB.items,
-      costsA: costs,
-      costsB: costs,
-    })
-  }
-
-  const countryA = countrySlugForCity(taxonomy, a)
-  const countryB = countrySlugForCity(taxonomy, b)
-  if (!countryA || !countryB) return null
-
-  const [clinicsA, clinicsB] = await Promise.all([
-    listClinics({ country: countryA, city: a, treatment, limit: 48 }),
-    listClinics({ country: countryB, city: b, treatment, limit: 48 }),
-  ])
-
-  return buildCompareFromTaxonomy(type, a, b, treatment, taxonomy, {
-    clinicsA: clinicsA.items,
-    clinicsB: clinicsB.items,
-    costsA: costs,
-    costsB: costs,
-  })
+  return fetchJson(`/content/compare?${qs}`, CompareResponseSchema)
 }
 
 export async function searchContent(q: string, limit = 10): Promise<SearchResponse> {

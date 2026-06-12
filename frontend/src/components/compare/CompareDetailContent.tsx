@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { getTaxonomy, getCompare } from '@/lib/api/catalog'
 import { loadPublishedPage, listPublishedPagesSafe } from '@/lib/api/content'
+import { isPublishedCompareSlug } from '@/lib/compare/static-params'
 import { EntityHero } from '@/components/shared/EntityHero'
 import { ComparisonTable } from '@/components/shared/ComparisonTable'
 import { ContentHtml } from '@/components/shared/ContentHtml'
@@ -44,13 +45,18 @@ async function loadCompareCms(
 
 export async function CompareDetailContent({ slug }: { slug: string }) {
   const locale = activeLocale
-  const taxonomy = await getTaxonomy()
+  const [taxonomy, pages] = await Promise.all([getTaxonomy(), listPublishedPagesSafe()])
   const parsed = resolveCompareCanonicalSlug(slug, taxonomy)
-  if (!parsed || !validateCompareEntities(parsed, taxonomy)) notFound()
+  if (!parsed || parsed.type === 'clinic') notFound()
+  if (!validateCompareEntities(parsed, taxonomy)) notFound()
+  if (!isPublishedCompareSlug(slug, pages)) notFound()
 
   if (!parsed.isCanonicalOrder) {
     redirect(`/compare/${parsed.canonicalSlug}/`)
   }
+
+  const cms = await loadCompareCms(parsed)
+  if (cms.status !== 'ok') notFound()
 
   const compareData = await getCompare(
     parsed.type,
@@ -59,7 +65,6 @@ export async function CompareDetailContent({ slug }: { slug: string }) {
     parsed.treatment,
   )
 
-  const cms = await loadCompareCms(parsed)
   const slugPath = cmsCompareSlug(parsed.entityA, parsed.entityB, parsed.treatment)
 
   const titleA = compareData?.entityA.name ?? slugToLabel(parsed.entityA)
@@ -108,7 +113,6 @@ export async function CompareDetailContent({ slug }: { slug: string }) {
 
   const cmsAnswer = cms.status === 'ok' ? heroAnswerFromCmsPage(cms.page) : undefined
 
-  const pages = parsed.type === 'country' ? await listPublishedPagesSafe() : []
   const relatedGuides =
     parsed.type === 'country'
       ? dedupeRelated([
