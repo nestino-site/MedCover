@@ -130,7 +130,7 @@ export async function HubExploreGrid({ locale }: { locale: Locale }) {
         ))}
       </div>
       {soonHubs.length > 0 && (
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {soonHubs.map((hub) => (
             <HubCard
               key={hub.id}
@@ -154,7 +154,7 @@ export function HubExploreGridSkeleton() {
           <Skeleton key={i} className="h-32" rounded="2xl" />
         ))}
       </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
           <Skeleton key={i} className="h-28" rounded="2xl" />
         ))}

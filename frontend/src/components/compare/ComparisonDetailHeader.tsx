@@ -73,7 +73,7 @@ function LocationCard({ locationKey, locationMeta, isHighlighted }: LocationCard
           : 'border-[var(--color-border)] bg-white'
       }`}
     >
-      <span className="text-4xl leading-none" role="img" aria-label={name}>
+      <span className="text-3xl leading-none sm:text-4xl" role="img" aria-label={name}>
         {flag}
       </span>
       <p className="mt-2 font-bold text-[var(--color-primary-950)]">{name}</p>
@@ -106,7 +106,11 @@ export function ComparisonDetailHeader({ slug, locationMeta }: ComparisonDetailH
 
   const locationLabels = locations.map((key) => locationLabel(key, locationMeta))
   const colsClass =
-    locations.length === 3 ? 'grid-cols-3' : locations.length === 2 ? 'grid-cols-2' : 'grid-cols-1'
+    locations.length === 3
+      ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+      : locations.length === 2
+        ? 'grid-cols-1 sm:grid-cols-2'
+        : 'grid-cols-1'
 
   return (
     <div className="border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-4 pb-10 pt-8 sm:px-6 lg:px-8">

@@ -57,7 +57,7 @@ function ClinicGallery({ clinic }: { clinic: ClinicDetail }) {
               type="button"
               onClick={() => setActiveIndex(i)}
               className={cn(
-                'relative h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2 transition-colors',
+                'relative h-11 w-[4.5rem] shrink-0 overflow-hidden rounded-lg border-2 transition-colors',
                 i === activeIndex
                   ? 'border-[var(--color-primary-600)]'
                   : 'border-transparent opacity-70 hover:opacity-100',

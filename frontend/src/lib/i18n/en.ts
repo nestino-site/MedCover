@@ -42,6 +42,11 @@ export const en = {
       costs: 'Costs',
       compareDestinations: 'Compare destinations',
       browseAllCities: 'Browse all cities',
+      browseAllClinics: 'Browse all clinics',
+    },
+    sections: {
+      byDestination: 'By destination',
+      popularCities: 'Popular cities',
     },
     quickLinks: {
       clinics: 'Clinics',

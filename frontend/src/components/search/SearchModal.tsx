@@ -231,7 +231,9 @@ export function SearchModal({ open: controlledOpen, onOpenChange, trigger }: Sea
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <Dialog.Content
           className={cn(
-            'fixed left-1/2 top-[10%] z-50 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2',
+            'safe-area-top fixed left-1/2 z-50 w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2',
+            'top-[max(0.75rem,env(safe-area-inset-top))] sm:top-[10%]',
+            'max-h-[min(85dvh,calc(100dvh-env(safe-area-inset-top)-1rem))] overflow-hidden',
             'rounded-2xl border border-[var(--color-border)] bg-white shadow-2xl',
             'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
           )}
@@ -258,7 +260,7 @@ export function SearchModal({ open: controlledOpen, onOpenChange, trigger }: Sea
           </div>
 
           {hasQuery && (
-            <div className="flex gap-1 overflow-x-auto border-b border-[var(--color-border)] px-3 py-2">
+            <div className="flex snap-x snap-mandatory gap-1 overflow-x-auto border-b border-[var(--color-border)] px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {SCOPE_TABS.map((tab) => (
                 <button
                   key={tab.id}
@@ -268,7 +270,7 @@ export function SearchModal({ open: controlledOpen, onOpenChange, trigger }: Sea
                     setActiveIndex(-1)
                   }}
                   className={cn(
-                    'shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                    'min-h-9 shrink-0 snap-start rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
                     scope === tab.id
                       ? 'bg-[var(--color-primary-900)] text-white'
                       : 'text-[var(--color-neutral-600)] hover:bg-[var(--color-neutral-100)]',
@@ -280,7 +282,7 @@ export function SearchModal({ open: controlledOpen, onOpenChange, trigger }: Sea
             </div>
           )}
 
-          <div ref={listRef} className="max-h-[60vh] overflow-y-auto p-2" aria-busy={loading}>
+          <div ref={listRef} className="max-h-[min(60vh,calc(85dvh-8rem))] overflow-y-auto p-2 sm:max-h-[60vh]" aria-busy={loading}>
             {loading && <SearchResultSkeleton count={4} />}
 
             {!loading && hasQuery && !hasResults && (

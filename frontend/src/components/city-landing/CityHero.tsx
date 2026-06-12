@@ -53,7 +53,7 @@ export function CityHero({
           </span>
         </div>
 
-        <h1 className="text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
+        <h1 className="text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
           {cityName}
         </h1>
 
@@ -80,7 +80,7 @@ export function CityHero({
         {(cost || clinics) && (
           <div
             data-speakable="true"
-            className="mt-6 grid grid-cols-2 gap-4 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm sm:gap-6 sm:p-5"
+            className="mt-6 grid grid-cols-1 gap-4 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm sm:grid-cols-2 sm:gap-6 sm:p-5"
           >
             {cost && (
               <div>

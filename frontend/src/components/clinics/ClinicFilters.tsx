@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback } from 'react'
-import { X } from 'lucide-react'
+import { useCallback, useEffect, useRef } from 'react'
+import { X, ChevronDown } from 'lucide-react'
 import type { Taxonomy } from '@/lib/api/types'
 import {
   clinicCityPath,
@@ -184,6 +184,23 @@ export function ClinicFilters({
 
   const showCityFilter = scope.kind === 'country' || scope.kind === 'country_treatment'
 
+  const filterDetailsRef = useRef<HTMLDetailsElement>(null)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    const syncOpenState = () => {
+      if (filterDetailsRef.current) {
+        filterDetailsRef.current.open = mq.matches
+      }
+    }
+    syncOpenState()
+    mq.addEventListener('change', syncOpenState)
+    return () => mq.removeEventListener('change', syncOpenState)
+  }, [])
+
+  const selectClassName =
+    'w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2.5 text-sm text-[var(--color-primary-900)] disabled:cursor-wait disabled:opacity-60 sm:min-w-[120px] md:min-w-[160px]'
+
   return (
     <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -192,16 +209,22 @@ export function ClinicFilters({
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <details ref={filterDetailsRef} className="group">
+        <summary className="mb-3 flex cursor-pointer list-none items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-neutral-50)] px-3 py-2.5 text-sm font-medium text-[var(--color-primary-900)] md:hidden [&::-webkit-details-marker]:hidden">
+          <span>Filters & sort</span>
+          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+        </summary>
+
+      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap">
         {showTreatmentFilter && (
-          <label className="flex flex-col gap-1 text-xs font-medium text-[var(--color-neutral-500)]">
+          <label className="flex w-full flex-col gap-1 text-xs font-medium text-[var(--color-neutral-500)] md:w-auto">
             Treatment
             <select
               value={activeTreatment ?? ''}
               onChange={(e) => navigateTreatment(e.target.value)}
               disabled={isPending}
               aria-busy={isPending}
-              className="min-w-[160px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)] disabled:cursor-wait disabled:opacity-60"
+              className={selectClassName}
             >
               <option value="">All treatments</option>
               {treatments.map((t) => (
@@ -214,14 +237,14 @@ export function ClinicFilters({
         )}
 
         {showCityFilter && cities.length > 0 && (
-          <label className="flex flex-col gap-1 text-xs font-medium text-[var(--color-neutral-500)]">
+          <label className="flex w-full flex-col gap-1 text-xs font-medium text-[var(--color-neutral-500)] md:w-auto">
             City
             <select
               value={activeCity ?? ''}
               onChange={(e) => navigateCity(e.target.value)}
               disabled={isPending}
               aria-busy={isPending}
-              className="min-w-[160px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)] disabled:cursor-wait disabled:opacity-60"
+              className={selectClassName}
             >
               <option value="">All cities</option>
               {cities.map((c) => (
@@ -233,14 +256,14 @@ export function ClinicFilters({
           </label>
         )}
 
-        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--color-neutral-500)]">
+        <label className="flex w-full flex-col gap-1 text-xs font-medium text-[var(--color-neutral-500)] md:w-auto">
           Sort by
           <select
             value={sort}
             onChange={(e) => applyQueryFilters({ sort: e.target.value as ClinicSort })}
             disabled={isPending}
             aria-busy={isPending}
-            className="min-w-[160px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)] disabled:cursor-wait disabled:opacity-60"
+            className={selectClassName}
           >
             {CLINIC_SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -250,7 +273,7 @@ export function ClinicFilters({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--color-neutral-500)]">
+        <label className="flex w-full flex-col gap-1 text-xs font-medium text-[var(--color-neutral-500)] md:w-auto">
           Min rating
           <select
             value={minRating ?? ''}
@@ -261,7 +284,7 @@ export function ClinicFilters({
             }
             disabled={isPending}
             aria-busy={isPending}
-            className="min-w-[120px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)] disabled:cursor-wait disabled:opacity-60"
+            className={selectClassName}
           >
             <option value="">Any</option>
             <option value="3">3.0+</option>
@@ -271,7 +294,7 @@ export function ClinicFilters({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--color-neutral-500)]">
+        <label className="flex w-full flex-col gap-1 text-xs font-medium text-[var(--color-neutral-500)] md:w-auto">
           Min Truth Score
           <select
             value={minTruthScore ?? ''}
@@ -282,7 +305,7 @@ export function ClinicFilters({
             }
             disabled={isPending}
             aria-busy={isPending}
-            className="min-w-[120px] rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-primary-900)] disabled:cursor-wait disabled:opacity-60"
+            className={selectClassName}
           >
             <option value="">Any</option>
             <option value="60">60+</option>
@@ -292,6 +315,7 @@ export function ClinicFilters({
           </select>
         </label>
       </div>
+      </details>
 
       {activePills.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">

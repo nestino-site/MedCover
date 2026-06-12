@@ -37,7 +37,7 @@ export function FilterChips({ options, paramKey, label, allLabel = 'All' }: Filt
 
   const chipClass = (active: boolean) =>
     cn(
-      'rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all',
+      'min-h-9 rounded-full border px-3.5 py-2 text-sm font-medium transition-all',
       isPending && 'cursor-wait',
       active
         ? 'border-[var(--color-primary-400)] bg-[var(--color-primary-600)] text-white'

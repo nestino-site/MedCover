@@ -29,7 +29,7 @@ export function HubPageLayout({
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       {showHeading && (
         <div className="mb-10 max-w-2xl">
-          <h1 className="text-4xl font-bold tracking-tight text-[var(--color-primary-950)]">
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-primary-950)] sm:text-4xl lg:text-5xl">
             {title}
           </h1>
           <p className="mt-3 text-lg text-[var(--color-neutral-600)]">{description}</p>

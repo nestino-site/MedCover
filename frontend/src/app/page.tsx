@@ -111,7 +111,7 @@ export default async function HomePage() {
                 <HomeHeroEyebrow />
               </Suspense>
             </p>
-            <h1 className="mt-4 text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl">
+            <h1 className="mt-4 text-3xl font-bold leading-[1.08] tracking-tight text-white sm:text-4xl lg:text-5xl">
               {t.home.hero.title}
             </h1>
             <p className="mx-auto mt-5 max-w-lg text-lg text-[var(--color-primary-200)] lg:mx-0">
@@ -126,16 +126,15 @@ export default async function HomePage() {
                 {t.home.hero.ctaSecondary}
               </Button>
             </div>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 border-t border-white/10 pt-5 text-sm lg:justify-start">
-              {quickLinks.map((link, i) => (
-                <span key={link.href} className="flex items-center gap-3">
-                  {i > 0 && (
-                    <span className="text-[var(--color-primary-600)]" aria-hidden="true">·</span>
-                  )}
-                  <Link href={link.href} className="text-[var(--color-primary-200)] transition-colors hover:text-white">
-                    {link.label}
-                  </Link>
-                </span>
+            <div className="mt-10 flex flex-col items-stretch gap-2 border-t border-white/10 pt-5 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-3 sm:gap-y-2 lg:justify-start">
+              {quickLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="rounded-lg px-2 py-2 text-center text-[var(--color-primary-200)] transition-colors hover:bg-white/5 hover:text-white sm:px-0 sm:py-0 sm:hover:bg-transparent"
+                >
+                  {link.label}
+                </Link>
               ))}
               <div className="ml-auto hidden lg:block">
                 <SearchTriggerButton className="rounded-lg bg-white/10 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/15" />

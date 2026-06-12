@@ -20,9 +20,9 @@ export function Header({ locale }: HeaderProps) {
   const t = getDictionary(locale)
 
   return (
-    <header className="relative sticky top-0 z-40 border-b border-[var(--color-border)] bg-white/90 backdrop-blur-md">
+    <header className="safe-area-top relative sticky top-0 z-40 border-b border-[var(--color-border)] bg-white/90 backdrop-blur-md">
       <div className="relative mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8" id="site-header-shell">
-        <div className="flex items-center justify-between gap-6">
+        <div className="flex items-center justify-between gap-4 sm:gap-6">
         <Logo locale={locale} />
 
         <nav className="hidden items-center gap-1 md:flex" aria-label={t.aria.mainNavigation}>
@@ -31,9 +31,9 @@ export function Header({ locale }: HeaderProps) {
           </Suspense>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <SearchTriggerButton />
-          <LanguageSwitcher />
+          <LanguageSwitcher className="hidden sm:flex" />
           <Button href={hubPath('clinics', locale)} variant="primary" size="md" className="hidden md:inline-flex">
             {t.nav.matchClinic}
           </Button>

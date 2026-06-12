@@ -166,7 +166,7 @@ export function ClinicPdpView({
           </div>
         )}
 
-        <ClinicFactsSidebar clinic={clinic} className="lg:order-last" />
+        <ClinicFactsSidebar clinic={clinic} className="order-first lg:order-last" />
       </div>
 
       <RelatedClinicsSections

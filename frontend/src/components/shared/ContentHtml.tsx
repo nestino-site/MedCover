@@ -24,16 +24,16 @@ const defaultProse = [
 ]
 
 const guideProse = [
-  'prose prose-lg prose-neutral max-w-none',
+  'prose sm:prose-lg prose-neutral max-w-none',
   'prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-[var(--color-primary-950)]',
-  'prose-h2:scroll-mt-28 prose-h2:mt-14 prose-h2:mb-5 prose-h2:border-b prose-h2:border-[var(--color-primary-100)] prose-h2:pb-3 prose-h2:text-[1.65rem] sm:prose-h2:text-[1.85rem]',
+  'prose-h2:scroll-mt-28 prose-h2:mt-14 prose-h2:mb-5 prose-h2:border-b prose-h2:border-[var(--color-primary-100)] prose-h2:pb-3 prose-h2:text-[1.4rem] sm:prose-h2:text-[1.65rem] lg:prose-h2:text-[1.85rem]',
   'prose-h3:mt-10 prose-h3:mb-3 prose-h3:text-xl prose-h3:text-[var(--color-primary-900)]',
   'prose-h4:mt-8 prose-h4:mb-2 prose-h4:text-lg prose-h4:text-[var(--color-primary-800)]',
   'prose-p:text-[var(--color-neutral-700)] prose-p:leading-[1.8]',
-  '[&>p:first-of-type]:text-xl [&>p:first-of-type]:leading-relaxed [&>p:first-of-type]:text-[var(--color-neutral-600)]',
+  '[&>p:first-of-type]:text-lg [&>p:first-of-type]:leading-relaxed sm:[&>p:first-of-type]:text-xl [&>p:first-of-type]:text-[var(--color-neutral-600)]',
   'prose-a:text-[var(--color-primary-700)] prose-a:font-medium prose-a:underline-offset-2 prose-a:decoration-[var(--color-primary-200)] hover:prose-a:decoration-[var(--color-primary-500)]',
   'prose-strong:text-[var(--color-neutral-900)] prose-strong:font-semibold',
-  'prose-table:text-sm prose-table:my-8 prose-table:rounded-xl prose-table:overflow-hidden prose-table:shadow-[var(--shadow-xs)]',
+  'prose-table:text-sm prose-table:my-8 prose-table:rounded-xl prose-table:shadow-[var(--shadow-xs)]',
   'prose-th:bg-[var(--color-primary-950)] prose-th:font-semibold prose-th:text-white prose-th:px-4 prose-th:py-3',
   'prose-td:align-top prose-td:px-4 prose-td:py-3 prose-tr:border-[var(--color-border)]',
   '[&_tbody_tr:nth-child(even)]:bg-[var(--color-primary-50)]/50',
@@ -51,7 +51,7 @@ export function ContentHtml({ html, className, variant = 'default' }: ContentHtm
 
   return (
     <div
-      className={cn(variant === 'guide' ? guideProse : defaultProse, className)}
+      className={cn('content-html', variant === 'guide' ? guideProse : defaultProse, className)}
       // Backend delivers sanitized HTML
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: html }}

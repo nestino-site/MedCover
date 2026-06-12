@@ -1,5 +1,6 @@
 import { localizedPath, type Locale } from '@/lib/i18n'
 import { canonicalTreatmentSlug, TREATMENT_SLUG_ALIASES } from '@/lib/content/treatment-slugs'
+import type { Taxonomy } from '@/lib/api/types'
 
 /** Ensure trailing slash for public paths. */
 export function withTrailingSlash(path: string): string {
@@ -210,28 +211,101 @@ export function parseCompareSlug(rawSlug: string): ParsedCompareSlug | null {
   return null
 }
 
+export function compareSlugFromParsed(parsed: ParsedCompareSlug): string {
+  if (parsed.treatment) {
+    return `${parsed.entityA}-vs-${parsed.entityB}-for-${canonicalTreatmentSlug(parsed.treatment)}`
+  }
+  return `${parsed.entityA}-vs-${parsed.entityB}`
+}
+
+export function cmsCompareSlug(a: string, b: string, treatment?: string): string {
+  const [entityA, entityB] = canonicalPair(a, b)
+  if (treatment) {
+    return cmsPageSlug(
+      'compare',
+      `${entityA}-vs-${entityB}-for-${canonicalTreatmentSlug(treatment)}`,
+    )
+  }
+  return cmsPageSlug('compare', `${entityA}-vs-${entityB}`)
+}
+
+/** Legacy CMS slug before `-for-{treatment}` migration. */
+export function legacyCompareCmsSlug(a: string, b: string): string {
+  const [entityA, entityB] = canonicalPair(a, b)
+  return cmsPageSlug('compare', `${entityA}-vs-${entityB}-ivf`)
+}
+
+function taxonomyCountrySlugs(taxonomy: Taxonomy): Set<string> {
+  return new Set(taxonomy.countries.map((c) => c.slug))
+}
+
+function taxonomyCitySlugs(taxonomy: Taxonomy): Set<string> {
+  const slugs = new Set<string>()
+  for (const country of taxonomy.countries) {
+    for (const city of country.cities) {
+      slugs.add(city.slug)
+    }
+  }
+  return slugs
+}
+
+export function resolveCompareType(
+  entityA: string,
+  entityB: string,
+  hasTreatment: boolean,
+  taxonomy: Taxonomy,
+): CompareType | null {
+  if (!hasTreatment) return 'clinic'
+
+  const countries = taxonomyCountrySlugs(taxonomy)
+  const cities = taxonomyCitySlugs(taxonomy)
+  const aIsCountry = countries.has(entityA)
+  const bIsCountry = countries.has(entityB)
+  const aIsCity = cities.has(entityA)
+  const bIsCity = cities.has(entityB)
+
+  if (aIsCountry && bIsCountry) return 'country'
+  if (aIsCity && bIsCity) return 'city'
+  return null
+}
+
 export function resolveCompareCanonicalSlug(
   rawSlug: string,
-  treatmentSlugs: Set<string>,
+  taxonomy: Taxonomy,
 ): ParsedCompareSlug | null {
   const parsed = parseCompareSlug(rawSlug)
   if (!parsed) return null
 
   if (parsed.treatment) {
     const treatment = canonicalTreatmentSlug(parsed.treatment)
-    const treatmentSet = treatmentSlugs
-    if (treatmentSet.has(parsed.entityA) || treatmentSet.has(parsed.entityB)) {
-      return {
-        ...parsed,
-        type: 'city',
-        treatment,
-        canonicalSlug: `${parsed.entityA}-vs-${parsed.entityB}-for-${treatment}`,
-      }
+    const type = resolveCompareType(parsed.entityA, parsed.entityB, true, taxonomy)
+    if (!type) return null
+    return {
+      ...parsed,
+      type,
+      treatment,
+      canonicalSlug: `${parsed.entityA}-vs-${parsed.entityB}-for-${treatment}`,
     }
-    return { ...parsed, treatment, canonicalSlug: `${parsed.entityA}-vs-${parsed.entityB}-for-${treatment}` }
   }
 
-  return parsed
+  return { ...parsed, type: 'clinic' }
+}
+
+export function validateCompareEntities(
+  parsed: ParsedCompareSlug,
+  taxonomy: Taxonomy,
+): boolean {
+  if (parsed.type === 'clinic') {
+    return true
+  }
+
+  if (parsed.type === 'country') {
+    const countries = taxonomyCountrySlugs(taxonomy)
+    return countries.has(parsed.entityA) && countries.has(parsed.entityB)
+  }
+
+  const cities = taxonomyCitySlugs(taxonomy)
+  return cities.has(parsed.entityA) && cities.has(parsed.entityB)
 }
 
 // ─── Clinics segment resolution ──────────────────────────────────────────────

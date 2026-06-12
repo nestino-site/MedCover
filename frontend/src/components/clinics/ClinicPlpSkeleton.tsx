@@ -15,9 +15,10 @@ export function ClinicPlpSkeleton({ count = 6, showFilters = false }: ClinicPlpS
           aria-hidden="true"
         >
           <Skeleton className="mb-3 h-4 w-32" rounded="sm" />
-          <div className="flex flex-wrap gap-3">
+          <Skeleton className="mb-3 h-10 w-full md:hidden" rounded="lg" />
+          <div className="hidden flex-col gap-3 md:flex md:flex-row md:flex-wrap">
             {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-10 w-40" rounded="lg" />
+              <Skeleton key={i} className="h-10 w-full sm:w-40" rounded="lg" />
             ))}
           </div>
         </div>

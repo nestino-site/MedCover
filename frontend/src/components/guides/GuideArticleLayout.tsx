@@ -50,7 +50,7 @@ function estimateReadingMinutes(html: string): number {
 function HeroImage({ hero, priority = false }: { hero: ResolvedHero; priority?: boolean }) {
   return (
     <div className="relative overflow-hidden rounded-2xl shadow-[var(--shadow-card)] ring-1 ring-[var(--color-border)]">
-      <div className="aspect-[21/9] w-full bg-[var(--color-primary-100)] sm:aspect-[2/1]">
+      <div className="aspect-[16/9] w-full bg-[var(--color-primary-100)] sm:aspect-[2/1]">
         {isNextImageOptimizable(hero.url) ? (
           <Image
             src={hero.url}
@@ -142,7 +142,7 @@ function ArticleHeader({
 
         <LocationTags guideDim={guideDim} />
 
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--color-primary-950)] sm:text-4xl lg:text-[2.75rem] lg:leading-[1.15]">
+        <h1 className="mt-4 text-2xl font-bold tracking-tight text-[var(--color-primary-950)] sm:text-3xl lg:text-4xl lg:text-[2.75rem] lg:leading-[1.15]">
           {title}
         </h1>
 

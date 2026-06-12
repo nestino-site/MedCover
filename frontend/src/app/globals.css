@@ -268,3 +268,37 @@
   font-size: 0.75em;
   opacity: 0.7;
 }
+
+/* ─── CMS prose tables — horizontal scroll on narrow viewports ─────────── */
+.content-html {
+  overflow-x: clip;
+}
+
+.content-html table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.content-html table thead,
+.content-html table tbody,
+.content-html table tr {
+  display: table;
+  width: 100%;
+  table-layout: auto;
+}
+
+.content-html table.compare-table {
+  min-width: 480px;
+  width: 100%;
+}
+
+/* ─── Safe-area utilities ─────────────────────────────────────────────── */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

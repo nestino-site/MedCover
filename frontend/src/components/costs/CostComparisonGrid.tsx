@@ -59,7 +59,7 @@ function CostComparisonGridInner({ locale, countries }: CostComparisonGridProps)
           className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
         >
           <div className="flex items-center gap-3 bg-[var(--color-primary-50)] px-5 py-5">
-            <span className="text-4xl leading-none" role="img" aria-label={c.name}>
+            <span className="text-3xl leading-none sm:text-4xl" role="img" aria-label={c.name}>
               {c.flag}
             </span>
             <div>

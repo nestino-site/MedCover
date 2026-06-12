@@ -13,12 +13,14 @@ import {
 } from '@/lib/clinics/sitemap'
 import { LOCALES } from '@/lib/i18n/locales'
 import { absoluteUrl, localizedPath } from '@/lib/i18n/paths'
+import { buildCompareHubItems } from '@/lib/compare/static-params'
 import {
   clinicCityPath,
   clinicCountryPath,
   clinicCityTreatmentPath,
   clinicCountryTreatmentPath,
   clinicsHubPath,
+  compareHubPath,
   costCityPath,
   costCountryPath,
   costHubPath,
@@ -88,6 +90,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.85,
     })
+
+    entries.push({
+      url: absoluteUrl(compareHubPath(locale), SITE_URL),
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    })
+
+    const compareItems = buildCompareHubItems(taxonomy, locale, allClinics)
+    for (const item of compareItems) {
+      entries.push({
+        url: absoluteUrl(item.href, SITE_URL),
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: item.type === 'country' ? 0.75 : 0.7,
+      })
+    }
 
     for (const country of taxonomy.countries) {
       if (country.clinicCount === 0) continue

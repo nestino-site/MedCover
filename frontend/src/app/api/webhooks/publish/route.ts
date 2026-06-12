@@ -51,6 +51,28 @@ function revalidateCostScopeTags(path: string) {
   }
 }
 
+function revalidateCompareScopeTags(path: string) {
+  const match = path.replace(/^\//, '').match(/^compare\/(.+)/)
+  if (!match) return
+  const tail = match[1].replace(/\/$/, '')
+  const forParts = tail.match(/^(.+)-vs-(.+)-for-(.+)$/)
+  if (forParts) {
+    revalidateTag(
+      cacheTags.compare(`country-${forParts[1]}-${forParts[2]}-${forParts[3]}`),
+      'max',
+    )
+    revalidateTag(
+      cacheTags.compare(`city-${forParts[1]}-${forParts[2]}-${forParts[3]}`),
+      'max',
+    )
+    return
+  }
+  const vsParts = tail.match(/^(.+)-vs-(.+)$/)
+  if (vsParts) {
+    revalidateTag(cacheTags.compare(`clinic-${vsParts[1]}-${vsParts[2]}-`), 'max')
+  }
+}
+
 function revalidateFromPath(publicPath: string, slugPath?: string) {
   revalidatePath(publicPath)
 
@@ -66,6 +88,7 @@ function revalidateFromPath(publicPath: string, slugPath?: string) {
 
   revalidateClinicScopeTags(publicPath)
   revalidateCostScopeTags(publicPath)
+  revalidateCompareScopeTags(publicPath)
 }
 
 /** Lightweight ping for connectivity checks (Railway → Vercel). Does not touch cache. */

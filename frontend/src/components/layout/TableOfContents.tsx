@@ -19,7 +19,7 @@ function TocLinks({ items, numbered }: { items: TocItem[]; numbered?: boolean })
         <li key={item.anchor}>
           <Link
             href={`#${item.anchor}`}
-            className="group flex items-start gap-2 rounded-lg py-1.5 pl-2 pr-2 text-sm leading-snug text-[var(--color-neutral-600)] transition-colors hover:bg-[var(--color-primary-50)]/60 hover:text-[var(--color-primary-800)]"
+            className="group flex min-h-11 items-start gap-2 rounded-lg py-2 pl-2 pr-2 text-sm leading-snug text-[var(--color-neutral-600)] transition-colors hover:bg-[var(--color-primary-50)]/60 hover:text-[var(--color-primary-800)]"
           >
             {numbered && (
               <span
@@ -53,7 +53,7 @@ export function TableOfContents({ items, className, variant = 'default' }: Table
           className,
         )}
       >
-        <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3.5 text-sm font-semibold text-[var(--color-primary-950)] [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 py-3.5 text-sm font-semibold text-[var(--color-primary-950)] [&::-webkit-details-marker]:hidden">
           <ListTree size={16} className="text-[var(--color-accent-600)]" aria-hidden="true" />
           {en.page.tableOfContents}
           <span className="ml-auto text-xs font-normal text-[var(--color-neutral-400)]">

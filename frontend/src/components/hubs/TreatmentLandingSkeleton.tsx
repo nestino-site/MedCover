@@ -8,7 +8,7 @@ export function TreatmentLandingSkeleton({ showGrid = true }: { showGrid?: boole
       <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
         <EntityHeroSkeleton showStats />
         {showGrid && (
-          <CardGridSkeleton count={3} gridClassName="mt-6 grid gap-4 sm:grid-cols-3">
+          <CardGridSkeleton count={3} gridClassName="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <CountryCardSkeleton />
           </CardGridSkeleton>
         )}

@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
-import { getTaxonomy, getCompare, treatmentSlugSet } from '@/lib/api/catalog'
+import { getTaxonomy, getCompare } from '@/lib/api/catalog'
 import { loadPublishedPage, listPublishedPagesSafe } from '@/lib/api/content'
 import { EntityHero } from '@/components/shared/EntityHero'
 import { ComparisonTable } from '@/components/shared/ComparisonTable'
@@ -11,33 +11,56 @@ import { RelatedLandingsGrid } from '@/components/shared/RelatedLandingsGrid'
 import { dedupeRelated, findRelatedGuides } from '@/lib/content/link-graph'
 import { activeLocale } from '@/lib/i18n/locale'
 import {
+  cmsCompareSlug,
   compareHubPath,
+  legacyCompareCmsSlug,
   resolveCompareCanonicalSlug,
   slugToLabel,
+  validateCompareEntities,
 } from '@/lib/routes'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
 import { heroAnswerFromCmsPage } from '@/lib/seo/cms-seo'
+import type { PageFetchResult } from '@/lib/api/content'
+
+async function loadCompareCms(
+  parsed: {
+    type: 'clinic' | 'city' | 'country'
+    entityA: string
+    entityB: string
+    treatment?: string
+  },
+): Promise<PageFetchResult> {
+  const primarySlug = cmsCompareSlug(parsed.entityA, parsed.entityB, parsed.treatment)
+  const primary = await loadPublishedPage(primarySlug)
+  if (primary.status === 'ok') return primary
+
+  if (parsed.treatment === 'ivf' || parsed.treatment === undefined) {
+    const legacy = await loadPublishedPage(legacyCompareCmsSlug(parsed.entityA, parsed.entityB))
+    if (legacy.status === 'ok') return legacy
+  }
+
+  return primary
+}
 
 export async function CompareDetailContent({ slug }: { slug: string }) {
   const locale = activeLocale
   const taxonomy = await getTaxonomy()
-  const treatmentSlugs = treatmentSlugSet(taxonomy)
-  const parsed = resolveCompareCanonicalSlug(slug, treatmentSlugs)
-  if (!parsed) notFound()
+  const parsed = resolveCompareCanonicalSlug(slug, taxonomy)
+  if (!parsed || !validateCompareEntities(parsed, taxonomy)) notFound()
 
   if (!parsed.isCanonicalOrder) {
     redirect(`/compare/${parsed.canonicalSlug}/`)
   }
 
   const compareData = await getCompare(
-    parsed.type === 'clinic' ? 'clinic' : parsed.type,
+    parsed.type,
     parsed.entityA,
     parsed.entityB,
     parsed.treatment,
   )
 
-  const slugPath = `/compare/${slug}`
-  const cms = await loadPublishedPage(slugPath)
+  const cms = await loadCompareCms(parsed)
+  const slugPath = cmsCompareSlug(parsed.entityA, parsed.entityB, parsed.treatment)
 
   const titleA = compareData?.entityA.name ?? slugToLabel(parsed.entityA)
   const titleB = compareData?.entityB.name ?? slugToLabel(parsed.entityB)

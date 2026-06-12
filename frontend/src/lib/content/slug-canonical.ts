@@ -1,5 +1,6 @@
 import type { ContentListItem } from '@/lib/api/types'
 import { canonicalSlugPath } from '@/lib/api/content'
+import { canonicalPair } from '@/lib/routes'
 
 const REDIRECTED_STUB_PATTERNS = [
   /^\/for-clinics\/?$/,
@@ -9,7 +10,9 @@ const REDIRECTED_STUB_PATTERNS = [
 ]
 
 const COST_TAIL_RE = /^([^/]+)-ivf-cost-(\d{4})$/
-const COMPARE_TAIL_RE = /^(.+)-vs-(.+)-ivf$/
+const COMPARE_LEGACY_TAIL_RE = /^(.+)-vs-(.+)-ivf$/
+const COMPARE_FOR_TAIL_RE = /^(.+)-vs-(.+)-for-(.+)$/
+const COMPARE_CLINIC_TAIL_RE = /^(.+)-vs-(.+)$/
 
 function stripLeadingSlash(slug: string): string {
   return slug.replace(/^\//, '').replace(/\/+$/, '')
@@ -64,6 +67,31 @@ export function resolveCostCanonicalSlug(
   return canonical
 }
 
+function canonicalCompareTail(tail: string): string | null {
+  const forMatch = tail.match(COMPARE_FOR_TAIL_RE)
+  if (forMatch) {
+    const [, rawA, rawB, treatment] = forMatch
+    const [a, b] = canonicalPair(rawA, rawB)
+    return `${a}-vs-${b}-for-${treatment}`
+  }
+
+  const legacyMatch = tail.match(COMPARE_LEGACY_TAIL_RE)
+  if (legacyMatch) {
+    const [, rawA, rawB] = legacyMatch
+    const [a, b] = canonicalPair(rawA, rawB)
+    return `${a}-vs-${b}-for-ivf`
+  }
+
+  const clinicMatch = tail.match(COMPARE_CLINIC_TAIL_RE)
+  if (clinicMatch) {
+    const [, rawA, rawB] = clinicMatch
+    const [a, b] = canonicalPair(rawA, rawB)
+    return `${a}-vs-${b}`
+  }
+
+  return null
+}
+
 export function resolveCompareCanonicalSlug(
   slugPath: string,
   pages: ContentListItem[],
@@ -72,14 +100,10 @@ export function resolveCompareCanonicalSlug(
   if (!normalized.startsWith('/compare/')) return null
 
   const tail = stripLeadingSlash(normalized.replace(/^\/compare\//, ''))
-  const match = tail.match(COMPARE_TAIL_RE)
-  if (!match) return null
+  const canonicalTail = canonicalCompareTail(tail)
+  if (!canonicalTail || canonicalTail === tail) return null
 
-  const [, countryA, countryB] = match
-  const [first, second] = [countryA, countryB].sort()
-  const canonicalTail = `${first}-vs-${second}-ivf`
   const canonical = canonicalSlugPath(`/compare/${canonicalTail}`)
-
   if (canonical === normalized) return null
 
   const published = new Set(pages.map((page) => canonicalSlugPath(page.slug)))
@@ -93,12 +117,8 @@ export function isCanonicalCompareSlug(slugPath: string): boolean {
   if (!normalized.startsWith('/compare/')) return true
 
   const tail = stripLeadingSlash(normalized.replace(/^\/compare\//, ''))
-  const match = tail.match(COMPARE_TAIL_RE)
-  if (!match) return true
-
-  const [, countryA, countryB] = match
-  const [first, second] = [countryA, countryB].sort()
-  return tail === `${first}-vs-${second}-ivf`
+  const canonicalTail = canonicalCompareTail(tail)
+  return canonicalTail === tail
 }
 
 export function isCanonicalCostSlug(

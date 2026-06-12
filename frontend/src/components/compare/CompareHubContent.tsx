@@ -1,20 +1,20 @@
 import Link from 'next/link'
 import { cacheLife, cacheTag } from 'next/cache'
-import { getTaxonomy } from '@/lib/api/catalog'
-import { listPublishedPagesSafe } from '@/lib/api/content'
+import { getTaxonomy, listAllClinics } from '@/lib/api/catalog'
 import { flagEmojiForCountry } from '@/lib/content/country-flags'
-import { filterPagesByHub, getCountryDisplayFromTaxonomy } from '@/lib/content/hubs'
+import { buildCompareHubItems } from '@/lib/compare/static-params'
+import { getCountryDisplayFromTaxonomy } from '@/lib/content/hubs'
 import { cacheTags } from '@/lib/cache/tags'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import {
   clinicsHubPath,
   costHubPath,
   countriesHubPath,
+  slugToLabel,
 } from '@/lib/routes'
 import { CardGridSkeleton, GuidePostCardSkeleton } from '@/components/ui/skeletons'
 import { Skeleton, SkeletonStatus } from '@/components/ui/Skeleton'
-
-const KNOWN_TREATMENTS = ['ivf', 'hair-transplant', 'dental', 'hair', 'cosmetic']
+import type { CompareHubItem } from '@/lib/compare/static-params'
 
 const TREATMENT_LABELS: Record<string, string> = {
   ivf: 'IVF',
@@ -32,97 +32,92 @@ const TREATMENT_BADGE_CLASS: Record<string, string> = {
   cosmetic: 'bg-[var(--color-neutral-100)] text-[var(--color-neutral-700)]',
 }
 
-function parseComparisonSlug(slug: string): {
-  treatment: string
-  treatmentKey: string
-  locations: string[]
-} {
-  const normalized = slug.replace(/^\//, '')
-  const segment = normalized.split('/').pop() ?? normalized
-  const cleaned = segment.replace(/-\d{4}$/, '')
-  const vsParts = cleaned.split('-vs-')
-
-  let treatmentKey = 'ivf'
-  let firstLocation = vsParts[0]
-
-  for (const t of KNOWN_TREATMENTS) {
-    if (vsParts[0].startsWith(t + '-')) {
-      treatmentKey = t
-      firstLocation = vsParts[0].slice(t.length + 1)
-      break
-    } else if (vsParts[0] === t) {
-      treatmentKey = t
-      firstLocation = ''
-      break
-    }
+function entityDisplayName(
+  slug: string,
+  type: CompareHubItem['type'],
+  locationMeta: Record<string, { flag: string; name: string; cost: string }>,
+  cityMeta: Record<string, { name: string; countrySlug: string }>,
+): string {
+  if (type === 'country') {
+    return locationMeta[slug]?.name ?? slugToLabel(slug)
   }
-
-  const locations = [firstLocation, ...vsParts.slice(1)].filter(Boolean)
-  return {
-    treatment: TREATMENT_LABELS[treatmentKey] ?? 'Treatment',
-    treatmentKey,
-    locations,
+  if (type === 'city') {
+    return cityMeta[slug]?.name ?? slugToLabel(slug)
   }
+  return slugToLabel(slug)
 }
 
 function LocationChip({
-  locationKey,
-  locationMeta,
+  label,
+  flag,
 }: {
-  locationKey: string
-  locationMeta: Record<string, { flag: string; name: string; cost: string }>
+  label: string
+  flag?: string
 }) {
-  const meta = locationMeta[locationKey]
-  const display = meta?.name ?? locationKey.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ')
-  const flag = meta?.flag || flagEmojiForCountry({ slug: locationKey })
   return (
     <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary-900)]">
-      <span role="img" aria-label={display}>{flag}</span>
-      {display}
+      {flag && (
+        <span role="img" aria-label={label}>
+          {flag}
+        </span>
+      )}
+      {label}
     </span>
   )
 }
 
 function ComparisonCard({
-  slug,
-  locale,
+  item,
   t,
   locationMeta,
+  cityMeta,
 }: {
-  slug: string
-  locale: Locale
+  item: CompareHubItem
   t: ReturnType<typeof getDictionary>
   locationMeta: Record<string, { flag: string; name: string; cost: string }>
+  cityMeta: Record<string, { name: string; countrySlug: string }>
 }) {
-  const normalizedSlug = slug.replace(/^\//, '')
-  const href = `/${normalizedSlug}`
-  const { treatment, treatmentKey, locations } = parseComparisonSlug(slug)
+  const treatmentKey = item.treatmentKey ?? 'ivf'
+  const treatment = TREATMENT_LABELS[treatmentKey] ?? slugToLabel(treatmentKey)
   const badgeClass = TREATMENT_BADGE_CLASS[treatmentKey] ?? TREATMENT_BADGE_CLASS.ivf
 
-  const locationsMeta = locations.map((key) => locationMeta[key])
-  const costs = locationsMeta.filter(Boolean).map((m) => m!.cost).filter(Boolean)
+  const nameA = entityDisplayName(item.entityA, item.type, locationMeta, cityMeta)
+  const nameB = entityDisplayName(item.entityB, item.type, locationMeta, cityMeta)
+  const flagA =
+    item.type === 'country' ? locationMeta[item.entityA]?.flag : undefined
+  const flagB =
+    item.type === 'country' ? locationMeta[item.entityB]?.flag : undefined
+
+  const costs =
+    item.type === 'country'
+      ? [locationMeta[item.entityA]?.cost, locationMeta[item.entityB]?.cost].filter(Boolean)
+      : []
   const costRange =
     costs.length >= 2 ? `${costs[0]} — ${costs[costs.length - 1]}` : costs[0] ?? null
 
   return (
     <Link
-      href={href}
+      href={item.href}
       className="group flex flex-col rounded-xl border border-[var(--color-border)] bg-white p-4 transition-colors hover:border-[var(--color-primary-300)] hover:bg-[var(--color-primary-50)]/40"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${badgeClass}`}>
-          {treatment}
-        </span>
-        {locations.map((key, i) => (
-          <span key={key} className="flex items-center gap-1">
-            {i > 0 && (
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-neutral-400)]">
-                {t.hubs.compareHub.vsLabel}
-              </span>
-            )}
-            <LocationChip locationKey={key} locationMeta={locationMeta} />
+        {item.type !== 'clinic' && (
+          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${badgeClass}`}>
+            {treatment}
           </span>
-        ))}
+        )}
+        {item.type === 'clinic' && (
+          <span className="shrink-0 rounded-full bg-[var(--color-neutral-100)] px-2.5 py-0.5 text-xs font-semibold text-[var(--color-neutral-700)]">
+            Clinics
+          </span>
+        )}
+        <span className="flex items-center gap-1">
+          <LocationChip label={nameA} flag={flagA} />
+          <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-neutral-400)]">
+            {t.hubs.compareHub.vsLabel}
+          </span>
+          <LocationChip label={nameB} flag={flagB} />
+        </span>
       </div>
       {costRange && (
         <p className="mt-2 text-xs text-[var(--color-neutral-500)]">
@@ -175,8 +170,8 @@ export async function CompareHubContent({ locale }: { locale: Locale }) {
   cacheTag(cacheTags.publishedPages, cacheTags.hub('compare'))
 
   const t = getDictionary(locale)
-  const [taxonomy, pages] = await Promise.all([getTaxonomy(), listPublishedPagesSafe()])
-  const items = filterPagesByHub(pages, 'compare', locale)
+  const [taxonomy, clinics] = await Promise.all([getTaxonomy(), listAllClinics()])
+  const items = buildCompareHubItems(taxonomy, locale, clinics)
 
   const locationMeta = Object.fromEntries(
     taxonomy.countries.map((country) => {
@@ -185,32 +180,49 @@ export async function CompareHubContent({ locale }: { locale: Locale }) {
     }),
   )
 
+  const cityMeta = Object.fromEntries(
+    taxonomy.countries.flatMap((country) =>
+      country.cities.map((city) => [
+        city.slug,
+        { name: city.name, countrySlug: country.slug },
+      ]),
+    ),
+  )
+
   if (items.length === 0) {
     return <EmptyState locale={locale} t={t} />
   }
 
-  const groups: Record<string, typeof items> = {}
-  for (const page of items) {
-    const { treatmentKey } = parseComparisonSlug(page.slug)
-    if (!groups[treatmentKey]) groups[treatmentKey] = []
-    groups[treatmentKey].push(page)
+  const groups: Record<string, CompareHubItem[]> = {}
+  for (const item of items) {
+    const groupKey =
+      item.type === 'clinic' ? 'clinic' : (item.treatmentKey ?? 'ivf')
+    if (!groups[groupKey]) groups[groupKey] = []
+    groups[groupKey].push(item)
+  }
+
+  const groupLabels: Record<string, string> = {
+    clinic: 'Clinic Comparisons',
+    ...TREATMENT_LABELS,
   }
 
   return (
     <div className="space-y-12">
-      {Object.entries(groups).map(([treatmentKey, groupPages]) => (
-        <section key={treatmentKey}>
+      {Object.entries(groups).map(([groupKey, groupItems]) => (
+        <section key={groupKey}>
           <h2 className="mb-5 text-xl font-bold text-[var(--color-primary-950)]">
-            {TREATMENT_LABELS[treatmentKey] ?? 'Treatment'} Comparisons
+            {groupKey === 'clinic'
+              ? 'Clinic Comparisons'
+              : `${groupLabels[groupKey] ?? slugToLabel(groupKey)} Comparisons`}
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groupPages.map((page) => (
+            {groupItems.map((item) => (
               <ComparisonCard
-                key={page.slug}
-                slug={page.slug}
-                locale={locale}
+                key={item.slug}
+                item={item}
                 t={t}
                 locationMeta={locationMeta}
+                cityMeta={cityMeta}
               />
             ))}
           </div>

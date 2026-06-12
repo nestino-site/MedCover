@@ -76,7 +76,7 @@ export async function Footer({ locale }: FooterProps) {
   }))
 
   return (
-    <footer className="border-t border-[var(--color-border)] bg-[var(--color-primary-950)] text-white">
+    <footer className="safe-area-bottom border-t border-[var(--color-border)] bg-[var(--color-primary-950)] text-white">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-12 lg:px-8 lg:py-16">
         <div className="md:hidden">
           <Link href={localizedPath('/', locale)} aria-label="MedCover">
@@ -85,12 +85,12 @@ export async function Footer({ locale }: FooterProps) {
             </span>
           </Link>
           <p className="mt-2 text-sm text-[var(--color-primary-300)]">{t.footer.tagline}</p>
-          <nav className="mt-4 flex flex-wrap gap-x-4 gap-y-2" aria-label="Footer navigation">
+          <nav className="mt-4 flex flex-wrap gap-x-3 gap-y-3 sm:gap-x-4" aria-label="Footer navigation">
             {mobileEssential.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm text-[var(--color-primary-200)] transition-colors hover:text-white"
+                className="inline-flex min-h-9 items-center text-sm text-[var(--color-primary-200)] transition-colors hover:text-white"
               >
                 {link.label}
               </Link>

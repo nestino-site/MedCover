@@ -12,24 +12,22 @@ import {
   type NavPanelId,
 } from '@/lib/content/site-nav'
 import type { TreatmentCategoryDisplay } from '@/lib/content/treatments'
-import { costTreatmentPath, compareHubPath, treatmentPath } from '@/lib/routes'
+import { compareHubPath, clinicsHubPath, countriesHubPath, treatmentPath } from '@/lib/routes'
 import type { Locale, Dictionary } from '@/lib/i18n'
 import type {
   getFeaturedCountriesFromTaxonomy,
   NavFeaturedCity,
 } from '@/lib/content/hubs'
-import { countriesHubPath } from '@/lib/routes'
 import {
-  NavCountryActions,
-  NavCityActions,
-  NavCityPlps,
+  NavBrowseLink,
+  NavCityList,
+  NavCountryList,
+  NavFlatLink,
   NavHubCard,
   NavMegaPanel,
+  NavMicroLink,
   NavSectionLabel,
   NavTreatmentRow,
-  NavMicroLink,
-  type NavCountryRow,
-  type NavCityRow,
 } from './nav/NavPrimitives'
 
 type FeaturedCountry = ReturnType<typeof getFeaturedCountriesFromTaxonomy>[number]
@@ -43,28 +41,7 @@ type NavMegaMenuProps = {
 }
 
 const FEATURED_COUNTRY_LIMIT = 6
-const FEATURED_CITY_LIMIT = 8
-
-function toCountryRows(countries: FeaturedCountry[]): NavCountryRow[] {
-  return countries.map((c) => ({
-    name: c.name,
-    flag: c.flag,
-    countryHref: c.countryHref,
-    clinicHref: c.href,
-    guideHref: c.guideHref || null,
-  }))
-}
-
-function toCityRows(cities: NavFeaturedCity[]): NavCityRow[] {
-  return cities.map((city) => ({
-    cityName: city.cityName,
-    countryName: city.countryName,
-    flag: city.flag,
-    overviewHref: city.overviewHref,
-    clinicHref: city.clinicHref,
-    guideHref: city.guideHref,
-  }))
-}
+const FEATURED_CITY_LIMIT = 6
 
 function DestinationsPanel({
   t,
@@ -83,14 +60,14 @@ function DestinationsPanel({
   const browseAllCitiesHref = `${countriesHubPath(locale)}#cities`
 
   return (
-    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-6">
+    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-8">
       <div className="flex flex-col gap-3">
         <NavHubCard
           hub={countriesHub}
           label={t.nav.triggers.destinations}
-          description={t.nav.descriptions.destinations}
           locale={locale}
           onNavigate={onNavigate}
+          variant="nav"
         />
         <NavMicroLink href={compareHubPath(locale)} onClick={onNavigate}>
           {t.nav.actions.compareDestinations} →
@@ -100,9 +77,12 @@ function DestinationsPanel({
         {featuredCountries.length > 0 && (
           <div>
             <NavSectionLabel>{t.nav.featuredCountries}</NavSectionLabel>
-            <NavCountryActions
-              countries={toCountryRows(featuredCountries)}
-              labels={t.nav.actions}
+            <NavCountryList
+              countries={featuredCountries.map((country) => ({
+                name: country.name,
+                flag: country.flag,
+                href: country.countryHref,
+              }))}
               onNavigate={onNavigate}
               limit={FEATURED_COUNTRY_LIMIT}
             />
@@ -111,9 +91,13 @@ function DestinationsPanel({
         {featuredCities.length > 0 && (
           <div>
             <NavSectionLabel>{t.nav.featuredCities}</NavSectionLabel>
-            <NavCityActions
-              cities={toCityRows(featuredCities)}
-              labels={t.nav.actions}
+            <NavCityList
+              cities={featuredCities.map((city) => ({
+                cityName: city.cityName,
+                countryName: city.countryName,
+                flag: city.flag,
+                href: city.overviewHref,
+              }))}
               onNavigate={onNavigate}
               limit={FEATURED_CITY_LIMIT}
             />
@@ -132,39 +116,54 @@ function DestinationsPanel({
 function ClinicsPanel({
   t,
   locale,
+  featuredCountries,
   featuredCities,
   onNavigate,
 }: {
   t: Dictionary
   locale: Locale
+  featuredCountries: FeaturedCountry[]
   featuredCities: NavFeaturedCity[]
   onNavigate: () => void
 }) {
-  const clinicsHub = getHubById('clinics')!
-
   return (
-    <div className="flex flex-col gap-4">
-      <NavHubCard
-        hub={clinicsHub}
-        label={t.nav.clinics}
-        description={t.nav.descriptions.clinics}
-        locale={locale}
+    <div className="flex flex-col gap-5">
+      <NavBrowseLink
+        href={clinicsHubPath(locale)}
+        label={t.nav.actions.browseAllClinics}
         onNavigate={onNavigate}
       />
-      {featuredCities.length > 0 && (
-        <div>
-          <NavSectionLabel>{t.nav.featuredCities}</NavSectionLabel>
-          <NavCityPlps
-            cities={featuredCities.map((city) => ({
-              cityName: city.cityName,
-              countryName: city.countryName,
-              href: city.clinicHref,
-            }))}
-            onNavigate={onNavigate}
-            limit={FEATURED_CITY_LIMIT}
-          />
-        </div>
-      )}
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-8">
+        {featuredCountries.length > 0 && (
+          <div>
+            <NavSectionLabel>{t.nav.sections.byDestination}</NavSectionLabel>
+            <NavCountryList
+              countries={featuredCountries.map((country) => ({
+                name: country.name,
+                flag: country.flag,
+                href: country.href,
+                clinicCount: country.clinics ? `${country.clinics} clinics` : undefined,
+              }))}
+              onNavigate={onNavigate}
+              limit={FEATURED_COUNTRY_LIMIT}
+            />
+          </div>
+        )}
+        {featuredCities.length > 0 && (
+          <div>
+            <NavSectionLabel>{t.nav.sections.popularCities}</NavSectionLabel>
+            <NavCityList
+              cities={featuredCities.map((city) => ({
+                cityName: city.cityName,
+                countryName: city.countryName,
+                href: city.clinicHref,
+              }))}
+              onNavigate={onNavigate}
+              limit={FEATURED_CITY_LIMIT}
+            />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -185,13 +184,13 @@ function TreatmentsPanel({
   const comingSoonTreatments = treatments.filter((c) => c.status === 'coming_soon')
 
   return (
-    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-6">
+    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-8">
       <NavHubCard
         hub={treatmentsHub}
         label={t.nav.treatments}
-        description={t.nav.descriptions.treatments}
         locale={locale}
         onNavigate={onNavigate}
+        variant="nav"
       />
       <div>
         {activeTreatments.length > 0 && (
@@ -203,8 +202,6 @@ function TreatmentsPanel({
                   key={treatment.id}
                   name={treatment.name}
                   treatmentHref={treatmentPath(treatment.id, locale)}
-                  costHref={costTreatmentPath(treatment.id, locale)}
-                  costLabel={t.nav.actions.costs}
                   onNavigate={onNavigate}
                 />
               ))}
@@ -214,7 +211,7 @@ function TreatmentsPanel({
         {comingSoonTreatments.length > 0 && (
           <div className="mt-3">
             <NavSectionLabel>{t.nav.soon}</NavSectionLabel>
-            <p className="text-xs text-[var(--color-neutral-400)]">
+            <p className="px-3 text-xs text-[var(--color-neutral-400)]">
               {comingSoonTreatments.map((treatment) => treatment.name).join(' · ')}
             </p>
           </div>
@@ -237,22 +234,18 @@ function ToolsPanel({
   const compareHub = getHubById('compare')!
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <NavHubCard
-        hub={costsHub}
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-6">
+      <NavFlatLink
+        href={hubPath(costsHub.id, locale)}
         label={t.nav.costs}
-        description={t.nav.descriptions.costs}
-        locale={locale}
         onNavigate={onNavigate}
-        compact
+        icon={costsHub.icon}
       />
-      <NavHubCard
-        hub={compareHub}
+      <NavFlatLink
+        href={hubPath(compareHub.id, locale)}
         label={t.nav.compare}
-        description={t.nav.descriptions.compare}
-        locale={locale}
         onNavigate={onNavigate}
-        compact
+        icon={compareHub.icon}
       />
     </div>
   )
@@ -284,9 +277,9 @@ function MegaMenuTrigger({
       aria-expanded={isActive}
       aria-haspopup="true"
       aria-label={expandLabel}
-      className={`inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors lg:px-4 ${
+      className={`inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
         isActive
-          ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-800)] ring-1 ring-[var(--color-primary-100)]'
+          ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-800)]'
           : 'text-[var(--color-neutral-600)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]'
       }`}
     >
@@ -388,6 +381,7 @@ export function NavMegaMenu({ locale, t, featuredCountries, featuredCities, trea
           <ClinicsPanel
             t={t}
             locale={locale}
+            featuredCountries={featuredCountries}
             featuredCities={featuredCities}
             onNavigate={close}
           />
@@ -412,7 +406,7 @@ export function NavMegaMenu({ locale, t, featuredCountries, featuredCities, trea
               key={item.id}
               href={hubPath(item.primaryHubId, locale)}
               onClick={close}
-              className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-neutral-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)] lg:px-4"
+              className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-neutral-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]"
             >
               {label}
             </Link>

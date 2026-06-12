@@ -53,7 +53,7 @@ export function HubHero({
             )}
             <h1
               id="hub-hero-heading"
-              className="mt-2 text-3xl font-bold tracking-tight text-[var(--color-primary-950)] sm:text-4xl"
+              className="mt-2 text-2xl font-bold tracking-tight text-[var(--color-primary-950)] sm:text-3xl lg:text-4xl"
             >
               {title}
             </h1>
@@ -120,7 +120,7 @@ export function HubHero({
 
           <h1
             id="hub-hero-heading"
-            className="text-4xl font-bold tracking-tight text-[var(--color-primary-950)] sm:text-5xl"
+            className="text-3xl font-bold tracking-tight text-[var(--color-primary-950)] sm:text-4xl lg:text-5xl"
           >
             {title}
           </h1>
@@ -185,7 +185,7 @@ export function HubHero({
                     />
                   )}
                   <div className="flex flex-col">
-                    <dd className="text-2xl font-bold tabular-nums text-[var(--color-primary-900)]">
+                    <dd className="text-xl font-bold tabular-nums text-[var(--color-primary-900)] sm:text-2xl">
                       {s.value}
                     </dd>
                     <dt className="text-xs text-[var(--color-neutral-500)]">{s.label}</dt>

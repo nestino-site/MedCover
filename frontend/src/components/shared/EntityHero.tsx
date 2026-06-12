@@ -48,7 +48,7 @@ export function EntityHero({
             {eyebrow}
           </p>
         )}
-        <h1 className="text-4xl font-bold tracking-tight text-[var(--color-primary-950)] sm:text-5xl">
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--color-primary-950)] sm:text-4xl lg:text-5xl">
           {flag && (
             <span className="mr-3 align-baseline" role="img" aria-hidden="true">
               {flag}
@@ -67,7 +67,7 @@ export function EntityHero({
             {stats.map((s) => (
               <div key={s.label} className="flex flex-col">
                 {s.href ? (
-                  <dd className="text-xl font-bold tabular-nums text-[var(--color-primary-900)]">
+                  <dd className="text-lg font-bold tabular-nums text-[var(--color-primary-900)] sm:text-xl">
                     <a
                       href={s.href}
                       className="transition-colors hover:text-[var(--color-accent-700)]"
@@ -76,7 +76,7 @@ export function EntityHero({
                     </a>
                   </dd>
                 ) : (
-                  <dd className="text-xl font-bold tabular-nums text-[var(--color-primary-900)]">
+                  <dd className="text-lg font-bold tabular-nums text-[var(--color-primary-900)] sm:text-xl">
                     {s.value}
                   </dd>
                 )}
