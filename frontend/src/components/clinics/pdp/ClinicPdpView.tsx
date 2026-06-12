@@ -16,7 +16,10 @@ import { PdpFaqSection } from '@/components/layout/PdpFaqSection'
 import { PdpFooterBlock, PdpPageShell } from '@/components/layout/PdpPageShell'
 import { SectionHeading } from '@/components/ui/SectionHeading'
 import { ClinicPdpHero } from './ClinicPdpHero'
+import { ClinicAtAGlance } from './ClinicAtAGlance'
 import { ClinicFactsSidebar } from './ClinicFactsSidebar'
+import { ClinicMobileCta } from './ClinicMobileCta'
+import { ClinicCompareTeaser } from './ClinicCompareTeaser'
 import { ClinicSectionNav, type ClinicSectionNavItem } from './ClinicSectionNav'
 import { TruthScorePanel } from './TruthScorePanel'
 import { TreatmentsOffered } from './TreatmentsOffered'
@@ -53,6 +56,7 @@ function buildSectionNav(
   clinic: ClinicDetail,
   faq?: FaqItem[],
   editorialHtml?: string | null,
+  aboutText?: string | null,
 ): ClinicSectionNavItem[] {
   const sections: ClinicSectionNavItem[] = []
   const copy = en.clinicPdp.sections
@@ -72,7 +76,7 @@ function buildSectionNav(
   if ((clinic.interviews?.length ?? 0) > 0) {
     sections.push({ id: 'patient-voices', label: copy.patientVoices.title })
   }
-  if (clinic.shortDescription || editorialHtml) {
+  if (aboutText || editorialHtml) {
     sections.push({ id: 'about', label: copy.about.title })
   }
   if ((clinic.googleReviews?.length ?? 0) > 0) {
@@ -83,6 +87,40 @@ function buildSectionNav(
   }
 
   return sections
+}
+
+function ClinicAboutSection({
+  aboutText,
+  editorialHtml,
+  tableOfContents,
+}: {
+  aboutText?: string | null
+  editorialHtml?: string | null
+  tableOfContents?: TocItem[]
+}) {
+  const aboutCopy = en.clinicPdp.sections.about
+
+  if (editorialHtml) {
+    return (
+      <PdpEditorialSection
+        eyebrow={aboutCopy.eyebrow}
+        title={aboutCopy.title}
+        html={editorialHtml}
+        tableOfContents={tableOfContents}
+      />
+    )
+  }
+
+  if (!aboutText) return null
+
+  return (
+    <section id="about" className="scroll-mt-28">
+      <SectionHeading eyebrow={aboutCopy.eyebrow} title={aboutCopy.title} className="mb-4" />
+      <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-sm sm:p-8">
+        <p className="text-[var(--color-neutral-700)] leading-relaxed whitespace-pre-line">{aboutText}</p>
+      </div>
+    </section>
+  )
 }
 
 export function ClinicPdpView({
@@ -103,8 +141,8 @@ export function ClinicPdpView({
   relatedArticles,
   overviewLinks,
 }: ClinicPdpViewProps) {
-  const sectionNav = buildSectionNav(clinic, faq, editorialHtml)
-  const aboutCopy = en.clinicPdp.sections.about
+  const aboutText = clinic.shortDescription ?? clinic.longDescription ?? null
+  const sectionNav = buildSectionNav(clinic, faq, editorialHtml, aboutText)
   const faqCopy = en.clinicPdp.sections.faq
 
   return (
@@ -118,22 +156,6 @@ export function ClinicPdpView({
             cityName={cityName}
             locale={locale}
           />
-
-          {related.length > 0 && (
-            <PdpFooterBlock>
-              <RelatedLandingsGrid title={en.clinicPdp.planYourTreatment} items={related} />
-            </PdpFooterBlock>
-          )}
-
-          {relatedArticles.length > 0 && (
-            <PdpFooterBlock>
-              <RelatedArticles
-                eyebrow={en.clinicPdp.relatedArticles.eyebrow}
-                heading={en.clinicPdp.relatedArticles.heading}
-                articles={relatedArticles}
-              />
-            </PdpFooterBlock>
-          )}
 
           <PdpFooterBlock>
             <CtaBlock variant="compact" />
@@ -150,10 +172,12 @@ export function ClinicPdpView({
         overviewLinks={overviewLinks}
       />
 
+      <ClinicAtAGlance clinic={clinic} className="my-6" />
+
       <ClinicSectionNav sections={sectionNav} />
 
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="min-w-0 space-y-10">
+        <div className="min-w-0 space-y-12 pb-20 lg:pb-0">
           <TruthScorePanel clinic={clinic} />
           <TreatmentsOffered clinic={clinic} country={country} city={city} locale={locale} />
           <PricingPackagesSection
@@ -163,34 +187,45 @@ export function ClinicPdpView({
             cityName={cityName}
             locale={locale}
           />
+          <ClinicCompareTeaser
+            relatedClinics={relatedClinics}
+            country={country}
+            city={city}
+            cityName={cityName}
+            locale={locale}
+          />
           <DoctorsGrid clinic={clinic} />
           <PatientVoices clinic={clinic} />
-
-          {clinic.shortDescription && !editorialHtml && (
-            <section id="about" className="scroll-mt-28">
-              <SectionHeading eyebrow={aboutCopy.eyebrow} title={aboutCopy.title} className="mb-4" />
-              <p className="text-[var(--color-neutral-700)] leading-relaxed">{clinic.shortDescription}</p>
-            </section>
-          )}
-
-          {editorialHtml && (
-            <PdpEditorialSection
-              eyebrow={aboutCopy.eyebrow}
-              title={aboutCopy.title}
-              html={editorialHtml}
-              tableOfContents={tableOfContents}
-            />
-          )}
-
+          <ClinicAboutSection
+            aboutText={aboutText}
+            editorialHtml={editorialHtml}
+            tableOfContents={tableOfContents}
+          />
           <GoogleReviewsSection clinic={clinic} />
-
           {faq && faq.length > 0 && (
             <PdpFaqSection eyebrow={faqCopy.eyebrow} title={faqCopy.title} faqs={faq} />
           )}
+
+          {(related.length > 0 || relatedArticles.length > 0) && (
+            <div className="space-y-10 border-t border-[var(--color-border)] pt-10">
+              {related.length > 0 && (
+                <RelatedLandingsGrid title={en.clinicPdp.planYourTreatment} items={related} />
+              )}
+              {relatedArticles.length > 0 && (
+                <RelatedArticles
+                  eyebrow={en.clinicPdp.relatedArticles.eyebrow}
+                  heading={en.clinicPdp.relatedArticles.heading}
+                  articles={relatedArticles}
+                />
+              )}
+            </div>
+          )}
         </div>
 
-        <ClinicFactsSidebar clinic={clinic} className="order-first lg:order-last" />
+        <ClinicFactsSidebar clinic={clinic} className="order-last" />
       </div>
+
+      <ClinicMobileCta phone={clinic.phone} />
     </PdpPageShell>
   )
 }

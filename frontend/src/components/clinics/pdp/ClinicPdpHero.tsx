@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { MapPin, Phone } from 'lucide-react'
 import type { BreadcrumbItem, ClinicDetail } from '@/lib/api/types'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
 import { EntityHero, type EntityHeroStat } from '@/components/shared/EntityHero'
@@ -48,8 +49,11 @@ function ClinicGallery({ clinic }: { clinic: ClinicDetail }) {
           sizes="(max-width: 1024px) 100vw, 380px"
         />
       </div>
+      {activeImage.caption && (
+        <p className="text-xs text-[var(--color-neutral-500)]">{activeImage.caption}</p>
+      )}
       {gallery.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {gallery.map((img, i) => (
             <button
               key={`${img.url}-${i}`}
@@ -85,21 +89,23 @@ export function ClinicPdpHero({
   lastUpdated,
   overviewLinks,
 }: ClinicPdpHeroProps) {
+  const heroCopy = en.clinicPdp.hero
   const stats: EntityHeroStat[] = []
 
   if (clinic.googleRating != null) {
     stats.push({
-      label: 'Google rating',
+      label: heroCopy.googleRating,
       value:
         clinic.googleReviewCount != null
           ? `${clinic.googleRating.toFixed(1)} (${clinic.googleReviewCount})`
           : clinic.googleRating.toFixed(1),
+      href: '#reviews',
     })
   }
 
   if (clinic.treatments.length > 0) {
     stats.push({
-      label: 'Treatments',
+      label: heroCopy.treatments,
       value: String(clinic.treatments.length),
       href: '#treatments',
     })
@@ -107,7 +113,7 @@ export function ClinicPdpHero({
 
   if (clinic.priceRange) {
     stats.push({
-      label: 'Price range',
+      label: heroCopy.priceRange,
       value: formatPriceRange(
         clinic.priceRange.min,
         clinic.priceRange.max,
@@ -125,6 +131,8 @@ export function ClinicPdpHero({
       month: 'long',
       year: 'numeric',
     })
+
+  const hasQuickActions = clinic.phone || clinic.googleMapsUrl
 
   return (
     <div className="space-y-6">
@@ -146,12 +154,44 @@ export function ClinicPdpHero({
             {clinic.accreditations.map((acc) => (
               <span
                 key={acc.code}
+                title={acc.regulator ?? undefined}
                 className="rounded-full border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3 py-1 text-xs font-medium text-[var(--color-accent-900)]"
               >
                 {acc.name}
               </span>
             ))}
           </div>
+
+          {hasQuickActions && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href="/start/"
+                className="inline-flex items-center justify-center rounded-xl bg-[var(--color-primary-900)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-800)]"
+              >
+                {heroCopy.getQuote}
+              </Link>
+              {clinic.phone && (
+                <a
+                  href={`tel:${clinic.phone}`}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--color-primary-900)] transition-colors hover:bg-[var(--color-neutral-50)]"
+                >
+                  <Phone className="h-4 w-4" aria-hidden="true" />
+                  {heroCopy.call}
+                </a>
+              )}
+              {clinic.googleMapsUrl && (
+                <a
+                  href={clinic.googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--color-primary-900)] transition-colors hover:bg-[var(--color-neutral-50)]"
+                >
+                  <MapPin className="h-4 w-4" aria-hidden="true" />
+                  {heroCopy.viewMap}
+                </a>
+              )}
+            </div>
+          )}
         </EntityHero>
 
         <ClinicGallery clinic={clinic} />

@@ -37,14 +37,39 @@ export function trafficEngineFetchTimeoutMs(): number {
   return process.env.NODE_ENV === 'development' ? 60_000 : 30_000
 }
 
+const TRANSIENT_NETWORK_ERROR_CODES = new Set([
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_SOCKET',
+  'ETIMEDOUT',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'EPIPE',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+])
+
 function isNetworkFetchError(error: unknown): boolean {
-  if (error instanceof TypeError && error.message.includes('fetch failed')) return true
+  if (error instanceof TypeError) {
+    const message = error.message.toLowerCase()
+    if (message.includes('fetch failed') || message === 'terminated') return true
+  }
   const cause = error && typeof error === 'object' && 'cause' in error ? error.cause : null
   if (cause && typeof cause === 'object' && 'code' in cause) {
     const code = (cause as { code?: string }).code
-    return code === 'UND_ERR_CONNECT_TIMEOUT' || code === 'ETIMEDOUT' || code === 'ECONNREFUSED'
+    if (code && TRANSIENT_NETWORK_ERROR_CODES.has(code)) return true
   }
   return false
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** Retries on transient network errors (default 2 retries in production). */
+export function trafficEngineFetchRetries(): number {
+  const fromEnv = Number(process.env.TRAFFIC_ENGINE_FETCH_RETRIES)
+  if (!Number.isNaN(fromEnv) && fromEnv >= 0) return fromEnv
+  return 2
 }
 
 export function isTrafficEngineUnreachable(error: unknown): boolean {
@@ -63,15 +88,30 @@ export async function trafficEngineFetch(
   const baseUrl = trafficEngineUrl()
   const url = path.startsWith('http') ? path : `${baseUrl}${path}`
   const timeoutMs = trafficEngineFetchTimeoutMs()
+  const maxAttempts = trafficEngineFetchRetries() + 1
+  let lastError: unknown
 
-  return fetch(url, {
-    ...init,
-    headers: {
-      ...siteHeaders(),
-      ...init?.headers,
-    },
-    signal: init?.signal ?? AbortSignal.timeout(timeoutMs),
-  })
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fetch(url, {
+        ...init,
+        headers: {
+          ...siteHeaders(),
+          ...init?.headers,
+        },
+        signal: init?.signal ?? AbortSignal.timeout(timeoutMs),
+      })
+    } catch (error) {
+      lastError = error
+      const isLastAttempt = attempt === maxAttempts - 1
+      if (isLastAttempt || !isNetworkFetchError(error)) {
+        throw error
+      }
+      await sleep(500 * 2 ** attempt)
+    }
+  }
+
+  throw lastError
 }
 
 export async function apiFetch<T>(
