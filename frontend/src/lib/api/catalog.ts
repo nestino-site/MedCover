@@ -163,7 +163,7 @@ export async function searchContent(q: string, limit = 10): Promise<SearchRespon
   )
   if (api) return api
 
-  const pages = await listPublishedPages()
+  const pages = await listPublishedPagesSafe()
   const taxonomy = buildTaxonomyFromPages(pages)
   const lower = q.toLowerCase()
 

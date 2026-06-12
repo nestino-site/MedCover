@@ -35,9 +35,10 @@ async function parsePageResponse(
 ): Promise<PageFetchResult> {
   if (res.status === 404) return { status: 'not_found' }
   if (!res.ok) {
-    throw new Error(
-      `Traffic Engine: ${res.status} ${res.statusText} — ${label}`,
+    console.warn(
+      `[Traffic Engine] ${res.status} ${res.statusText} — ${label}`,
     )
+    return { status: 'unavailable' }
   }
 
   const json = await res.json()
@@ -76,9 +77,10 @@ export async function listPublishedPages(): Promise<ContentListItem[]> {
   try {
     const res = await trafficEngineFetch('/content/pages')
     if (!res.ok) {
-      throw new Error(
-        `Traffic Engine: ${res.status} ${res.statusText} — /content/pages`,
+      console.warn(
+        `[Traffic Engine] ${res.status} ${res.statusText} — /content/pages`,
       )
+      return []
     }
     const json = await res.json()
     const parsed = ContentListResponseSchema.safeParse(json)
