@@ -764,7 +764,7 @@ export const en = {
       doctors: { eyebrow: 'Team', title: 'Medical team', titleWithCount: 'Medical team ({count})' },
       patientVoices: { eyebrow: 'Interviews', title: 'Verified patient voices', description: 'Quotes from MedCover-verified patient interviews', verifiedBadge: 'MedCover verified interview', balancedView: 'Balanced view', age: 'Age {bucket}', from: 'From {country}' },
       about: { eyebrow: 'About', title: 'About this clinic' },
-      reviews: { eyebrow: 'Public reviews', title: 'Google reviews', aggregate: '{rating} from {count} reviews', viewOnGoogle: 'View all on Google Maps →' },
+      reviews: { eyebrow: 'Public reviews', title: 'Google reviews', aggregate: '{rating} from {count} reviews', viewOnGoogle: 'View all on Google Maps →', sourcedFrom: 'Public reviews sourced from Google Maps', ratingLabel: '{rating} out of 5 stars' },
       faq: { eyebrow: 'FAQ', title: 'Frequently asked questions' },
     },
     pricing: {

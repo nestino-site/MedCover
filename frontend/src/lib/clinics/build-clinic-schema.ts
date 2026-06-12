@@ -1,6 +1,7 @@
 import type { BreadcrumbItem, ClinicDetail, FaqItem } from '@/lib/api/types'
 import { buildBreadcrumbList, buildFAQPage, buildMedicalWebPage, buildOrganization } from '@/lib/schema/base'
 import { synthesizeClinicAnswer } from './format'
+import { applyGoogleReviewSchemaFields } from './review-schema'
 
 export type ClinicSchemaParams = {
   clinic: ClinicDetail
@@ -55,14 +56,7 @@ export function buildClinicJsonLd(params: ClinicSchemaParams): Record<string, un
     sameAs: [clinic.websiteUrl, clinic.googleMapsUrl].filter(Boolean),
   }
 
-  if (clinic.googleRating != null) {
-    medicalClinic.aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: clinic.googleRating,
-      reviewCount: clinic.googleReviewCount ?? undefined,
-      bestRating: 5,
-    }
-  }
+  applyGoogleReviewSchemaFields(medicalClinic, clinic, canonicalUrl)
 
   const medicalWebPage = {
     '@context': 'https://schema.org',
@@ -76,7 +70,7 @@ export function buildClinicJsonLd(params: ClinicSchemaParams): Record<string, un
     }),
     speakable: {
       '@type': 'SpeakableSpecification',
-      cssSelector: ['h1', '[data-speakable="true"]'],
+      cssSelector: ['h1', '[data-speakable="true"]', '#google-reviews-summary'],
     },
     mainEntity: { '@id': `${canonicalUrl}#clinic` },
     author: buildOrganization(),

@@ -24,6 +24,7 @@ import {
   synthesizeClinicAnswer,
 } from '@/lib/clinics/format'
 import { buildClinicJsonLd } from '@/lib/clinics/build-clinic-schema'
+import { buildClinicReviewsJsonLd, clinicHasGoogleReviewMarkup } from '@/lib/clinics/review-schema'
 import {
   clinicCityPath,
   clinicCountryPath,
@@ -311,16 +312,21 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
           breadcrumbs,
           cityName,
           countryName,
-          metaTitle: `${clinic.name} | MedCover`,
+          metaTitle: `${displayClinic.name} | MedCover`,
           metaDescription: answer,
           updatedAt: lastUpdated ?? undefined,
         })
+      : null
+  const supplementalReviewsSchema =
+    cmsSchemas.length > 0 && clinicHasGoogleReviewMarkup(displayClinic)
+      ? buildClinicReviewsJsonLd(displayClinic, canonicalUrl)
       : null
 
   return (
     <>
       <CmsPageJsonLd result={cms} />
       {fallbackSchemas && <JsonLd schema={fallbackSchemas} />}
+      {supplementalReviewsSchema && <JsonLd schema={supplementalReviewsSchema} />}
       <ClinicPdpView
         clinic={displayClinic}
         breadcrumbs={breadcrumbs}

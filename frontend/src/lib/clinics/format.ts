@@ -15,8 +15,8 @@ export function formatPriceRange(
 
 export function formatRelativeTime(timestamp?: number): string | null {
   if (!timestamp) return null
-  const date = new Date(timestamp)
-  if (Number.isNaN(date.getTime())) return null
+  const date = reviewTimestampToDate(timestamp)
+  if (!date) return null
   const now = Date.now()
   const diffDays = Math.floor((now - date.getTime()) / (1000 * 60 * 60 * 24))
   if (diffDays < 1) return 'Today'
@@ -24,6 +24,31 @@ export function formatRelativeTime(timestamp?: number): string | null {
   if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
   if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`
   return `${Math.floor(diffDays / 365)}y ago`
+}
+
+/** Normalise Google review epoch (seconds or ms) to Date. */
+export function reviewTimestampToDate(timestamp?: number): Date | null {
+  if (timestamp == null) return null
+  const ms = timestamp < 1e12 ? timestamp * 1000 : timestamp
+  const date = new Date(ms)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+/** ISO date (YYYY-MM-DD) for schema.org datePublished. */
+export function reviewTimestampToIso(timestamp?: number): string | undefined {
+  const date = reviewTimestampToDate(timestamp)
+  if (!date) return undefined
+  return date.toISOString().split('T')[0]
+}
+
+export function formatReviewDate(timestamp?: number): string | null {
+  const date = reviewTimestampToDate(timestamp)
+  if (!date) return null
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 export function dimensionLabel(code: string): string {
