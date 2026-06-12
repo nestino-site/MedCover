@@ -145,5 +145,9 @@ export function normalizePagePayload(raw: unknown): unknown {
     root.finalContent = root.final_content
   }
 
+  if (root.page_type !== undefined && root.pageType === undefined) {
+    root.pageType = root.page_type
+  }
+
   return root
 }

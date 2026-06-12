@@ -59,8 +59,8 @@ export default async function CostCountryPage({ params }: Props) {
 
   const related = dedupeRelated(
     [
-      ...buildRelatedLandingsForEntities({ treatment, country }, taxonomy, locale),
-      ...findRelatedGuides({ country }, pages, locale, { taxonomy }),
+      ...buildRelatedLandingsForEntities({ treatment, country }, taxonomy, locale, pages),
+      ...findRelatedGuides({ country, treatment }, pages, locale, { taxonomy }),
     ],
     costCountryPath(treatment, country, locale),
   )

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getTaxonomy, getCosts } from '@/lib/api/catalog'
-import { loadPublishedPage } from '@/lib/api/content'
+import { listPublishedPagesSafe, loadPublishedPage } from '@/lib/api/content'
 import { EntityHero } from '@/components/shared/EntityHero'
 import { PriceRangeTable } from '@/components/shared/PriceRangeTable'
 import { ContentHtml } from '@/components/shared/ContentHtml'
@@ -12,6 +12,8 @@ import { ClinicCard } from '@/components/clinics/ClinicCard'
 import { activeLocale } from '@/lib/i18n/locale'
 import {
   buildRelatedLandingsForEntities,
+  dedupeRelated,
+  findRelatedGuides,
 } from '@/lib/content/link-graph'
 import { costHubPath, costTreatmentPath, cmsCostSlug } from '@/lib/routes'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
@@ -46,7 +48,11 @@ export default async function CostTreatmentPage({ params }: Props) {
       ? `${treatmentData.name} abroad typically costs €${costs.overall.min.toLocaleString()}–€${costs.overall.max.toLocaleString()}${costs.overall.sampleSize ? ` based on ${costs.overall.sampleSize} verified clinic packages` : ''}.`
       : undefined)
 
-  const related = buildRelatedLandingsForEntities({ treatment }, taxonomy, locale)
+  const pages = await listPublishedPagesSafe()
+  const related = dedupeRelated([
+    ...buildRelatedLandingsForEntities({ treatment }, taxonomy, locale, pages),
+    ...findRelatedGuides({ treatment }, pages, locale, { taxonomy }),
+  ])
 
   return (
     <>

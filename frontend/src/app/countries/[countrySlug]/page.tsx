@@ -6,10 +6,10 @@ import { getContentBySlugOptional, getContentListSafe } from '@/lib/api/content'
 import {
   getCitiesForCountry,
   getCountryDisplayFromTaxonomy,
-  getRelatedGuideSlugsForCountry,
   partitionGuides,
 } from '@/lib/content/hubs'
-import { loadGuideArticlesBySlugs } from '@/lib/content/guide-posts'
+import { loadGuideArticlesForEntities } from '@/lib/content/guide-display'
+import { findRelatedGuidePages, resolvePageRelations } from '@/lib/content/link-graph'
 import { treatmentsForDisplay } from '@/lib/content/treatments'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
 import { cmsMetadataForSlug, heroAnswerFromCmsPage } from '@/lib/seo/cms-seo'
@@ -54,16 +54,30 @@ async function CountryLandingContent({ countrySlug }: { countrySlug: string }) {
   const treatmentCategories = treatmentsForDisplay(taxonomy)
 
   const landingSlug = cmsPageSlug('countries', countrySlug)
-  const [guide, allPages, landingCms] = await Promise.all([
-    getContentBySlugOptional(`guides/${countrySlug}-ivf-guide`),
-    getContentListSafe(),
+  const allPages = await getContentListSafe()
+  const countryGuidePage =
+    findRelatedGuidePages({ country: countrySlug }, allPages, { taxonomy, limit: 12 }).find(
+      (p) => {
+        const r = resolvePageRelations(p, taxonomy)
+        return r.country === countrySlug && !r.city
+      },
+    ) ?? null
+
+  const [guide, landingCms] = await Promise.all([
+    countryGuidePage
+      ? getContentBySlugOptional(countryGuidePage.slug)
+      : getContentBySlugOptional(`guides/${countrySlug}-ivf-guide`),
     loadPublishedPage(landingSlug),
   ])
 
-  const { cities: cityPages } = partitionGuides(allPages, locale)
+  const { cities: cityPages } = partitionGuides(allPages, locale, taxonomy)
   const cities = getCitiesForCountry(countrySlug, cityPages, locale, taxonomy)
-  const relatedSlugs = getRelatedGuideSlugsForCountry(countrySlug, cityPages)
-  const relatedArticles = await loadGuideArticlesBySlugs(relatedSlugs, allPages, locale, taxonomy)
+  const relatedArticles = await loadGuideArticlesForEntities(
+    { country: countrySlug },
+    allPages,
+    locale,
+    taxonomy,
+  )
 
   const cmsAnswer = landingCms.status === 'ok' ? heroAnswerFromCmsPage(landingCms.page) : undefined
 
@@ -106,6 +120,7 @@ async function CountryLandingContent({ countrySlug }: { countrySlug: string }) {
             guide={guide ?? null}
             countryKey={countrySlug}
             countryName={display.name}
+            guideSlug={countryGuidePage?.slug.replace(/^\//, '') ?? `guides/${countrySlug}-ivf-guide`}
           />
 
           <CountryCitiesSection

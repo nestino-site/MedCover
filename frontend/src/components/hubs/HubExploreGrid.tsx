@@ -102,7 +102,7 @@ function HubCard({ hub, locale, description }: { hub: SiteHub; locale: Locale; d
 export async function HubExploreGrid({ locale }: { locale: Locale }) {
   const t = getDictionary(locale)
   const [taxonomy, pages] = await Promise.all([getTaxonomy(), listPublishedPagesSafe()])
-  const { countries, cities } = partitionGuides(pages, locale)
+  const { countries, cities } = partitionGuides(pages, locale, taxonomy)
   const countryCount = countries.length || getFeaturedCountriesFromTaxonomy(taxonomy, locale).length
   const cityCount = cities.length
 

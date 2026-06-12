@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { listPublishedPagesSafe } from '@/lib/api/content'
+import { getTaxonomy } from '@/lib/api/catalog'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import { getGuideArticles } from '@/lib/content/hubs'
 
@@ -11,8 +12,8 @@ export interface GuidesListProps {
 
 export async function GuidesList({ locale, sort, q }: GuidesListProps) {
   const t = getDictionary(locale)
-  const pages = await listPublishedPagesSafe()
-  let guides = getGuideArticles(pages, locale)
+  const [pages, taxonomy] = await Promise.all([listPublishedPagesSafe(), getTaxonomy()])
+  let guides = getGuideArticles(pages, locale, taxonomy)
 
   if (q) {
     const lq = q.toLowerCase()

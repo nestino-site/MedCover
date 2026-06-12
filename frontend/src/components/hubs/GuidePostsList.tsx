@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { cacheLife, cacheTag } from 'next/cache'
 import { GuidePostCard } from '@/components/hubs/GuidePostCard'
 import { listPublishedPagesSafe } from '@/lib/api/content'
+import { getTaxonomy } from '@/lib/api/catalog'
 import {
   loadGuideGroupsForPages,
   loadGuideSummaries,
@@ -44,10 +45,10 @@ export async function GuidePostsList({
   cacheTag(cacheTags.publishedPages, cacheTags.hub('guides'))
 
   const t = getDictionary(locale)
-  const pages = await listPublishedPagesSafe()
+  const [pages, taxonomy] = await Promise.all([listPublishedPagesSafe(), getTaxonomy()])
 
   if (scope === 'all') {
-    const groups = await loadGuideGroupsForPages(pages, locale)
+    const groups = await loadGuideGroupsForPages(pages, locale, taxonomy)
 
     if (groups.length === 0) {
       return <p className="text-[var(--color-neutral-500)]">{t.hubs.guides.empty}</p>
@@ -73,11 +74,12 @@ export async function GuidePostsList({
     )
   }
 
-  const { countries, cities } = partitionGuides(pages, locale)
+  const { countries, cities } = partitionGuides(pages, locale, taxonomy)
   const source = scope === 'country' ? countries : cities
+  const pagesBySlug = new Map(source.map((p) => [p.slug.replace(/^\//, ''), p]))
   const slugs = source.map((p) => p.slug.replace(/^\//, ''))
-  const summaries = await loadGuideSummaries(slugs)
-  const allGroups = buildGuideGroups(pages, summaries, locale)
+  const summaries = await loadGuideSummaries(slugs, pagesBySlug, taxonomy)
+  const allGroups = buildGuideGroups(pages, summaries, locale, taxonomy)
   const items =
     scope === 'country'
       ? allGroups.flatMap((g) => (g.countryGuide ? [g.countryGuide] : []))

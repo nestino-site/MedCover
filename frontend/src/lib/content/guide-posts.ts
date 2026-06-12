@@ -5,6 +5,7 @@ export {
   loadGuideSummaries,
   loadGuidePostsBySlugs,
   loadGuideArticlesBySlugs,
+  loadGuideArticlesForEntities,
   loadPublishedPostItems,
   resolveGuideSeo,
 } from '@/lib/content/guide-display'

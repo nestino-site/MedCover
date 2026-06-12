@@ -101,8 +101,8 @@ async function ClinicSegment2Content({ params, searchParams }: Props) {
     const entities = { country, treatment }
     const related = dedupeRelated(
       [
-        ...buildRelatedLandingsForEntities(entities, taxonomy, locale),
-        ...findRelatedGuides({ country }, pages, locale, { taxonomy }),
+        ...buildRelatedLandingsForEntities(entities, taxonomy, locale, pages),
+        ...findRelatedGuides({ country, treatment }, pages, locale, { taxonomy }),
       ],
       basePath,
     )
@@ -166,7 +166,7 @@ async function ClinicSegment2Content({ params, searchParams }: Props) {
   const entities = { country, city: citySegment }
   const related = dedupeRelated(
     [
-      ...buildRelatedLandingsForEntities(entities, taxonomy, locale),
+      ...buildRelatedLandingsForEntities(entities, taxonomy, locale, pages),
       ...findRelatedGuides(entities, pages, locale, { taxonomy }),
     ],
     basePath,

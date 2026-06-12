@@ -5,21 +5,45 @@ import http from 'node:http'
 const PORT = 3001
 
 const items = [
-  { id: 101, slug: 'guides/spain-ivf-guide', language: 'en', updatedAt: '2026-05-20T10:00:00Z' },
+  {
+    id: 101,
+    slug: 'guides/spain-ivf-guide',
+    language: 'en',
+    updatedAt: '2026-05-20T10:00:00Z',
+    pageType: 'guide',
+    title: 'IVF in Spain: Complete Patient Guide',
+    entities: {
+      treatment: { slug: 'ivf-in-vitro-fertilisation', name: 'IVF — In Vitro Fertilisation' },
+      country: { slug: 'spain', name: 'Spain' },
+    },
+  },
   { id: 102, slug: 'guides/greece-ivf-guide', language: 'en', updatedAt: '2026-05-18T10:00:00Z' },
   { id: 103, slug: 'guides/czech-republic-ivf-guide', language: 'en', updatedAt: '2026-05-15T10:00:00Z' },
   { id: 104, slug: 'guides/turkey-ivf-guide', language: 'en', updatedAt: '2026-05-10T10:00:00Z' },
   { id: 105, slug: 'guides/portugal-ivf-guide', language: 'en', updatedAt: '2026-05-08T10:00:00Z' },
-  { id: 106, slug: 'guides/spain/barcelona-ivf-guide', language: 'en', updatedAt: '2026-05-05T10:00:00Z' },
+  {
+    id: 106,
+    slug: 'guides/spain/barcelona-ivf-guide',
+    language: 'en',
+    updatedAt: '2026-05-05T10:00:00Z',
+    pageType: 'guide',
+    title: 'IVF in Barcelona: Complete Patient Guide',
+    entities: {
+      treatment: { slug: 'ivf-in-vitro-fertilisation', name: 'IVF — In Vitro Fertilisation' },
+      country: { slug: 'spain', name: 'Spain' },
+      city: { slug: 'barcelona', name: 'Barcelona' },
+    },
+  },
   { id: 201, slug: 'costs/spain-ivf-financing-2026', language: 'en', updatedAt: '2026-05-01T10:00:00Z' },
 ]
 
 function pagePayload(slug) {
-  const title = slug.split('/').pop()?.replace(/-ivf-guide$/, '').replace(/-/g, ' ') ?? 'Guide'
-  return {
-    version: '2.1',
+  const item = items.find((i) => i.slug === slug)
+  const title = item?.title ?? slug.split('/').pop()?.replace(/-ivf-guide$/, '').replace(/-/g, ' ') ?? 'Guide'
+  const payload = {
+    version: item?.entities ? '2.2' : '2.1',
     status: 'ready',
-    pageId: items.find((i) => i.slug === slug)?.id ?? 999,
+    pageId: item?.id ?? 999,
     hasHeroImage: false,
     finalContent: null,
     htmlContent: `<p>Mock article for ${slug}</p>`,
@@ -43,6 +67,24 @@ function pagePayload(slug) {
     analysis: null,
     meta: null,
   }
+  if (item?.pageType) payload.pageType = item.pageType
+  if (item?.entities) payload.entities = item.entities
+  return payload
+}
+
+function filterItems(url) {
+  const pageType = url.searchParams.get('pageType')
+  const country = url.searchParams.get('country')
+  const city = url.searchParams.get('city')
+  const treatment = url.searchParams.get('treatment')
+
+  return items.filter((item) => {
+    if (pageType && item.pageType !== pageType) return false
+    if (country && item.entities?.country?.slug !== country) return false
+    if (city && item.entities?.city?.slug !== city) return false
+    if (treatment && item.entities?.treatment?.slug !== treatment) return false
+    return true
+  })
 }
 
 const server = http.createServer((req, res) => {
@@ -51,7 +93,7 @@ const server = http.createServer((req, res) => {
 
   if (url.pathname === '/content/pages') {
     res.writeHead(200)
-    res.end(JSON.stringify({ items }))
+    res.end(JSON.stringify({ items: filterItems(url) }))
     return
   }
 
@@ -87,5 +129,5 @@ const server = http.createServer((req, res) => {
 })
 
 server.listen(PORT, () => {
-  console.log(`Mock Traffic Engine listening on http://localhost:${PORT}`)
+  console.log(`Mock Traffic Engine listening on http://127.0.0.1:${PORT}`)
 })

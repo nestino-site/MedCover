@@ -1,6 +1,6 @@
 # Guide ↔ Landing Relations — Backend Contract & Frontend Rollout Plan
 
-**Status:** Proposed
+**Status:** Live on Traffic Engine (v2.2)
 **Audience:** Backend (Traffic Engine / Content API) + Frontend
 **Goal:** Replace slug-pattern guessing with explicit, structured relation tags on every article, while keeping the current slug-based model fully working as a fallback. **Zero breaking changes** — every new field is optional and additive.
 

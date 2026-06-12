@@ -47,7 +47,7 @@ export default async function HomePage() {
   ])
 
   const totalClinics = taxonomy.countries.reduce((s, c) => s + c.clinicCount, 0)
-  const { cities: cityPages } = partitionGuides(allPages, locale)
+  const { cities: cityPages } = partitionGuides(allPages, locale, taxonomy)
 
   const hubs = {
     clinics: clinicsHubPath(locale),

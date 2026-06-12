@@ -15,7 +15,7 @@ import {
   treatmentPath,
 } from '@/lib/routes'
 import { parseCitySlug, getCountryKeyFromSlug, isCountryGuideSlug } from './hubs'
-import type { Locale } from '@/lib/i18n'
+import { localizedPath, type Locale } from '@/lib/i18n'
 
 export interface PageEntities {
   country?: string
@@ -23,32 +23,59 @@ export interface PageEntities {
   treatment?: string
 }
 
+export interface ClinicEntityRef {
+  slug: string
+  name: string
+  urlPath: string
+}
+
 export type RelationSource = 'entities' | 'slug'
 
 export interface PageRelations extends PageEntities {
   /** Where the relations came from: structured backend tags or slug heuristics. */
   source: RelationSource
+  pageType?: string
+  clinics?: ClinicEntityRef[]
 }
 
-function entitiesTagIsValid(entities: ApiPageEntities, taxonomy?: Taxonomy): boolean {
-  if (!taxonomy) return true
-  if (entities.country) {
-    const country = taxonomy.countries.find((c) => c.slug === entities.country?.slug)
-    if (!country) return false
-    if (entities.city && !country.cities.some((c) => c.slug === entities.city?.slug)) {
-      return false
+type EntityRef = { slug: string; name: string }
+
+function validateEntity(
+  ref: EntityRef | undefined,
+  allowed: Map<string, EntityRef>,
+): EntityRef | undefined {
+  if (!ref?.slug) return undefined
+  return allowed.get(ref.slug)
+}
+
+function countryForCitySlug(citySlug: string, taxonomy?: Taxonomy): string | undefined {
+  if (!taxonomy) return undefined
+  for (const country of taxonomy.countries) {
+    if (country.cities.some((c) => c.slug === citySlug)) {
+      return country.slug
     }
-  } else if (entities.city) {
-    // City without a country is not a valid tag combination.
-    return false
   }
-  if (
-    entities.treatment &&
-    !taxonomy.treatments.some((t) => t.slug === entities.treatment?.slug)
-  ) {
-    return false
+  return undefined
+}
+
+function buildTaxonomyMaps(taxonomy?: Taxonomy) {
+  const countryMap = new Map<string, EntityRef>()
+  const cityMap = new Map<string, EntityRef>()
+  const treatmentMap = new Map<string, EntityRef>()
+
+  if (taxonomy) {
+    for (const c of taxonomy.countries) {
+      countryMap.set(c.slug, { slug: c.slug, name: c.name })
+      for (const city of c.cities) {
+        cityMap.set(city.slug, { slug: city.slug, name: city.name })
+      }
+    }
+    for (const t of taxonomy.treatments) {
+      treatmentMap.set(t.slug, { slug: t.slug, name: t.name })
+    }
   }
-  return true
+
+  return { countryMap, cityMap, treatmentMap }
 }
 
 /**
@@ -58,24 +85,54 @@ function entitiesTagIsValid(entities: ApiPageEntities, taxonomy?: Taxonomy): boo
  * site before tags existed. Untagged content behaves exactly as before.
  */
 export function resolvePageRelations(
-  input: { slug: string; entities?: ApiPageEntities | null },
+  input: { slug: string; pageType?: string; entities?: ApiPageEntities | null },
   taxonomy?: Taxonomy,
 ): PageRelations {
   const tagged = input.entities
-  if (tagged && (tagged.country || tagged.city || tagged.treatment)) {
-    if (entitiesTagIsValid(tagged, taxonomy)) {
-      return {
-        source: 'entities',
-        country: tagged.country?.slug,
-        city: tagged.city?.slug,
-        treatment: tagged.treatment?.slug,
+  if (tagged && Object.keys(tagged).length > 0) {
+    const { countryMap, cityMap, treatmentMap } = buildTaxonomyMaps(taxonomy)
+
+    let country = validateEntity(tagged.country, countryMap)
+    let city = validateEntity(tagged.city, cityMap)
+    const treatment = validateEntity(tagged.treatment, treatmentMap)
+
+    if (city && !country) {
+      country = countryMap.get(countryForCitySlug(city.slug, taxonomy) ?? '') ?? country
+    }
+
+    if (country && city && taxonomy) {
+      const countryData = taxonomy.countries.find((c) => c.slug === country!.slug)
+      if (!countryData?.cities.some((c) => c.slug === city!.slug)) {
+        city = undefined
       }
     }
-    console.warn(
-      `[link-graph] invalid entities tag on ${input.slug}; falling back to slug inference`,
-    )
+
+    const clinics = tagged.clinics?.length ? tagged.clinics : undefined
+    const hasValidTag = Boolean(country || city || treatment || (clinics?.length ?? 0) > 0)
+
+    if (hasValidTag) {
+      return {
+        source: 'entities',
+        pageType: input.pageType,
+        country: country?.slug,
+        city: city?.slug,
+        treatment: treatment?.slug,
+        clinics,
+      }
+    }
+
+    if (tagged.country || tagged.city || tagged.treatment) {
+      console.warn(
+        `[link-graph] invalid entities tag on ${input.slug}; falling back to slug inference`,
+      )
+    }
   }
-  return { source: 'slug', ...parseEntitiesFromSlug(input.slug) }
+
+  return {
+    source: 'slug',
+    pageType: input.pageType,
+    ...parseEntitiesFromSlug(input.slug),
+  }
 }
 
 export function parseEntitiesFromSlug(slug: string): PageEntities {
@@ -137,10 +194,41 @@ export function parseEntitiesFromSlug(slug: string): PageEntities {
   return entities
 }
 
+function treatmentDisplayName(slug: string, taxonomy: Taxonomy): string {
+  return taxonomy.treatments.find((t) => t.slug === slug)?.name ?? slugToLabel(slug)
+}
+
+function guideLinkForCountry(
+  entities: PageEntities,
+  taxonomy: Taxonomy,
+  locale: Locale,
+  pages?: ContentListItem[],
+): RelatedLanding | null {
+  if (!entities.country) return null
+  const country = taxonomy.countries.find((c) => c.slug === entities.country)
+  if (!country) return null
+
+  const treatment = entities.treatment ?? 'ivf'
+  const treatmentName = treatmentDisplayName(treatment, taxonomy)
+
+  if (pages?.length) {
+    const guides = findRelatedGuides(entities, pages, locale, { taxonomy })
+    const match = guides[0]
+    if (match) return match
+  }
+
+  return {
+    title: `${country.name} ${treatmentName} guide`,
+    href: guidePath(`${country.slug}-ivf-guide`, locale),
+    badge: 'Guide',
+  }
+}
+
 export function buildRelatedLandingsForEntities(
   entities: PageEntities,
   taxonomy: Taxonomy,
   locale: Locale,
+  pages?: ContentListItem[],
 ): RelatedLanding[] {
   const items: RelatedLanding[] = []
   const treatment = entities.treatment ?? 'ivf'
@@ -163,11 +251,8 @@ export function buildRelatedLandingsForEntities(
         href: costCountryPath(treatment, country.slug, locale),
         badge: 'Cost',
       })
-      items.push({
-        title: `${country.name} IVF guide`,
-        href: guidePath(`${country.slug}-ivf-guide`, locale),
-        badge: 'Guide',
-      })
+      const guideLink = guideLinkForCountry(entities, taxonomy, locale, pages)
+      if (guideLink) items.push(guideLink)
     }
   }
 
@@ -212,7 +297,7 @@ function isGuidePage(page: ContentListItem): boolean {
   return /(^|\/)guides\//.test(page.slug)
 }
 
-function guideTitleForPage(
+export function guideTitleForPage(
   page: ContentListItem,
   relations: PageRelations,
   taxonomy?: Taxonomy,
@@ -231,8 +316,47 @@ function guideTitleForPage(
     const treatment = relations.treatment?.toUpperCase() ?? 'IVF'
     return `${place} ${treatment} guide`
   }
+  if (relations.treatment && taxonomy) {
+    const t = taxonomy.treatments.find((x) => x.slug === relations.treatment)
+    if (t) return `${t.name} guide`
+  }
   const last = page.slug.replace(/\/$/, '').split('/').pop() ?? 'guide'
   return slugToLabel(last.replace(/-ivf-guide$/, ''))
+}
+
+export function guideMatchesScope(
+  relations: PageRelations,
+  entities: PageEntities,
+): boolean {
+  const wantsTreatment = Boolean(entities.treatment)
+  const treatmentMatch =
+    !wantsTreatment || relations.treatment === entities.treatment
+
+  if (entities.city) {
+    return relations.city === entities.city && treatmentMatch
+  }
+  if (entities.country) {
+    return relations.country === entities.country && treatmentMatch
+  }
+  if (entities.treatment) {
+    return relations.treatment === entities.treatment
+  }
+  return false
+}
+
+export function findRelatedGuidePages(
+  entities: PageEntities,
+  pages: ContentListItem[],
+  options?: { excludeSlug?: string; taxonomy?: Taxonomy; limit?: number },
+): ContentListItem[] {
+  const exclude = options?.excludeSlug?.replace(/^\//, '').replace(/\/$/, '')
+  return pages
+    .filter(isGuidePage)
+    .filter((p) => p.slug.replace(/^\//, '').replace(/\/$/, '') !== exclude)
+    .filter((p) =>
+      guideMatchesScope(resolvePageRelations(p, options?.taxonomy), entities),
+    )
+    .slice(0, options?.limit ?? 6)
 }
 
 export function findRelatedGuides(
@@ -241,25 +365,14 @@ export function findRelatedGuides(
   locale: Locale,
   options?: { excludeSlug?: string; taxonomy?: Taxonomy },
 ): RelatedLanding[] {
-  const exclude = options?.excludeSlug?.replace(/^\//, '').replace(/\/$/, '')
-  return pages
-    .filter(isGuidePage)
-    .filter((p) => p.slug.replace(/^\//, '').replace(/\/$/, '') !== exclude)
-    .map((p) => ({
-      page: p,
-      relations: resolvePageRelations(p, options?.taxonomy),
-    }))
-    .filter(({ relations }) => {
-      if (entities.city && relations.city === entities.city) return true
-      if (entities.country && relations.country === entities.country) return true
-      return false
-    })
-    .slice(0, 6)
-    .map(({ page, relations }) => ({
+  return findRelatedGuidePages(entities, pages, options).map((page) => {
+    const relations = resolvePageRelations(page, options?.taxonomy)
+    return {
       title: guideTitleForPage(page, relations, options?.taxonomy),
       href: guidePath(page.slug, locale),
-      badge: 'Guide',
-    }))
+      badge: 'Guide' as const,
+    }
+  })
 }
 
 /**
@@ -268,7 +381,7 @@ export function findRelatedGuides(
  * sibling guides. Relations resolve tags-first with slug fallback.
  */
 export function getRelatedForGuide(
-  input: { slug: string; entities?: ApiPageEntities | null },
+  input: { slug: string; pageType?: string; entities?: ApiPageEntities | null },
   pages: ContentListItem[],
   taxonomy: Taxonomy,
   locale: Locale,
@@ -276,6 +389,16 @@ export function getRelatedForGuide(
   const relations = resolvePageRelations(input, taxonomy)
   const treatment = relations.treatment ?? 'ivf'
   const landings: RelatedLanding[] = []
+
+  if (relations.clinics?.length) {
+    for (const clinic of relations.clinics) {
+      landings.push({
+        title: clinic.name,
+        href: localizedPath(clinic.urlPath, locale),
+        badge: 'Clinic',
+      })
+    }
+  }
 
   if (relations.country) {
     const country = taxonomy.countries.find((c) => c.slug === relations.country)
@@ -370,4 +493,30 @@ export function suggestCountryComparisons(
     })
   }
   return items
+}
+
+export type GuideScopeFilters = {
+  country?: string
+  city?: string
+  treatment?: string
+}
+
+/** Load guide list items for a landing scope — filtered API first, full-list fallback. */
+export async function loadGuidesForScope(
+  scope: GuideScopeFilters,
+  listPages: (filters?: GuideScopeFilters & { pageType?: string }) => Promise<ContentListItem[]>,
+  allPages: ContentListItem[],
+  locale: Locale,
+  taxonomy: Taxonomy,
+  options?: { excludeSlug?: string; limit?: number },
+): Promise<RelatedLanding[]> {
+  const filters = { pageType: 'guide' as const, ...scope }
+  let pages = await listPages(filters)
+  if (pages.length === 0) {
+    pages = allPages
+  }
+  return findRelatedGuides(scope, pages, locale, {
+    taxonomy,
+    excludeSlug: options?.excludeSlug,
+  }).slice(0, options?.limit ?? 6)
 }

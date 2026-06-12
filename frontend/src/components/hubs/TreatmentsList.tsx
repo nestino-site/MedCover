@@ -102,7 +102,7 @@ export interface TreatmentsListProps {
 export async function TreatmentsList({ locale }: TreatmentsListProps) {
   const t = getDictionary(locale)
   const [taxonomy, pages] = await Promise.all([getTaxonomy(), getContentListSafe()])
-  const { cities: cityPages } = partitionGuides(pages, locale)
+  const { cities: cityPages } = partitionGuides(pages, locale, taxonomy)
   const visibleCategories = treatmentsForDisplay(taxonomy)
 
   return (

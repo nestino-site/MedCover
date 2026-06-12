@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { getClinic, getTaxonomy, listClinics, treatmentSlugSet, getCosts } from '@/lib/api/catalog'
-import { loadPublishedPage } from '@/lib/api/content'
+import { listPublishedPagesSafe, loadPublishedPage } from '@/lib/api/content'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
 import { cmsMetadataForSlug } from '@/lib/seo/cms-seo'
 import { activeLocale } from '@/lib/i18n/locale'
@@ -107,6 +107,7 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
       cmsClinicCityTreatmentSlug(country, citySegment, treatment),
     )
     const entities = { country, city: citySegment, treatment }
+    const pages = await listPublishedPagesSafe()
 
     return (
       <>
@@ -133,7 +134,7 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
         treatmentSlug={treatment}
         editorialHtml={cms.status === 'ok' ? cms.page.htmlContent : null}
         faq={cms.status === 'ok' ? cms.page.faq : undefined}
-        related={buildRelatedLandingsForEntities(entities, taxonomy, locale)}
+        related={buildRelatedLandingsForEntities(entities, taxonomy, locale, pages)}
         filters={
           <ClinicFilters
             taxonomy={taxonomy}
@@ -163,10 +164,12 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
     sort: 'rating',
   })
 
+  const pages = await listPublishedPagesSafe()
   const related = buildRelatedLandingsForEntities(
     { country, city: citySegment },
     taxonomy,
     locale,
+    pages,
   )
 
   const canonicalUrl = clinicPdpPath(country, citySegment, leafSegment, locale)

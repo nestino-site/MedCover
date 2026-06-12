@@ -20,7 +20,8 @@ import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { GuideArticleLayout } from '@/components/guides/GuideArticleLayout'
 import { pageTitleFromSlug } from '@/lib/content/hubs'
-import { getRelatedForGuide } from '@/lib/content/link-graph'
+import { getRelatedForGuide, resolvePageRelations } from '@/lib/content/link-graph'
+import { guideDimensionsFromRelations } from '@/lib/content/site-graph'
 import { getTaxonomy } from '@/lib/api/catalog'
 import { isNextImageOptimizable, resolveHeroImage, resolveHeroImageForMetadata } from '@/lib/content/hero-image'
 import { normalizeContentHtml } from '@/lib/content/html-content-images'
@@ -106,12 +107,16 @@ async function CachedArticleBody({
       getTaxonomy(),
       listPublishedPagesSafe(),
     ])
-    const related = getRelatedForGuide(
-      { slug: guideSlug, entities: page.entities ?? null },
-      allPages,
-      taxonomy,
-      locale,
-    )
+    const guideInput = {
+      slug: guideSlug,
+      pageType: page.pageType,
+      entities: page.entities ?? null,
+    }
+    const relations = resolvePageRelations(guideInput, taxonomy)
+    const guideDim =
+      guideDimensionsFromRelations(relations, guideSlug, taxonomy) ??
+      undefined
+    const related = getRelatedForGuide(guideInput, allPages, taxonomy, locale)
 
     return (
       <>
@@ -126,6 +131,7 @@ async function CachedArticleBody({
           locale={locale}
           related={related}
           guideSlug={guideSlug}
+          guideDim={guideDim}
         />
       </>
     )

@@ -9,6 +9,7 @@ import { CtaBlock } from '@/components/shared/CtaBlock'
 import { RelatedLandingsGrid, type RelatedLanding } from '@/components/shared/RelatedLandingsGrid'
 import { CrossHubNav } from '@/components/hubs/CrossHubNav'
 import { isNextImageOptimizable } from '@/lib/content/hero-image'
+import type { GuideDimensions } from '@/lib/content/site-graph'
 import { getDictionary, type Locale } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
 
@@ -31,6 +32,8 @@ interface GuideArticleLayoutProps {
   related?: { landings: RelatedLanding[]; guides: RelatedLanding[] } | null
   /** Guide slug (no leading slash) used for the cross-hub footer nav. */
   guideSlug?: string
+  /** Resolved guide dimensions (tags-first); falls back to slug parsing in CrossHubNav. */
+  guideDim?: GuideDimensions
 }
 
 function HeroImage({ hero }: { hero: ResolvedHero }) {
@@ -135,6 +138,7 @@ export function GuideArticleLayout({
   locale,
   related,
   guideSlug,
+  guideDim,
 }: GuideArticleLayoutProps) {
   const t = getDictionary(locale)
   const hasSidebar = tableOfContents.some((item) => item.level === 2)
@@ -168,7 +172,14 @@ export function GuideArticleLayout({
 
       <CtaBlock variant="compact" />
 
-      {guideSlug && <CrossHubNav locale={locale} guideSlug={guideSlug} className="mt-12" />}
+      {guideSlug && (
+        <CrossHubNav
+          locale={locale}
+          guideSlug={guideSlug}
+          guideDim={guideDim}
+          className="mt-12"
+        />
+      )}
     </div>
   )
 }

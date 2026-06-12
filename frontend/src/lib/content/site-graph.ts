@@ -5,17 +5,52 @@ import { getCountryDisplayFromTaxonomy, parseCitySlug } from './hubs'
 import { clinicCountryPath, slugToLabel } from '@/lib/routes'
 import type { HubId } from './site-nav'
 import { appendFiltersToUrl, buildContextualHubUrl, type ActiveFilters } from './filter-utils'
+import type { PageRelations } from '@/lib/content/link-graph'
 
 export type GuideLevel = 'country' | 'city'
 
 export interface GuideDimensions {
-  treatment: 'ivf'
+  treatment: string
   countryKey: string
   countryName: string
   cityKey?: string
   cityName?: string
   level: GuideLevel
   slug: string
+}
+
+export function guideDimensionsFromRelations(
+  relations: PageRelations,
+  slug: string,
+  taxonomy?: Taxonomy,
+): GuideDimensions | null {
+  if (!relations.country) return null
+
+  const countryName = taxonomy
+    ? getCountryDisplayFromTaxonomy(relations.country, taxonomy).name
+    : slugToLabel(relations.country)
+
+  if (relations.city) {
+    const country = taxonomy?.countries.find((c) => c.slug === relations.country)
+    const city = country?.cities.find((c) => c.slug === relations.city)
+    return {
+      treatment: relations.treatment ?? 'ivf',
+      countryKey: relations.country,
+      countryName,
+      cityKey: relations.city,
+      cityName: city?.name ?? slugToLabel(relations.city),
+      level: 'city',
+      slug,
+    }
+  }
+
+  return {
+    treatment: relations.treatment ?? 'ivf',
+    countryKey: relations.country,
+    countryName,
+    level: 'country',
+    slug,
+  }
 }
 
 export interface HubLink {

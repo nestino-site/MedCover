@@ -33,7 +33,7 @@ export interface CountriesListProps {
 export async function CountriesList({ locale }: CountriesListProps) {
   const t = getDictionary(locale)
   const [taxonomy, pages] = await Promise.all([getTaxonomy(), listPublishedPagesSafe()])
-  const { countries: countryPages, cities: cityPages } = partitionGuides(pages, locale)
+  const { countries: countryPages, cities: cityPages } = partitionGuides(pages, locale, taxonomy)
 
   const baseCountries =
     countryPages.length > 0

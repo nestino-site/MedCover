@@ -14,11 +14,10 @@ import {
 import {
   getFeaturedCountriesFromTaxonomy,
   getCitiesForCountry,
-  getRelatedGuideSlugsForTreatment,
   partitionGuides,
 } from '@/lib/content/hubs'
 import { getTreatmentTagsForCountry } from '@/lib/content/treatments'
-import { loadGuideArticlesBySlugs } from '@/lib/content/guide-posts'
+import { loadGuideArticlesForEntities } from '@/lib/content/guide-display'
 import { FaqAccordion } from '@/components/shared/FaqAccordion'
 import { CtaBlock } from '@/components/shared/CtaBlock'
 import { EntityHero } from '@/components/shared/EntityHero'
@@ -69,9 +68,13 @@ async function TreatmentPageContent({ treatmentSlug }: { treatmentSlug: string }
   if (!cat) notFound()
 
   const allPages = await getContentListSafe()
-  const { countries: countryPages, cities: cityPages } = partitionGuides(allPages, locale)
-  const relatedSlugs = getRelatedGuideSlugsForTreatment(countryPages, cityPages)
-  const relatedArticles = await loadGuideArticlesBySlugs(relatedSlugs, allPages, locale, taxonomy)
+  const { cities: cityPages } = partitionGuides(allPages, locale, taxonomy)
+  const relatedArticles = await loadGuideArticlesForEntities(
+    { treatment: treatmentSlug },
+    allPages,
+    locale,
+    taxonomy,
+  )
   const th = en.treatmentHub
 
   const countryCards: CountryCardData[] = getFeaturedCountriesFromTaxonomy(taxonomy, locale)

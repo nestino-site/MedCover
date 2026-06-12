@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { getTaxonomy, getCosts, listClinics } from '@/lib/api/catalog'
-import { loadPublishedPage } from '@/lib/api/content'
+import { listPublishedPages, listPublishedPagesSafe, loadPublishedPage } from '@/lib/api/content'
 import { ClinicsPlpTemplate } from '@/components/clinics/ClinicsPlpTemplate'
 import { ClinicFilters } from '@/components/clinics/ClinicFilters'
 import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
@@ -11,7 +11,7 @@ import { activeLocale } from '@/lib/i18n/locale'
 import {
   buildRelatedLandingsForEntities,
   dedupeRelated,
-  findRelatedGuides,
+  loadGuidesForScope,
   parseEntitiesFromSlug,
 } from '@/lib/content/link-graph'
 import {
@@ -20,7 +20,6 @@ import {
   cmsClinicCountrySlug,
 } from '@/lib/routes'
 import { primaryTreatmentSlugForCountry } from '@/lib/content/treatments'
-import { listPublishedPagesSafe } from '@/lib/api/content'
 import {
   buildClinicListParams,
   buildPlpQueryString,
@@ -76,8 +75,14 @@ async function ClinicCountryPlpContent({ params, searchParams }: Props) {
   const entities = parseEntitiesFromSlug(`clinics/${country}`)
   const related = dedupeRelated(
     [
-      ...buildRelatedLandingsForEntities(entities, taxonomy, locale),
-      ...findRelatedGuides(entities, pages, locale, { taxonomy }),
+      ...buildRelatedLandingsForEntities(entities, taxonomy, locale, pages),
+      ...(await loadGuidesForScope(
+        { country },
+        listPublishedPages,
+        pages,
+        locale,
+        taxonomy,
+      )),
     ],
     clinicCountryPath(country, locale),
   )

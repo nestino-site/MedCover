@@ -1,6 +1,7 @@
 import type { ContentListItem } from '@/lib/api/types'
 import type { Taxonomy } from '@/lib/api/types'
 import { flagEmojiForCountry } from '@/lib/content/country-flags'
+import { resolvePageRelations, guideTitleForPage } from '@/lib/content/link-graph'
 import { localizedPath, type Locale } from '@/lib/i18n'
 import { filterPagesByLocale } from './site-graph'
 import {
@@ -171,10 +172,16 @@ export interface GuideArticleItem {
   title: string
   description: string
   updatedAt: string
-  kind: 'country' | 'city'
+  kind: 'country' | 'city' | 'other'
   countryKey: string
   countryName: string
   flag: string
+}
+
+function isGuideListPage(page: ContentListItem): boolean {
+  if (page.pageType) return page.pageType === 'guide'
+  const slug = page.slug.replace(/^\//, '')
+  return slug.startsWith('guides/') && slug.length > 'guides/'.length
 }
 
 export interface GuideCountryGroup {
@@ -190,69 +197,146 @@ export function getGuideArticles(
   locale: Locale,
   taxonomy?: Taxonomy,
 ): GuideArticleItem[] {
-  return filterPagesByHub(pages, 'guides', locale).map((page) => {
-    const slug = page.slug.replace(/^\//, '')
-    let description = 'Patient guide'
-    let kind: 'country' | 'city' = 'country'
-    let countryKey = ''
-    let countryName = ''
-    let flag = ''
-    let title = pageTitleFromSlug(slug)
+  return filterPagesByHub(pages, 'guides', locale)
+    .filter(isGuideListPage)
+    .map((page) => {
+      const slug = page.slug.replace(/^\//, '')
+      const relations = resolvePageRelations(page, taxonomy)
+      const title = guideTitleForPage(page, relations, taxonomy)
+      let description = 'Patient guide'
+      let kind: GuideArticleItem['kind'] = 'other'
+      let countryKey = ''
+      let countryName = ''
+      let flag = '🌍'
 
-    if (isCountryGuideSlug(slug)) {
-      countryKey = getCountryKeyFromSlug(slug) ?? ''
-      const country = taxonomy?.countries.find((c) => c.slug === countryKey)
-      countryName = country?.name ?? slugToLabel(countryKey)
-      flag = flagEmojiForCountry({
-        slug: countryKey,
-        flagEmoji: country?.flagEmoji,
-        codeIso2: country?.codeIso2,
-      })
-      title = `${countryName} IVF Guide`
-      description = country ? `${country.clinicCount} verified clinics` : description
-    } else if (isCityGuideSlug(slug)) {
-      kind = 'city'
-      const parsed = parseCitySlug(slug)
-      if (parsed) {
-        countryKey = parsed.countryKey
-        countryName = parsed.countryName
-        title = `${parsed.cityName} IVF Guide`
-        description = parsed.countryName
-        const country = taxonomy?.countries.find((c) => c.slug === countryKey)
+      if (relations.city && relations.country && taxonomy) {
+        kind = 'city'
+        countryKey = relations.country
+        const country = taxonomy.countries.find((c) => c.slug === countryKey)
+        countryName = country?.name ?? slugToLabel(countryKey)
+        const city = country?.cities.find((c) => c.slug === relations.city)
+        description = city?.name ?? relations.city
         flag = flagEmojiForCountry({
           slug: countryKey,
           flagEmoji: country?.flagEmoji,
           codeIso2: country?.codeIso2,
         })
+      } else if (relations.country && taxonomy) {
+        kind = 'country'
+        countryKey = relations.country
+        const country = taxonomy.countries.find((c) => c.slug === countryKey)
+        countryName = country?.name ?? slugToLabel(countryKey)
+        description = country ? `${country.clinicCount} verified clinics` : description
+        flag = flagEmojiForCountry({
+          slug: countryKey,
+          flagEmoji: country?.flagEmoji,
+          codeIso2: country?.codeIso2,
+        })
+      } else if (isCountryGuideSlug(slug)) {
+        kind = 'country'
+        countryKey = getCountryKeyFromSlug(slug) ?? ''
+        const country = taxonomy?.countries.find((c) => c.slug === countryKey)
+        countryName = country?.name ?? slugToLabel(countryKey)
+        description = country ? `${country.clinicCount} verified clinics` : description
+        flag = flagEmojiForCountry({
+          slug: countryKey,
+          flagEmoji: country?.flagEmoji,
+          codeIso2: country?.codeIso2,
+        })
+      } else if (isCityGuideSlug(slug)) {
+        kind = 'city'
+        const parsed = parseCitySlug(slug)
+        if (parsed) {
+          countryKey = parsed.countryKey
+          countryName = parsed.countryName
+          description = parsed.countryName
+          const country = taxonomy?.countries.find((c) => c.slug === countryKey)
+          flag = flagEmojiForCountry({
+            slug: countryKey,
+            flagEmoji: country?.flagEmoji,
+            codeIso2: country?.codeIso2,
+          })
+        }
+      } else {
+        countryKey = 'general'
+        countryName = 'Guides'
       }
-    }
 
-    return {
-      slug,
-      href: localizedPath(`/${slug}`, locale),
-      title,
-      description,
-      updatedAt: page.updatedAt,
-      kind,
-      countryKey,
-      countryName,
-      flag,
-    }
-  })
+      return {
+        slug,
+        href: localizedPath(`/${slug}`, locale),
+        title,
+        description,
+        updatedAt: page.updatedAt,
+        kind,
+        countryKey,
+        countryName,
+        flag,
+      }
+    })
 }
 
-export function partitionGuides(pages: ContentListItem[], locale?: Locale) {
+export function partitionGuides(
+  pages: ContentListItem[],
+  locale?: Locale,
+  taxonomy?: Taxonomy,
+) {
   const filtered = locale ? filterPagesByLocale(pages, locale) : pages
   const countries: ContentListItem[] = []
   const cities: ContentListItem[] = []
+  const uncategorized: ContentListItem[] = []
+  const seen = new Set<string>()
 
-  for (const page of filtered) {
-    const slug = page.slug.replace(/^\//, '')
-    if (isCountryGuideSlug(slug)) countries.push(page)
-    else if (isCityGuideSlug(slug)) cities.push(page)
+  const add = (bucket: ContentListItem[], page: ContentListItem) => {
+    const key = page.slug.replace(/^\//, '')
+    if (seen.has(key)) return
+    seen.add(key)
+    bucket.push(page)
   }
 
-  return { countries, cities }
+  if (!taxonomy) {
+    for (const page of filtered) {
+      const slug = page.slug.replace(/^\//, '')
+      if (isCountryGuideSlug(slug)) add(countries, page)
+      else if (isCityGuideSlug(slug)) add(cities, page)
+    }
+    return { countries, cities, uncategorized }
+  }
+
+  for (const page of filtered) {
+    if (!isGuideListPage(page)) continue
+    const relations = resolvePageRelations(page, taxonomy)
+    if (relations.city) {
+      add(cities, page)
+    } else if (relations.country) {
+      add(countries, page)
+    } else if (isCountryGuideSlug(page.slug.replace(/^\//, ''))) {
+      add(countries, page)
+    } else if (isCityGuideSlug(page.slug.replace(/^\//, ''))) {
+      add(cities, page)
+    } else {
+      add(uncategorized, page)
+    }
+  }
+
+  return { countries, cities, uncategorized }
+}
+
+/** Map of published city guides keyed by `countryKey/cityKey`. */
+export function publishedCityGuideKeys(
+  pages: ContentListItem[],
+  locale: Locale,
+  taxonomy: Taxonomy,
+): Set<string> {
+  const { cities } = partitionGuides(pages, locale, taxonomy)
+  const keys = new Set<string>()
+  for (const page of cities) {
+    const relations = resolvePageRelations(page, taxonomy)
+    if (relations.country && relations.city) {
+      keys.add(`${relations.country}/${relations.city}`)
+    }
+  }
+  return keys
 }
 
 export function getCountryDisplayFromTaxonomy(

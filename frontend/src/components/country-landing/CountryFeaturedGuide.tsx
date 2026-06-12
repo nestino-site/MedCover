@@ -8,12 +8,19 @@ interface CountryFeaturedGuideProps {
   guide: ContentPage | null
   countryKey: string
   countryName: string
+  /** Resolved guide slug (tags-first); falls back to legacy IVF pattern. */
+  guideSlug?: string
 }
 
-export function CountryFeaturedGuide({ guide, countryKey, countryName }: CountryFeaturedGuideProps) {
+export function CountryFeaturedGuide({
+  guide,
+  countryKey,
+  countryName,
+  guideSlug: guideSlugProp,
+}: CountryFeaturedGuideProps) {
   const t = en.countryLanding.featuredGuide
-  const guideSlug = `guides/${countryKey}-ivf-guide`
-  const guideHref = `/${guideSlug}`
+  const guideSlug = guideSlugProp ?? `guides/${countryKey}-ivf-guide`
+  const guideHref = `/${guideSlug.replace(/^\//, '')}`
   const seo = guide ? resolveGuideSeo(guide, guideSlug) : null
 
   if (!guide) {

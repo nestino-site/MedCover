@@ -8,9 +8,46 @@ import {
   type ContentPage,
   type ContentListItem,
 } from './types'
-import { cacheTags } from '../cache/tags'
+import { cacheTags, type PublishedPagesFilterKey } from '../cache/tags'
 
 const SITE_ID = process.env.SITE_ID ?? ''
+
+export type ListPagesFilters = PublishedPagesFilterKey & {
+  pageType?: string
+}
+
+function buildListPagesQuery(filters?: ListPagesFilters): string {
+  if (!filters) return '/content/pages'
+  const params = new URLSearchParams()
+  if (filters.pageType) params.set('pageType', filters.pageType)
+  if (filters.country) params.set('country', filters.country)
+  if (filters.city) params.set('city', filters.city)
+  if (filters.treatment) params.set('treatment', filters.treatment)
+  const qs = params.toString()
+  return qs ? `/content/pages?${qs}` : '/content/pages'
+}
+
+async function fetchPublishedPagesList(path: string): Promise<ContentListItem[]> {
+  try {
+    const res = await trafficEngineFetch(path)
+    if (!res.ok) {
+      console.warn(`[Traffic Engine] ${res.status} ${res.statusText} — ${path}`)
+      return []
+    }
+    const json = await res.json()
+    const parsed = ContentListResponseSchema.safeParse(json)
+    if (!parsed.success) {
+      console.error('[Traffic Engine] invalid list payload:', parsed.error.flatten())
+      return []
+    }
+    return parsed.data.items ?? []
+  } catch (error) {
+    if (isTrafficEngineUnreachable(error)) {
+      return []
+    }
+    throw error
+  }
+}
 
 /** Canonical API slug: leading slash, no trailing slash. */
 export function canonicalSlugPath(slug: string): string {
@@ -69,32 +106,17 @@ async function fetchPageRaw(path: string): Promise<PageFetchResult> {
 /**
  * Published page list — cached via Cache Components; invalidated by publish webhook.
  */
-export async function listPublishedPages(): Promise<ContentListItem[]> {
+export async function listPublishedPages(
+  filters?: ListPagesFilters,
+): Promise<ContentListItem[]> {
   'use cache'
   cacheLife('max')
   cacheTag(cacheTags.publishedPages, cacheTags.site(SITE_ID))
-
-  try {
-    const res = await trafficEngineFetch('/content/pages')
-    if (!res.ok) {
-      console.warn(
-        `[Traffic Engine] ${res.status} ${res.statusText} — /content/pages`,
-      )
-      return []
-    }
-    const json = await res.json()
-    const parsed = ContentListResponseSchema.safeParse(json)
-    if (!parsed.success) {
-      console.error('[Traffic Engine] invalid list payload:', parsed.error.flatten())
-      return []
-    }
-    return parsed.data.items ?? []
-  } catch (error) {
-    if (isTrafficEngineUnreachable(error)) {
-      return []
-    }
-    throw error
+  if (filters && Object.keys(filters).length > 0) {
+    cacheTag(cacheTags.publishedPagesFiltered(filters))
   }
+
+  return fetchPublishedPagesList(buildListPagesQuery(filters))
 }
 
 /**
