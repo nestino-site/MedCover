@@ -12,14 +12,21 @@ import {
   type NavPanelId,
 } from '@/lib/content/site-nav'
 import type { TreatmentCategoryDisplay } from '@/lib/content/treatments'
-import { compareHubPath, clinicsHubPath, countriesHubPath, treatmentPath } from '@/lib/routes'
+import {
+  clinicTreatmentBrowsePath,
+  compareHubPath,
+  clinicsHubPath,
+  countriesHubPath,
+  treatmentPath,
+} from '@/lib/routes'
 import type { Locale, Dictionary } from '@/lib/i18n'
 import type {
   getFeaturedCountriesFromTaxonomy,
   NavFeaturedCity,
 } from '@/lib/content/hubs'
 import {
-  NavBrowseLink,
+  NavCityActions,
+  NavCountryActions,
   NavCityList,
   NavCountryList,
   NavFlatLink,
@@ -28,6 +35,8 @@ import {
   NavMicroLink,
   NavSectionLabel,
   NavTreatmentRow,
+  type NavCityRow,
+  type NavCountryRow,
 } from './nav/NavPrimitives'
 
 type FeaturedCountry = ReturnType<typeof getFeaturedCountriesFromTaxonomy>[number]
@@ -42,6 +51,27 @@ type NavMegaMenuProps = {
 
 const FEATURED_COUNTRY_LIMIT = 6
 const FEATURED_CITY_LIMIT = 6
+
+function toCountryRows(countries: FeaturedCountry[]): NavCountryRow[] {
+  return countries.map((country) => ({
+    name: country.name,
+    flag: country.flag,
+    countryHref: country.countryHref,
+    clinicHref: country.href,
+    guideHref: country.guideHref || null,
+  }))
+}
+
+function toCityRows(cities: NavFeaturedCity[]): NavCityRow[] {
+  return cities.map((city) => ({
+    cityName: city.cityName,
+    countryName: city.countryName,
+    flag: city.flag,
+    overviewHref: city.overviewHref,
+    clinicHref: city.clinicHref,
+    guideHref: city.guideHref,
+  }))
+}
 
 function DestinationsPanel({
   t,
@@ -77,12 +107,9 @@ function DestinationsPanel({
         {featuredCountries.length > 0 && (
           <div>
             <NavSectionLabel>{t.nav.featuredCountries}</NavSectionLabel>
-            <NavCountryList
-              countries={featuredCountries.map((country) => ({
-                name: country.name,
-                flag: country.flag,
-                href: country.countryHref,
-              }))}
+            <NavCountryActions
+              countries={toCountryRows(featuredCountries)}
+              labels={t.nav.actions}
               onNavigate={onNavigate}
               limit={FEATURED_COUNTRY_LIMIT}
             />
@@ -91,13 +118,9 @@ function DestinationsPanel({
         {featuredCities.length > 0 && (
           <div>
             <NavSectionLabel>{t.nav.featuredCities}</NavSectionLabel>
-            <NavCityList
-              cities={featuredCities.map((city) => ({
-                cityName: city.cityName,
-                countryName: city.countryName,
-                flag: city.flag,
-                href: city.overviewHref,
-              }))}
+            <NavCityActions
+              cities={toCityRows(featuredCities)}
+              labels={t.nav.actions}
               onNavigate={onNavigate}
               limit={FEATURED_CITY_LIMIT}
             />
@@ -118,22 +141,34 @@ function ClinicsPanel({
   locale,
   featuredCountries,
   featuredCities,
+  treatments,
   onNavigate,
 }: {
   t: Dictionary
   locale: Locale
   featuredCountries: FeaturedCountry[]
   featuredCities: NavFeaturedCity[]
+  treatments: TreatmentCategoryDisplay[]
   onNavigate: () => void
 }) {
+  const clinicsHub = getHubById('clinics')!
+  const activeTreatments = treatments.filter((tr) => tr.status === 'active')
+
   return (
-    <div className="flex flex-col gap-5">
-      <NavBrowseLink
-        href={clinicsHubPath(locale)}
-        label={t.nav.actions.browseAllClinics}
-        onNavigate={onNavigate}
-      />
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-8">
+    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-8">
+      <div className="flex flex-col gap-3">
+        <NavHubCard
+          hub={clinicsHub}
+          label={t.nav.triggers.clinics}
+          locale={locale}
+          onNavigate={onNavigate}
+          variant="nav"
+        />
+        <NavMicroLink href={clinicsHubPath(locale)} onClick={onNavigate}>
+          {t.nav.actions.browseAllClinics} →
+        </NavMicroLink>
+      </div>
+      <div className="flex flex-col gap-4">
         {featuredCountries.length > 0 && (
           <div>
             <NavSectionLabel>{t.nav.sections.byDestination}</NavSectionLabel>
@@ -161,6 +196,25 @@ function ClinicsPanel({
               onNavigate={onNavigate}
               limit={FEATURED_CITY_LIMIT}
             />
+          </div>
+        )}
+        {activeTreatments.length > 0 && (
+          <div>
+            <NavSectionLabel>{t.nav.sections.byTreatment}</NavSectionLabel>
+            <ul className="space-y-0.5">
+              {activeTreatments.map((treatment) => (
+                <NavTreatmentRow
+                  key={treatment.id}
+                  name={treatment.name}
+                  treatmentHref={clinicTreatmentBrowsePath(
+                    treatment.id,
+                    treatment.countries,
+                    locale,
+                  )}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </ul>
           </div>
         )}
       </div>
@@ -383,6 +437,7 @@ export function NavMegaMenu({ locale, t, featuredCountries, featuredCities, trea
             locale={locale}
             featuredCountries={featuredCountries}
             featuredCities={featuredCities}
+            treatments={treatments}
             onNavigate={close}
           />
         )

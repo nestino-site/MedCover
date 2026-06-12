@@ -38,6 +38,19 @@ export function clinicCountryTreatmentPath(
   return localizedPath(`/clinics/${country}/${canonicalTreatmentSlug(treatment)}`, locale)
 }
 
+/** Default clinic PLP for a treatment — first country that offers it, else clinics hub. */
+export function clinicTreatmentBrowsePath(
+  treatment: string,
+  countries: string[],
+  locale: Locale = 'en',
+): string {
+  const firstCountry = countries[0]
+  if (firstCountry) {
+    return clinicCountryTreatmentPath(firstCountry, treatment, locale)
+  }
+  return clinicsHubPath(locale)
+}
+
 export function clinicCityTreatmentPath(
   country: string,
   city: string,

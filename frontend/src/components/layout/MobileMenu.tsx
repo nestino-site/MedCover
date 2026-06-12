@@ -14,10 +14,17 @@ import {
   hubPath,
   type NavPanelId,
 } from '@/lib/content/site-nav'
-import { compareHubPath, clinicsHubPath, countriesHubPath, treatmentPath } from '@/lib/routes'
+import {
+  clinicTreatmentBrowsePath,
+  compareHubPath,
+  clinicsHubPath,
+  countriesHubPath,
+  treatmentPath,
+} from '@/lib/routes'
 import { SearchTriggerButton } from '@/components/search/SearchModal'
 import {
-  NavBrowseLink,
+  NavCityActions,
+  NavCountryActions,
   NavCityList,
   NavCountryList,
   NavFlatLink,
@@ -25,6 +32,8 @@ import {
   NavMicroLink,
   NavSectionLabel,
   NavTreatmentRow,
+  type NavCityRow,
+  type NavCountryRow,
 } from './nav/NavPrimitives'
 
 type FeaturedCountry = ReturnType<typeof getFeaturedCountriesFromTaxonomy>[number]
@@ -38,6 +47,27 @@ type MobileMenuProps = {
 
 const FEATURED_COUNTRY_LIMIT = 6
 const FEATURED_CITY_LIMIT = 6
+
+function toCountryRows(countries: FeaturedCountry[]): NavCountryRow[] {
+  return countries.map((country) => ({
+    name: country.name,
+    flag: country.flag,
+    countryHref: country.countryHref,
+    clinicHref: country.href,
+    guideHref: country.guideHref || null,
+  }))
+}
+
+function toCityRows(cities: NavFeaturedCity[]): NavCityRow[] {
+  return cities.map((city) => ({
+    cityName: city.cityName,
+    countryName: city.countryName,
+    flag: city.flag,
+    overviewHref: city.overviewHref,
+    clinicHref: city.clinicHref,
+    guideHref: city.guideHref,
+  }))
+}
 
 function AccordionSection({
   title,
@@ -107,12 +137,9 @@ function MobilePanelContent({
           {featured.length > 0 && (
             <>
               <NavSectionLabel>{t.nav.featuredCountries}</NavSectionLabel>
-              <NavCountryList
-                countries={featured.map((country) => ({
-                  name: country.name,
-                  flag: country.flag,
-                  href: country.countryHref,
-                }))}
+              <NavCountryActions
+                countries={toCountryRows(featured)}
+                labels={t.nav.actions}
                 onNavigate={onNavigate}
                 limit={FEATURED_COUNTRY_LIMIT}
               />
@@ -121,13 +148,9 @@ function MobilePanelContent({
           {cities.length > 0 && (
             <>
               <NavSectionLabel>{t.nav.featuredCities}</NavSectionLabel>
-              <NavCityList
-                cities={cities.map((city) => ({
-                  cityName: city.cityName,
-                  countryName: city.countryName,
-                  flag: city.flag,
-                  href: city.overviewHref,
-                }))}
+              <NavCityActions
+                cities={toCityRows(cities)}
+                labels={t.nav.actions}
                 onNavigate={onNavigate}
                 limit={FEATURED_CITY_LIMIT}
               />
@@ -142,14 +165,20 @@ function MobilePanelContent({
         </div>
       )
     }
-    case 'clinics':
+    case 'clinics': {
+      const clinicsHub = getHubById('clinics')!
       return (
         <div className="space-y-4">
-          <NavBrowseLink
-            href={clinicsHubPath(locale)}
-            label={t.nav.actions.browseAllClinics}
+          <NavHubCard
+            hub={clinicsHub}
+            label={t.nav.triggers.clinics}
+            locale={locale}
             onNavigate={onNavigate}
+            variant="nav"
           />
+          <NavMicroLink href={clinicsHubPath(locale)} onClick={onNavigate}>
+            {t.nav.actions.browseAllClinics} →
+          </NavMicroLink>
           {featured.length > 0 && (
             <>
               <NavSectionLabel>{t.nav.sections.byDestination}</NavSectionLabel>
@@ -179,8 +208,28 @@ function MobilePanelContent({
               />
             </>
           )}
+          {activeTreatments.length > 0 && (
+            <>
+              <NavSectionLabel>{t.nav.sections.byTreatment}</NavSectionLabel>
+              <ul className="space-y-0.5">
+                {activeTreatments.map((treatment) => (
+                  <NavTreatmentRow
+                    key={treatment.id}
+                    name={treatment.name}
+                    treatmentHref={clinicTreatmentBrowsePath(
+                      treatment.id,
+                      treatment.countries,
+                      locale,
+                    )}
+                    onNavigate={onNavigate}
+                  />
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       )
+    }
     case 'treatments': {
       const treatmentsHub = getHubById('treatments')!
       return (

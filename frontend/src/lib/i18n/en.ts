@@ -47,6 +47,7 @@ export const en = {
     sections: {
       byDestination: 'By destination',
       popularCities: 'Popular cities',
+      byTreatment: 'By treatment',
     },
     quickLinks: {
       clinics: 'Clinics',

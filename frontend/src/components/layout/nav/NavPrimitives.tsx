@@ -158,6 +158,154 @@ export function NavSimpleRow({
   )
 }
 
+export function NavMicroLink({
+  href,
+  onClick,
+  children,
+}: {
+  href: string
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="rounded px-1.5 py-0.5 text-xs font-medium text-[var(--color-primary-700)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-900)]"
+    >
+      {children}
+    </Link>
+  )
+}
+
+export type NavCountryActionLabels = {
+  overview: string
+  clinics: string
+  guide: string
+}
+
+export type NavCountryRow = {
+  name: string
+  flag: string
+  countryHref: string
+  clinicHref: string
+  guideHref: string | null
+}
+
+export type NavCityRow = {
+  cityName: string
+  countryName: string
+  flag: string
+  overviewHref: string
+  clinicHref: string
+  guideHref: string | null
+}
+
+export function NavCountryActions({
+  countries,
+  labels,
+  onNavigate,
+  limit = 6,
+}: {
+  countries: NavCountryRow[]
+  labels: NavCountryActionLabels
+  onNavigate: () => void
+  limit?: number
+}) {
+  const rows = countries.slice(0, limit)
+
+  return (
+    <ul className="divide-y divide-[var(--color-border)] rounded-lg border border-[var(--color-border)] bg-white">
+      {rows.map((country) => (
+        <li
+          key={country.countryHref}
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5"
+        >
+          <span className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium text-[var(--color-neutral-800)]">
+            <span aria-hidden="true">{country.flag}</span>
+            {country.name}
+          </span>
+          <span className="flex flex-wrap items-center gap-1 text-xs">
+            <NavMicroLink href={country.countryHref} onClick={onNavigate}>
+              {labels.overview}
+            </NavMicroLink>
+            <span className="text-[var(--color-neutral-300)]" aria-hidden="true">
+              ·
+            </span>
+            <NavMicroLink href={country.clinicHref} onClick={onNavigate}>
+              {labels.clinics}
+            </NavMicroLink>
+            {country.guideHref && (
+              <>
+                <span className="text-[var(--color-neutral-300)]" aria-hidden="true">
+                  ·
+                </span>
+                <NavMicroLink href={country.guideHref} onClick={onNavigate}>
+                  {labels.guide}
+                </NavMicroLink>
+              </>
+            )}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+export function NavCityActions({
+  cities,
+  labels,
+  onNavigate,
+  limit = 8,
+}: {
+  cities: NavCityRow[]
+  labels: NavCountryActionLabels
+  onNavigate: () => void
+  limit?: number
+}) {
+  const rows = cities.slice(0, limit)
+
+  return (
+    <ul className="divide-y divide-[var(--color-border)] rounded-lg border border-[var(--color-border)] bg-white">
+      {rows.map((city) => (
+        <li
+          key={`${city.overviewHref}-${city.cityName}`}
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5"
+        >
+          <span className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium text-[var(--color-neutral-800)]">
+            <span aria-hidden="true">{city.flag}</span>
+            <span className="min-w-0 truncate">
+              {city.cityName}
+              <span className="font-normal text-[var(--color-neutral-500)]">, {city.countryName}</span>
+            </span>
+          </span>
+          <span className="flex flex-wrap items-center gap-1 text-xs">
+            <NavMicroLink href={city.overviewHref} onClick={onNavigate}>
+              {labels.overview}
+            </NavMicroLink>
+            <span className="text-[var(--color-neutral-300)]" aria-hidden="true">
+              ·
+            </span>
+            <NavMicroLink href={city.clinicHref} onClick={onNavigate}>
+              {labels.clinics}
+            </NavMicroLink>
+            {city.guideHref && (
+              <>
+                <span className="text-[var(--color-neutral-300)]" aria-hidden="true">
+                  ·
+                </span>
+                <NavMicroLink href={city.guideHref} onClick={onNavigate}>
+                  {labels.guide}
+                </NavMicroLink>
+              </>
+            )}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function NavCountryList({
   countries,
   onNavigate,
@@ -205,26 +353,6 @@ export function NavCityList({
         </NavSimpleRow>
       ))}
     </ul>
-  )
-}
-
-export function NavMicroLink({
-  href,
-  onClick,
-  children,
-}: {
-  href: string
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className="text-sm font-medium text-[var(--color-primary-700)] transition-colors hover:text-[var(--color-primary-900)]"
-    >
-      {children}
-    </Link>
   )
 }
 
