@@ -108,10 +108,6 @@ export function MobileMenu({ locale, guideGroups, featuredCountries, treatments 
 
   const featured = featuredCountries.slice(0, 6)
   const activeTreatments = treatments.filter((tr) => tr.status === 'active')
-  const ivfTreatment = activeTreatments.find((tr) => tr.id === 'ivf')
-  const ivfDestinations = ivfTreatment
-    ? featured.filter((c) => ivfTreatment.countries.includes(countryKeyFromFeatured(c)))
-    : []
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -296,59 +292,62 @@ export function MobileMenu({ locale, guideGroups, featuredCountries, treatments 
                     </div>
                   )}
 
-                  {group.id === 'clinics' && ivfDestinations.length > 0 && ivfTreatment && (
+                  {group.id === 'clinics' && featured.length > 0 && (
                     <div className="mt-2 px-3">
                       <p className="mb-2 text-[9px] font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
-                        {t.nav.groups.featuredIvf}
+                        {t.nav.countries}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {ivfDestinations.map((dest) => {
-                          const countryKey = countryKeyFromFeatured(dest)
-                          const href = clinicCountryTreatmentPath(
-                            countryKey,
-                            ivfTreatment.id,
-                            locale,
-                          )
-                          return (
-                            <Link
-                              key={href}
-                              href={href}
-                              onClick={close}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-neutral-700)] transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]"
-                            >
-                              <span aria-hidden="true">{dest.flag}</span>
-                              {dest.name}
-                            </Link>
-                          )
-                        })}
+                        {featured.map((dest) => (
+                          <Link
+                            key={dest.href}
+                            href={dest.href}
+                            onClick={close}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-neutral-700)] transition-colors hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-800)]"
+                          >
+                            <span aria-hidden="true">{dest.flag}</span>
+                            {dest.name}
+                          </Link>
+                        ))}
                       </div>
                     </div>
                   )}
 
-                  {group.id === 'clinics' && activeTreatments.length > 0 && (
-                    <div className="mt-2 px-3">
-                      <p className="mb-2 text-[9px] font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
-                        {t.breadcrumb.treatments}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {activeTreatments.map((treatment) => {
-                          const country = treatment.countries[0]
-                          if (!country) return null
-                          const href = clinicCountryTreatmentPath(country, treatment.id, locale)
-                          return (
-                            <Link
-                              key={treatment.id}
-                              href={href}
-                              onClick={close}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-accent-800)] transition-colors hover:bg-[var(--color-accent-100)]"
-                            >
-                              {treatment.name}
-                            </Link>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
+                  {group.id === 'clinics' &&
+                    activeTreatments.map((treatment) => {
+                      const treatmentCountries = featured.filter((c) =>
+                        treatment.countries.includes(countryKeyFromFeatured(c)),
+                      )
+                      if (treatmentCountries.length === 0) return null
+                      return (
+                        <div key={treatment.id} className="mt-2 px-3">
+                          <p className="mb-2 text-[9px] font-semibold uppercase tracking-widest text-[var(--color-neutral-400)]">
+                            {treatment.name}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {treatmentCountries.map((dest) => {
+                              const countryKey = countryKeyFromFeatured(dest)
+                              const href = clinicCountryTreatmentPath(
+                                countryKey,
+                                treatment.id,
+                                locale,
+                              )
+                              return (
+                                <Link
+                                  key={href}
+                                  href={href}
+                                  onClick={close}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-accent-800)] transition-colors hover:bg-[var(--color-accent-100)]"
+                                >
+                                  <span aria-hidden="true">{dest.flag}</span>
+                                  {dest.name}
+                                </Link>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
                 </div>
               )
             })}

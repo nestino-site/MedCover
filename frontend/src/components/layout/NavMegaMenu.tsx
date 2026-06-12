@@ -121,12 +121,6 @@ function ClinicsPanel({
 }) {
   const clinicsHub = getHubById('clinics')!
   const activeTreatments = treatments.filter((c) => c.status === 'active')
-  const ivfTreatment = activeTreatments.find((tr) => tr.id === 'ivf')
-  const ivfDestinations = ivfTreatment
-    ? featuredCountries.filter((c) =>
-        ivfTreatment.countries.includes(countryKeyFromFeatured(c)),
-      )
-    : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -137,46 +131,45 @@ function ClinicsPanel({
         locale={locale}
         onNavigate={onNavigate}
       />
-      {ivfDestinations.length > 0 && ivfTreatment && (
+      {featuredCountries.length > 0 && (
         <div>
-          <PanelSectionLabel>{t.nav.groups.featuredIvf}</PanelSectionLabel>
+          <PanelSectionLabel>{t.nav.countries}</PanelSectionLabel>
           <div className="flex flex-wrap gap-1">
-            {ivfDestinations.map((c) => {
-              const countryKey = countryKeyFromFeatured(c)
-              return (
-                <CompactLink
-                  key={countryKey}
-                  href={clinicCountryTreatmentPath(countryKey, ivfTreatment.id, locale)}
-                  onClick={onNavigate}
-                >
-                  <span aria-hidden="true">{c.flag}</span>
-                  {c.name}
-                </CompactLink>
-              )
-            })}
+            {featuredCountries.map((c) => (
+              <CompactLink key={c.href} href={c.href} onClick={onNavigate}>
+                <span aria-hidden="true">{c.flag}</span>
+                {c.name}
+              </CompactLink>
+            ))}
           </div>
         </div>
       )}
-      {activeTreatments.length > 0 && (
-        <div>
-          <PanelSectionLabel>{t.breadcrumb.treatments}</PanelSectionLabel>
-          <div className="flex flex-wrap gap-1">
-            {activeTreatments.map((treatment) => {
-              const country = treatment.countries[0]
-              if (!country) return null
-              return (
-                <CompactLink
-                  key={treatment.id}
-                  href={clinicCountryTreatmentPath(country, treatment.id, locale)}
-                  onClick={onNavigate}
-                >
-                  {treatment.name}
-                </CompactLink>
-              )
-            })}
+      {activeTreatments.map((treatment) => {
+        const treatmentCountries = featuredCountries.filter((c) =>
+          treatment.countries.includes(countryKeyFromFeatured(c)),
+        )
+        if (treatmentCountries.length === 0) return null
+        return (
+          <div key={treatment.id}>
+            <PanelSectionLabel>{treatment.name}</PanelSectionLabel>
+            <div className="flex flex-wrap gap-1">
+              {treatmentCountries.map((c) => {
+                const countryKey = countryKeyFromFeatured(c)
+                return (
+                  <CompactLink
+                    key={`${treatment.id}-${countryKey}`}
+                    href={clinicCountryTreatmentPath(countryKey, treatment.id, locale)}
+                    onClick={onNavigate}
+                  >
+                    <span aria-hidden="true">{c.flag}</span>
+                    {c.name}
+                  </CompactLink>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })}
     </div>
   )
 }
