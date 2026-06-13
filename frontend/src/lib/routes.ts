@@ -19,6 +19,7 @@ const DEDICATED_APP_ROUTE_PATTERNS = [
   /^\/compare(\/|$)/,
   /^\/countries(\/|$)/,
   /^\/treatments(\/|$)/,
+  /^\/guides(\/|$)/,
 ] as const
 
 export function isDedicatedAppRouteSlug(slugPath: string): boolean {

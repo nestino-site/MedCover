@@ -1,6 +1,6 @@
 import type { ContentListItem } from '@/lib/api/types'
 import { canonicalSlugPath } from '@/lib/api/content'
-import { canonicalCompareTail, canonicalPair } from '@/lib/routes'
+import { canonicalCompareTail, canonicalPair, legacyGuideFlatten } from '@/lib/routes'
 
 export { canonicalCompareTail, isTreatmentCompareTail } from '@/lib/routes'
 
@@ -108,6 +108,12 @@ export function isCanonicalCostSlug(
 
   const canonical = findCanonicalCostSlug(parsed.countryKey, publishedSlugs)
   return canonical === normalized
+}
+
+/** Public sitemap path for a CMS slug (applies redirect-canonical rules such as nested guides). */
+export function resolveSitemapCmsSlug(slug: string): string {
+  const slugPath = slug.startsWith('/') ? slug : `/${slug}`
+  return legacyGuideFlatten(slugPath) ?? canonicalSlugPath(slugPath)
 }
 
 export function filterSitemapPublishedPages(

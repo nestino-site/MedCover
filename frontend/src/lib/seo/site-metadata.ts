@@ -40,6 +40,30 @@ function ogImageUrl(path: string): string {
   return `${siteOrigin()}${path.startsWith('/') ? path : `/${path}`}`
 }
 
+/** Default robots for public SEO pages (overrides stale CMS noindex on published content). */
+export const INDEXABLE_PUBLIC_ROBOTS: Metadata['robots'] = {
+  index: true,
+  follow: true,
+  googleBot: {
+    index: true,
+    follow: true,
+    'max-video-preview': -1,
+    'max-image-preview': 'large',
+    'max-snippet': -1,
+  },
+}
+
+/** Utility pages that must stay out of search results. */
+export const NOINDEX_FOLLOW_ROBOTS: Metadata['robots'] = {
+  index: false,
+  follow: true,
+}
+
+export function isIntentionallyNoindexPath(slugPath: string): boolean {
+  const normalized = slugPath.replace(/\/+$/, '') || '/'
+  return normalized === '/start'
+}
+
 /** Site-wide defaults merged into every page unless overridden. */
 export function siteMetadataDefaults(): Metadata {
   const image = {
@@ -69,17 +93,7 @@ export function siteMetadataDefaults(): Metadata {
       creator: '@medcover',
       images: [image.url],
     },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-      },
-    },
+    robots: INDEXABLE_PUBLIC_ROBOTS,
   }
 }
 
@@ -150,7 +164,12 @@ export async function cmsHubMetadata(
 ): Promise<Metadata> {
   const { cmsMetadataForSlug } = await import('@/lib/seo/cms-seo')
   const path = options.path ?? HUB_PATHS[key]
-  return cmsMetadataForSlug(path, hubMetadata(key, { ...options, path }))
+  const fallback = hubMetadata(key, { ...options, path })
+  const metadata = await cmsMetadataForSlug(path, fallback, { robots: options.robots })
+  if (options.robots) {
+    return { ...metadata, robots: options.robots }
+  }
+  return metadata
 }
 
 function isAbsoluteTitle(title: string): boolean {

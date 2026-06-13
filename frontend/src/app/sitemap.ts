@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 import { getTaxonomy, listAllClinics, treatmentSlugSet } from '@/lib/api/catalog'
 import { listPublishedPages } from '@/lib/api/content'
 import { comparePublicPathFromPageSlug } from '@/lib/compare/static-params'
-import { filterSitemapPublishedPages } from '@/lib/content/slug-canonical'
+import { filterSitemapPublishedPages, resolveSitemapCmsSlug } from '@/lib/content/slug-canonical'
 import { filterPagesByLocale } from '@/lib/content/site-graph'
 import { getSitemapHubs, hubPath } from '@/lib/content/site-nav'
 import { treatmentsFromTaxonomy } from '@/lib/content/treatments'
@@ -25,6 +25,7 @@ import {
   costCountryPath,
   costHubPath,
   costTreatmentPath,
+  cityLandingPath,
   countryLandingPath,
   treatmentPath,
 } from '@/lib/routes'
@@ -117,6 +118,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       for (const city of country.cities) {
         if (city.clinicCount === 0) continue
         entries.push({
+          url: absoluteUrl(cityLandingPath(country.slug, city.slug, locale), SITE_URL),
+          lastModified: new Date(),
+          changeFrequency: 'weekly',
+          priority: 0.85,
+        })
+        entries.push({
           url: absoluteUrl(clinicCityPath(country.slug, city.slug, locale), SITE_URL),
           lastModified: new Date(),
           changeFrequency: 'weekly',
@@ -193,7 +200,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       filterSitemapClinicPublishedPages(localePagesRaw, treatmentSlugs),
     )
     for (const page of localePages) {
-      const slugPath = page.slug.startsWith('/') ? page.slug : `/${page.slug}`
+      const slugPath = resolveSitemapCmsSlug(page.slug)
       const isCountryGuide = /^\/guides\/[^/]+-ivf-guide$/.test(slugPath)
       const isCityGuide = /^\/guides\/[^/]+\/.+-ivf-guide$/.test(slugPath)
       const isCostPage = slugPath.startsWith('/cost/')

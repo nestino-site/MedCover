@@ -60,6 +60,7 @@ function slugToRouteParams(
 
 import {
   metadataFromCmsPage,
+  resolvePublishedPageRobots,
   resolveSiteCanonical,
   heroAnswerFromCmsPage,
 } from '@/lib/seo/cms-seo'
@@ -322,6 +323,8 @@ export function createPublishedPageHandlers(
       ...siteMetadataDefaults(),
       title: pageTitleFromSlug(slugPath),
       description: en.meta.layout.description,
+      alternates: { canonical: resolveSiteCanonical(slugPath) },
+      robots: resolvePublishedPageRobots(slugPath),
     }
   }
 

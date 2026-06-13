@@ -2,9 +2,11 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { HubPageLayout } from '@/components/hubs/HubPageLayout'
+import { CmsPageJsonLd } from '@/components/seo/CmsPageJsonLd'
 import { getDictionary, localizedPath } from '@/lib/i18n'
 import { activeLocale } from '@/lib/i18n/locale'
 import { hubPath } from '@/lib/content/site-nav'
+import { loadCmsPage } from '@/lib/seo/cms-seo'
 import { cmsHubMetadata } from '@/lib/seo/site-metadata'
 
 const locale = activeLocale
@@ -13,11 +15,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return cmsHubMetadata('about')
 }
 
-export default function AboutPage() {
+export default async function AboutPage() {
   const t = getDictionary(locale)
+  const cms = await loadCmsPage('/about')
 
   return (
-    <HubPageLayout
+    <>
+      <CmsPageJsonLd result={cms} />
+      <HubPageLayout
       locale={locale}
       title={t.meta.about.title}
       description={t.meta.about.description}
@@ -67,5 +72,6 @@ export default function AboutPage() {
         </Link>
       </div>
     </HubPageLayout>
+    </>
   )
 }

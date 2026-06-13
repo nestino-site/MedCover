@@ -4,6 +4,10 @@ import { canonicalSlugPath } from '@/lib/api/content'
 import { absoluteUrl } from '@/lib/i18n/paths'
 import type { Locale } from '@/lib/i18n'
 import { clinicPdpPath } from '@/lib/routes'
+import {
+  INDEXABLE_PUBLIC_ROBOTS,
+  NOINDEX_FOLLOW_ROBOTS,
+} from '@/lib/seo/site-metadata'
 
 /** Deprecated — redirected to /treatments/{treatment}/ */
 export function isDeprecatedClinicSlug(slugPath: string): boolean {
@@ -40,23 +44,6 @@ export function isClinicPdpSlug(slugPath: string, treatmentSlugs: Set<string>): 
 
 const CLINIC_PDP_INDEX_INTERVIEW_THRESHOLD = 5
 
-const INDEXABLE_CLINIC_PDP_ROBOTS: Metadata['robots'] = {
-  index: true,
-  follow: true,
-  googleBot: {
-    index: true,
-    follow: true,
-    'max-video-preview': -1,
-    'max-image-preview': 'large',
-    'max-snippet': -1,
-  },
-}
-
-const NOINDEX_CLINIC_PDP_ROBOTS: Metadata['robots'] = {
-  index: false,
-  follow: true,
-}
-
 /** Verified interview count used for index/noindex gates (catalog is source of truth, not CMS). */
 export function clinicInterviewCount(
   clinic: Pick<ClinicCard, 'interviewCount' | 'truthScore'> & { interviews?: unknown[] },
@@ -78,8 +65,8 @@ export function shouldIndexClinicPdp(clinic: ClinicIndexInput): boolean {
 /** Robots metadata for clinic PDPs — overrides stale CMS noindex when threshold is met. */
 export function clinicPdpRobots(clinic: ClinicIndexInput): Metadata['robots'] {
   return shouldIndexClinicPdp(clinic)
-    ? INDEXABLE_CLINIC_PDP_ROBOTS
-    : NOINDEX_CLINIC_PDP_ROBOTS
+    ? INDEXABLE_PUBLIC_ROBOTS
+    : NOINDEX_FOLLOW_ROBOTS
 }
 
 export function filterSitemapClinicPublishedPages(

@@ -8,6 +8,9 @@ import type { ContentPage, ContentPageV22 } from '@/lib/api/types'
 import { resolveHeroImageForMetadata } from '@/lib/content/hero-image'
 import {
   DEFAULT_OG_IMAGE,
+  INDEXABLE_PUBLIC_ROBOTS,
+  NOINDEX_FOLLOW_ROBOTS,
+  isIntentionallyNoindexPath,
   resolvePageTitle,
   siteMetadataDefaults,
   siteOrigin,
@@ -42,6 +45,16 @@ export function parseRobotsMeta(robotsMeta?: string | null): Metadata['robots'] 
   return { index, follow }
 }
 
+/** Robots for published pages — catalog/route rules beat stale CMS noindex (except /start/). */
+export function resolvePublishedPageRobots(
+  slugPath: string,
+  explicitRobots?: Metadata['robots'],
+): Metadata['robots'] {
+  if (explicitRobots !== undefined) return explicitRobots
+  if (isIntentionallyNoindexPath(slugPath)) return NOINDEX_FOLLOW_ROBOTS
+  return INDEXABLE_PUBLIC_ROBOTS
+}
+
 function defaultShareImage(origin: string) {
   return {
     url: `${origin}${DEFAULT_OG_IMAGE.url}`,
@@ -66,6 +79,7 @@ export function metadataFromCmsPage(
   page: ContentPage,
   slugPath: string,
   fallback?: Metadata,
+  options?: { robots?: Metadata['robots'] },
 ): Metadata {
   const origin = siteOrigin()
   const canonical = resolveSiteCanonical(slugPath, page.seo.canonical)
@@ -81,7 +95,6 @@ export function metadataFromCmsPage(
   const cms: Metadata = {
     title: resolvePageTitle(pageTitle),
     description: pageDescription,
-    robots: parseRobotsMeta(page.seo.robotsMeta) ?? (page.seo.robotsMeta || 'index, follow'),
     alternates: { canonical },
     openGraph: {
       title: ogTitle,
@@ -101,19 +114,27 @@ export function metadataFromCmsPage(
     },
   }
 
-  return fallback ? mergeMetadata(fallback, cms) : cms
+  const merged = fallback ? mergeMetadata(fallback, cms) : cms
+  return {
+    ...merged,
+    robots: resolvePublishedPageRobots(slugPath, options?.robots),
+  }
 }
 
 export async function cmsMetadataForSlug(
   slugPath: string,
   fallback?: Metadata,
+  options?: { robots?: Metadata['robots'] },
 ): Promise<Metadata> {
   const base = { ...siteMetadataDefaults(), ...fallback }
   const result = await loadPublishedPage(slugPath)
   if (result.status === 'ok') {
-    return metadataFromCmsPage(result.page, slugPath, base)
+    return metadataFromCmsPage(result.page, slugPath, base, options)
   }
-  return base
+  return {
+    ...base,
+    robots: resolvePublishedPageRobots(slugPath, options?.robots),
+  }
 }
 
 /** JSON-LD graphs from backend — never synthesize on the frontend when this is present. */
