@@ -1,4 +1,4 @@
-import type { MetadataRoute } from 'next'
+import type { Metadata, MetadataRoute } from 'next'
 import type { ClinicCard, ContentListItem } from '@/lib/api/types'
 import { canonicalSlugPath } from '@/lib/api/content'
 import { absoluteUrl } from '@/lib/i18n/paths'
@@ -38,9 +38,48 @@ export function isClinicPdpSlug(slugPath: string, treatmentSlugs: Set<string>): 
   return !treatmentSlugs.has(parts[3])
 }
 
-export function shouldIndexClinicPdp(clinic: ClinicCard): boolean {
-  if (clinic.interviewCount == null) return true
-  return clinic.interviewCount >= 5
+const CLINIC_PDP_INDEX_INTERVIEW_THRESHOLD = 5
+
+const INDEXABLE_CLINIC_PDP_ROBOTS: Metadata['robots'] = {
+  index: true,
+  follow: true,
+  googleBot: {
+    index: true,
+    follow: true,
+    'max-video-preview': -1,
+    'max-image-preview': 'large',
+    'max-snippet': -1,
+  },
+}
+
+const NOINDEX_CLINIC_PDP_ROBOTS: Metadata['robots'] = {
+  index: false,
+  follow: true,
+}
+
+/** Verified interview count used for index/noindex gates (catalog is source of truth, not CMS). */
+export function clinicInterviewCount(
+  clinic: Pick<ClinicCard, 'interviewCount' | 'truthScore'> & { interviews?: unknown[] },
+): number | null {
+  if (clinic.truthScore?.interviewCount != null) return clinic.truthScore.interviewCount
+  if (clinic.interviewCount != null) return clinic.interviewCount
+  if (clinic.interviews?.length) return clinic.interviews.length
+  return null
+}
+
+type ClinicIndexInput = Pick<ClinicCard, 'interviewCount' | 'truthScore'> & { interviews?: unknown[] }
+
+export function shouldIndexClinicPdp(clinic: ClinicIndexInput): boolean {
+  const count = clinicInterviewCount(clinic)
+  if (count == null) return true
+  return count >= CLINIC_PDP_INDEX_INTERVIEW_THRESHOLD
+}
+
+/** Robots metadata for clinic PDPs — overrides stale CMS noindex when threshold is met. */
+export function clinicPdpRobots(clinic: ClinicIndexInput): Metadata['robots'] {
+  return shouldIndexClinicPdp(clinic)
+    ? INDEXABLE_CLINIC_PDP_ROBOTS
+    : NOINDEX_CLINIC_PDP_ROBOTS
 }
 
 export function filterSitemapClinicPublishedPages(

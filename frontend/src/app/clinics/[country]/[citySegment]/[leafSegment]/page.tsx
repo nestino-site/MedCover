@@ -38,6 +38,7 @@ import {
   resolveClinicsSegment3,
   slugToLabel,
 } from '@/lib/routes'
+import { clinicPdpRobots } from '@/lib/clinics/sitemap'
 import { ensureStaticParams } from '@/lib/static-params'
 import { listClinicPdpsFromPages } from '@/lib/api/catalog-adapters'
 import { ClinicsPlpTemplate } from '@/components/clinics/ClinicsPlpTemplate'
@@ -125,10 +126,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       ? buildClinicMetadataFallback(clinic, cityName, countryName)
       : undefined
 
-  return cmsMetadataForSlug(
+  const metadata = await cmsMetadataForSlug(
     cmsClinicPdpSlug(country, citySegment, leafSegment),
     fallback ? { title: fallback.title, description: fallback.description } : undefined,
   )
+
+  if (clinic == null) return metadata
+
+  return {
+    ...metadata,
+    robots: clinicPdpRobots(clinic),
+  }
 }
 
 function ClinicLeafPageSkeleton() {
