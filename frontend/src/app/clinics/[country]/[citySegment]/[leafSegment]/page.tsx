@@ -39,6 +39,7 @@ import {
   slugToLabel,
 } from '@/lib/routes'
 import { ensureStaticParams } from '@/lib/static-params'
+import { INDEXABLE_PUBLIC_ROBOTS } from '@/lib/seo/site-metadata'
 import { listClinicPdpsFromPages } from '@/lib/api/catalog-adapters'
 import { ClinicsPlpTemplate } from '@/components/clinics/ClinicsPlpTemplate'
 import { ClinicFilters } from '@/components/clinics/ClinicFilters'
@@ -130,7 +131,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     fallback ? { title: fallback.title, description: fallback.description } : undefined,
   )
 
-  return metadata
+  return {
+    ...metadata,
+    robots: INDEXABLE_PUBLIC_ROBOTS,
+  }
 }
 
 function ClinicLeafPageSkeleton() {
