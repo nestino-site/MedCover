@@ -64,6 +64,12 @@ export function isIntentionallyNoindexPath(slugPath: string): boolean {
   return normalized === '/start'
 }
 
+/** /clinics/{country}/{city}/{clinic-slug} — fourth segment is not a treatment PLP. */
+export function isClinicPdpSlugPath(slugPath: string): boolean {
+  const parts = slugPath.replace(/^\//, '').replace(/\/+$/, '').split('/').filter(Boolean)
+  return parts.length === 4 && parts[0] === 'clinics'
+}
+
 /** Site-wide defaults merged into every page unless overridden. */
 export function siteMetadataDefaults(): Metadata {
   const image = {

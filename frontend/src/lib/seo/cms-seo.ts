@@ -10,6 +10,7 @@ import {
   DEFAULT_OG_IMAGE,
   INDEXABLE_PUBLIC_ROBOTS,
   NOINDEX_FOLLOW_ROBOTS,
+  isClinicPdpSlugPath,
   isIntentionallyNoindexPath,
   resolvePageTitle,
   siteMetadataDefaults,
@@ -50,8 +51,9 @@ export function resolvePublishedPageRobots(
   slugPath: string,
   explicitRobots?: Metadata['robots'],
 ): Metadata['robots'] {
-  if (explicitRobots !== undefined) return explicitRobots
   if (isIntentionallyNoindexPath(slugPath)) return NOINDEX_FOLLOW_ROBOTS
+  if (isClinicPdpSlugPath(slugPath)) return INDEXABLE_PUBLIC_ROBOTS
+  if (explicitRobots !== undefined) return explicitRobots
   return INDEXABLE_PUBLIC_ROBOTS
 }
 

@@ -6,7 +6,6 @@ import type { Locale } from '@/lib/i18n'
 import { clinicPdpPath } from '@/lib/routes'
 import {
   INDEXABLE_PUBLIC_ROBOTS,
-  NOINDEX_FOLLOW_ROBOTS,
 } from '@/lib/seo/site-metadata'
 
 /** Deprecated — redirected to /treatments/{treatment}/ */
@@ -42,31 +41,16 @@ export function isClinicPdpSlug(slugPath: string, treatmentSlugs: Set<string>): 
   return !treatmentSlugs.has(parts[3])
 }
 
-const CLINIC_PDP_INDEX_INTERVIEW_THRESHOLD = 5
-
-/** Verified interview count used for index/noindex gates (catalog is source of truth, not CMS). */
-export function clinicInterviewCount(
-  clinic: Pick<ClinicCard, 'interviewCount' | 'truthScore'> & { interviews?: unknown[] },
-): number | null {
-  if (clinic.truthScore?.interviewCount != null) return clinic.truthScore.interviewCount
-  if (clinic.interviewCount != null) return clinic.interviewCount
-  if (clinic.interviews?.length) return clinic.interviews.length
-  return null
-}
-
 type ClinicIndexInput = Pick<ClinicCard, 'interviewCount' | 'truthScore'> & { interviews?: unknown[] }
 
-export function shouldIndexClinicPdp(clinic: ClinicIndexInput): boolean {
-  const count = clinicInterviewCount(clinic)
-  if (count == null) return true
-  return count >= CLINIC_PDP_INDEX_INTERVIEW_THRESHOLD
+/** All published clinic PDPs are indexable (interview threshold disabled for now). */
+export function shouldIndexClinicPdp(_clinic: ClinicIndexInput): boolean {
+  return true
 }
 
-/** Robots metadata for clinic PDPs — overrides stale CMS noindex when threshold is met. */
-export function clinicPdpRobots(clinic: ClinicIndexInput): Metadata['robots'] {
-  return shouldIndexClinicPdp(clinic)
-    ? INDEXABLE_PUBLIC_ROBOTS
-    : NOINDEX_FOLLOW_ROBOTS
+/** Robots metadata for clinic PDPs — always index, follow. */
+export function clinicPdpRobots(_clinic: ClinicIndexInput): Metadata['robots'] {
+  return INDEXABLE_PUBLIC_ROBOTS
 }
 
 export function filterSitemapClinicPublishedPages(
