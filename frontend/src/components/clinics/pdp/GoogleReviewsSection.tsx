@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Star } from 'lucide-react'
 import type { ClinicDetail } from '@/lib/api/types'
@@ -89,6 +89,17 @@ function RatingDistribution({ reviews }: { reviews: NonNullable<ClinicDetail['go
   )
 }
 
+function RelativeReviewAge({ timestamp }: { timestamp?: number }) {
+  const [label, setLabel] = useState<string | null>(null)
+
+  useEffect(() => {
+    setLabel(formatRelativeTime(timestamp))
+  }, [timestamp])
+
+  if (!label) return null
+  return <> · {label}</>
+}
+
 function ReviewCard({
   review,
   index,
@@ -106,7 +117,6 @@ function ReviewCard({
   const displayText = expanded || !isLong ? text : `${text.slice(0, LONG_TEXT_THRESHOLD).trim()}…`
   const isoDate = reviewTimestampToIso(review.time)
   const formattedDate = formatReviewDate(review.time)
-  const relativeDate = formatRelativeTime(review.time)
 
   return (
     <article
@@ -154,7 +164,7 @@ function ReviewCard({
           <p>
             Review of {clinicName} on{' '}
             <time dateTime={isoDate}>{formattedDate}</time>
-            {relativeDate ? ` · ${relativeDate}` : null}
+            <RelativeReviewAge timestamp={review.time} />
           </p>
         )}
       </footer>
