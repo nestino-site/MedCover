@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { getClinic, getTaxonomy, listClinics, treatmentSlugSet, getCosts } from '@/lib/api/catalog'
 import { listPublishedPagesSafe, loadPublishedPage } from '@/lib/api/content'
@@ -41,22 +40,14 @@ import {
 import { ensureStaticParams } from '@/lib/static-params'
 import { INDEXABLE_PUBLIC_ROBOTS } from '@/lib/seo/site-metadata'
 import { listClinicPdpsFromPages } from '@/lib/api/catalog-adapters'
-import { ClinicsPlpTemplate } from '@/components/clinics/ClinicsPlpTemplate'
-import { ClinicFilters } from '@/components/clinics/ClinicFilters'
+import { ClinicCityTreatmentPlpFromSearch } from '@/components/clinics/ClinicCityTreatmentPlpFromSearch'
 import { ClinicFilterNavigationProvider } from '@/components/clinics/clinic-filter-navigation'
-import { ClinicPdpSkeleton } from '@/components/clinics/pdp/ClinicPdpSkeleton'
 import { ClinicPdpView } from '@/components/clinics/pdp/ClinicPdpView'
 import { en } from '@/lib/i18n/en'
-import {
-  buildClinicListParams,
-  buildPlpQueryString,
-  parseClinicPlpFilters,
-  type ClinicPlpSearchParams,
-} from '@/lib/clinics/plp-search-params'
+import { buildClinicListParams, parseClinicPlpFilters } from '@/lib/clinics/plp-search-params'
 
-type Props = {
+type PageProps = {
   params: Promise<{ country: string; citySegment: string; leafSegment: string }>
-  searchParams: Promise<ClinicPlpSearchParams>
 }
 
 export async function generateStaticParams() {
@@ -105,7 +96,7 @@ export async function generateStaticParams() {
   })
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { country, citySegment, leafSegment } = await params
   const taxonomy = await getTaxonomy()
   const treatmentSlugs = treatmentSlugSet(taxonomy)
@@ -137,26 +128,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-function ClinicLeafPageSkeleton() {
-  return <ClinicPdpSkeleton />
-}
-
-export default function ClinicLeafPage(props: Props) {
-  return (
-    <ClinicFilterNavigationProvider>
-      <Suspense fallback={<ClinicLeafPageSkeleton />}>
-        <ClinicLeafContent {...props} />
-      </Suspense>
-    </ClinicFilterNavigationProvider>
-  )
-}
-
-async function ClinicLeafContent({ params, searchParams }: Props) {
+export default async function ClinicLeafPage({ params }: PageProps) {
   const { country, citySegment, leafSegment } = await params
-  const rawSearchParams = await searchParams
   const locale = activeLocale
-  const filters = parseClinicPlpFilters(rawSearchParams)
-
   const taxonomy = await getTaxonomy()
   const countryData = taxonomy.countries.find((c) => c.slug === country)
   if (!countryData) notFound()
@@ -172,8 +146,9 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
       (t) => t.slug === treatment || canonicalTreatmentSlug(t.slug) === treatment,
     )
     const basePath = clinicCityTreatmentPath(country, citySegment, treatment, locale)
+    const defaultFilters = parseClinicPlpFilters({})
     const clinics = await listClinics(
-      buildClinicListParams(filters, { country, city: citySegment, treatment }),
+      buildClinicListParams(defaultFilters, { country, city: citySegment, treatment }),
     )
     const costs = await getCosts(treatment, { country, city: citySegment })
     const cms = await loadPublishedPage(
@@ -181,7 +156,6 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
     )
     const entities = { country, city: citySegment, treatment }
     const pages = await listPublishedPagesSafe()
-
     const related = dedupeRelated(
       [
         ...buildRelatedLandingsForEntities(entities, taxonomy, locale, pages),
@@ -191,47 +165,59 @@ async function ClinicLeafContent({ params, searchParams }: Props) {
     )
 
     return (
-      <>
-      <CmsPageJsonLd result={cms} />
-      <ClinicsPlpTemplate
-        breadcrumbs={[
-          { name: 'Home', slug: '/', position: 1 },
-          { name: 'Clinics', slug: clinicsHubPath(locale), position: 2 },
-          { name: countryData.name, slug: clinicCountryPath(country, locale), position: 3 },
-          { name: city.name, slug: clinicCityPath(country, citySegment, locale), position: 4 },
-          {
-            name: treatmentData?.name ?? slugToLabel(treatment),
-            slug: basePath,
-            position: 5,
-          },
-        ]}
-        title={`${treatmentData?.name ?? slugToLabel(treatment)} Clinics in ${city.name}`}
-        clinics={clinics.items}
-        total={clinics.total}
-        page={filters.pageNum}
-        limit={clinics.limit}
-        buildPageHref={(p) => `${basePath}${buildPlpQueryString(filters, p)}`}
-        costs={costs}
-        treatmentSlug={treatment}
-        editorialHtml={cms.status === 'ok' ? cms.page.htmlContent : null}
-        faq={cms.status === 'ok' ? cms.page.faq : undefined}
-        related={related}
-        filters={
-          <ClinicFilters
-            taxonomy={taxonomy}
-            scope={{ kind: 'city_treatment', country, city: citySegment, treatment }}
-            locale={locale}
-            total={clinics.total}
-            sort={filters.sort}
-            minRating={filters.minRating}
-            minTruthScore={filters.minTruthScore}
-            basePath={basePath}
-          />
-        }
-      />
-      </>
+      <ClinicFilterNavigationProvider>
+        <CmsPageJsonLd result={cms} />
+        <ClinicCityTreatmentPlpFromSearch
+          country={country}
+          citySegment={citySegment}
+          treatment={treatment}
+          locale={locale}
+          taxonomy={taxonomy}
+          cityName={city.name}
+          treatmentName={treatmentData?.name ?? slugToLabel(treatment)}
+          basePath={basePath}
+          breadcrumbs={[
+            { name: 'Home', slug: '/', position: 1 },
+            { name: 'Clinics', slug: clinicsHubPath(locale), position: 2 },
+            { name: countryData.name, slug: clinicCountryPath(country, locale), position: 3 },
+            { name: city.name, slug: clinicCityPath(country, citySegment, locale), position: 4 },
+            {
+              name: treatmentData?.name ?? slugToLabel(treatment),
+              slug: basePath,
+              position: 5,
+            },
+          ]}
+          initialClinics={clinics.items}
+          initialTotal={clinics.total}
+          initialLimit={clinics.limit}
+          costs={costs}
+          cms={cms}
+          related={related}
+        />
+      </ClinicFilterNavigationProvider>
     )
   }
+
+  return (
+    <ClinicFilterNavigationProvider>
+      <ClinicPdpContent country={country} citySegment={citySegment} leafSegment={leafSegment} />
+    </ClinicFilterNavigationProvider>
+  )
+}
+
+async function ClinicPdpContent({
+  country,
+  citySegment,
+  leafSegment,
+}: {
+  country: string
+  citySegment: string
+  leafSegment: string
+}) {
+  const locale = activeLocale
+  const taxonomy = await getTaxonomy()
+  const countryData = taxonomy.countries.find((c) => c.slug === country)
+  if (!countryData) notFound()
 
   const clinic = await getClinic(country, citySegment, leafSegment)
   if (!clinic) notFound()
