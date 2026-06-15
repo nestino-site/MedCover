@@ -2,8 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import type { ClinicCard, CostsResponse, Taxonomy } from '@/lib/api/types'
-import type { PageFetchResult } from '@/lib/api/content'
+import type { ClinicCard, CostsResponse, FaqItem, Taxonomy } from '@/lib/api/types'
 import type { Locale } from '@/lib/i18n'
 import type { RelatedLanding } from '@/components/shared/RelatedLandingsGrid'
 import { ClinicsPlpTemplate } from '@/components/clinics/ClinicsPlpTemplate'
@@ -30,7 +29,8 @@ type Props = {
   initialTotal: number
   initialLimit: number
   costs: CostsResponse | null
-  cms: PageFetchResult
+  editorialHtml: string | null
+  faq: FaqItem[] | undefined
   related: RelatedLanding[]
 }
 
@@ -90,8 +90,8 @@ function ClinicCityTreatmentPlpInner(props: Props) {
       buildPageHref={(p) => `${props.basePath}${buildPlpQueryString(filters, p)}`}
       costs={props.costs}
       treatmentSlug={props.treatment}
-      editorialHtml={props.cms.status === 'ok' ? props.cms.page.htmlContent : null}
-      faq={props.cms.status === 'ok' ? props.cms.page.faq : undefined}
+      editorialHtml={props.editorialHtml}
+      faq={props.faq}
       related={props.related}
       filters={
         <ClinicFilters

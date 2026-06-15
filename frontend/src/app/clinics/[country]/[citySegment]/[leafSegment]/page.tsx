@@ -191,7 +191,8 @@ export default async function ClinicLeafPage({ params }: PageProps) {
           initialTotal={clinics.total}
           initialLimit={clinics.limit}
           costs={costs}
-          cms={cms}
+          editorialHtml={cms.status === 'ok' ? cms.page.htmlContent : null}
+          faq={cms.status === 'ok' ? cms.page.faq : undefined}
           related={related}
         />
       </ClinicFilterNavigationProvider>
