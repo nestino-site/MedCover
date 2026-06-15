@@ -1,5 +1,5 @@
-import Image from 'next/image'
 import { ExternalLink } from 'lucide-react'
+import { RemoteImage } from '@/components/shared/RemoteImage'
 import type { ClinicDetail } from '@/lib/api/types'
 import { PdpScrollRow, PdpScrollRowItem } from '@/components/shared/PdpScrollRow'
 import { SectionHeading } from '@/components/ui/SectionHeading'
@@ -25,7 +25,7 @@ export function DoctorsGrid({ clinic }: DoctorsGridProps) {
             <article className="flex h-full flex-col items-center rounded-2xl border border-[var(--color-border)] bg-white p-5 text-center shadow-sm">
               {doctor.photoUrl ? (
                 <div className="relative h-[120px] w-[120px] overflow-hidden rounded-full bg-[var(--color-neutral-100)]">
-                  <Image
+                  <RemoteImage
                     src={doctor.photoUrl}
                     alt={doctor.name}
                     fill

@@ -81,7 +81,11 @@ export function isNextImageOptimizable(url: string): boolean {
 
   try {
     const host = new URL(url).hostname
-    return host === 'res.cloudinary.com' || host.endsWith('.cloudinary.com')
+    return (
+      host === 'res.cloudinary.com' ||
+      host.endsWith('.cloudinary.com') ||
+      host === 'nestino-backend-production.up.railway.app'
+    )
   } catch {
     return false
   }

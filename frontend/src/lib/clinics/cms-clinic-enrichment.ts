@@ -273,9 +273,9 @@ export function enrichClinicDetailFromCms(
     googleReviewCount: mergeField(clinic.googleReviewCount, parsed.googleReviewCount) ?? null,
     openingHours: mergeField(clinic.openingHours, parsed.openingHours),
     googleReviews:
-      clinic.googleReviews?.length > 0 ? clinic.googleReviews : parsed.googleReviews,
+      (clinic.googleReviews?.length ?? 0) > 0 ? clinic.googleReviews : parsed.googleReviews,
     treatments:
-      clinic.treatments.length > 0
+      (clinic.treatments?.length ?? 0) > 0
         ? clinic.treatments
         : parsed.treatments.map((t) => ({
             slug: t.slug,

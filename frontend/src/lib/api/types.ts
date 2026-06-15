@@ -173,6 +173,10 @@ const PriceRangeSchema = z.object({
   currency: z.string(),
 }).nullable()
 
+function arrayOrEmpty<T extends z.ZodTypeAny>(schema: T) {
+  return z.preprocess((val) => (val == null ? [] : val), z.array(schema))
+}
+
 const TreatmentRefSchema = z.object({
   code: z.string(),
   name: z.string(),
@@ -187,7 +191,7 @@ export const ClinicCardSchema = z.object({
   googleRating: z.number().nullable().optional(),
   googleReviewCount: z.number().nullable().optional(),
   truthScore: TruthScoreSchema.optional(),
-  treatments: z.array(TreatmentRefSchema).default([]),
+  treatments: arrayOrEmpty(TreatmentRefSchema),
   priceRange: PriceRangeSchema.optional(),
   city: EntityRefSchema.optional(),
   country: EntityRefSchema.optional(),
@@ -258,23 +262,20 @@ export const ClinicDetailSchema = ClinicCardSchema.extend({
   websiteUrl: z.string().nullable().optional(),
   googleMapsUrl: z.string().nullable().optional(),
   openingHours: z.unknown().optional(),
-  media: z.array(ClinicMediaSchema).default([]),
-  doctors: z.array(DoctorSchema).default([]),
-  googleReviews: z.array(GoogleReviewSchema).default([]),
-  pricingPackages: z.array(PricingPackageSchema).default([]),
+  media: arrayOrEmpty(ClinicMediaSchema),
+  doctors: arrayOrEmpty(DoctorSchema),
+  googleReviews: arrayOrEmpty(GoogleReviewSchema),
+  pricingPackages: arrayOrEmpty(PricingPackageSchema),
   longDescription: z.string().nullable().optional(),
   shortDescription: z.string().nullable().optional(),
-  accreditations: z
-    .array(z.union([z.string(), AccreditationSchema]))
-    .default([])
-    .transform((items) =>
-      items.map((item) =>
-        typeof item === 'string'
-          ? { code: item, name: item, regulator: null }
-          : item,
-      ),
+  accreditations: arrayOrEmpty(z.union([z.string(), AccreditationSchema])).transform((items) =>
+    items.map((item) =>
+      typeof item === 'string'
+        ? { code: item, name: item, regulator: null }
+        : item,
     ),
-  interviews: z.array(PatientInterviewSchema).default([]),
+  ),
+  interviews: arrayOrEmpty(PatientInterviewSchema),
   languages: z.array(z.string()).optional(),
   foundedYear: z.number().nullable().optional(),
   doctorsCount: z.number().nullable().optional(),

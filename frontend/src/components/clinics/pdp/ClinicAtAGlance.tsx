@@ -53,7 +53,7 @@ export function ClinicAtAGlance({ clinic, className }: ClinicAtAGlanceProps) {
     )
   }
 
-  if (clinic.treatments.length > 0) {
+  if ((clinic.treatments?.length ?? 0) > 0) {
     chips.push(
       <Chip key="treatments" href="#treatments">
         {copy.treatments.replace('{count}', String(clinic.treatments.length))}
@@ -107,7 +107,7 @@ export function ClinicAtAGlance({ clinic, className }: ClinicAtAGlanceProps) {
     )
   }
 
-  for (const acc of clinic.accreditations) {
+  for (const acc of clinic.accreditations ?? []) {
     chips.push(
       <Chip key={acc.code} title={acc.regulator ?? undefined}>
         {acc.name}

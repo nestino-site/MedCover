@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
+import { RemoteImage } from '@/components/shared/RemoteImage'
 import { MapPin, Phone } from 'lucide-react'
 import type { BreadcrumbItem, ClinicDetail } from '@/lib/api/types'
 import { Breadcrumb } from '@/components/layout/Breadcrumb'
@@ -40,7 +40,7 @@ function ClinicGallery({ clinic }: { clinic: ClinicDetail }) {
   return (
     <div className="space-y-3">
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[var(--color-neutral-100)] shadow-[var(--shadow-card)]">
-        <Image
+        <RemoteImage
           src={activeImage.url}
           alt={activeImage.caption ?? `${clinic.name} clinic photo`}
           fill
@@ -66,7 +66,7 @@ function ClinicGallery({ clinic }: { clinic: ClinicDetail }) {
                   : 'border-transparent opacity-70 hover:opacity-100',
               )}
             >
-              <Image
+              <RemoteImage
                 src={img.url}
                 alt={img.caption ?? `${clinic.name} photo ${i + 1}`}
                 fill
@@ -151,7 +151,7 @@ export function ClinicPdpHero({
           className="mb-0"
         >
           <div className="flex flex-wrap items-center gap-3">
-            {clinic.accreditations.map((acc) => (
+            {(clinic.accreditations ?? []).map((acc) => (
               <span
                 key={acc.code}
                 title={acc.regulator ?? undefined}
