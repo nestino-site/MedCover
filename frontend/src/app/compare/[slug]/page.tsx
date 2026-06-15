@@ -9,11 +9,15 @@ import { parseCompareSlug, resolveCompareCanonicalSlug } from '@/lib/routes'
 import { cmsMetadataForSlug } from '@/lib/seo/cms-seo'
 import { getTaxonomy } from '@/lib/api/catalog'
 
+import { ensureStaticParams } from '@/lib/static-params'
+
 type Props = { params: Promise<{ slug: string }> }
 
 export async function generateStaticParams() {
   const pages = await listPublishedPagesSafe()
-  return generateCompareStaticParams(pages)
+  return ensureStaticParams(generateCompareStaticParams(pages), {
+    slug: 'greece-vs-spain-ivf',
+  })
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
