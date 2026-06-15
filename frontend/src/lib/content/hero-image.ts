@@ -76,17 +76,4 @@ export function resolveHeroImageForMetadata(
   return hero
 }
 
-export function isNextImageOptimizable(url: string): boolean {
-  if (url.startsWith('/')) return false
-
-  try {
-    const host = new URL(url).hostname
-    return (
-      host === 'res.cloudinary.com' ||
-      host.endsWith('.cloudinary.com') ||
-      host === 'nestino-backend-production.up.railway.app'
-    )
-  } catch {
-    return false
-  }
-}
+export { isNextImageOptimizable } from './optimizable-image'

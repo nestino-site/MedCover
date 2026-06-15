@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { isNextImageOptimizable } from '@/lib/content/hero-image'
+import { isNextImageOptimizable } from '@/lib/content/optimizable-image'
 import { cn } from '@/lib/utils/cn'
 
 type RemoteImageProps = {
