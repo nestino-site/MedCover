@@ -76,4 +76,3 @@ export function resolveHeroImageForMetadata(
   return hero
 }
 
-export { isNextImageOptimizable } from './optimizable-image'

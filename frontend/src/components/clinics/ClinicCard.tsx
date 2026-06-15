@@ -1,7 +1,7 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
+import { RemoteImage } from '@/components/shared/RemoteImage'
 import type { ClinicCard as ClinicCardType } from '@/lib/api/types'
 import { TruthScoreBadge } from '@/components/shared/TruthScoreBadge'
 import { Card } from '@/components/ui/Card'
@@ -31,7 +31,7 @@ export function ClinicCard({ clinic, className, priority }: ClinicCardProps) {
     <Card as="article" interactive className={cn('flex flex-col', className)}>
       <Link href={href} className="relative aspect-[16/10] overflow-hidden bg-[var(--color-neutral-100)]" onClick={() => trackCardClick({ content_type: 'clinic', item_id: clinic.urlPath, item_name: clinic.name })}>
         {clinic.photoUrl ? (
-          <Image
+          <RemoteImage
             src={clinic.photoUrl}
             alt={clinic.name}
             fill

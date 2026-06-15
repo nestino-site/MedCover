@@ -1,4 +1,4 @@
-import { trafficEngineUrl } from '@/lib/api/client'
+import { trafficEngineUrl } from '@/lib/api/traffic-engine-url'
 
 const IMG_SRC_RE = /<img\b([^>]*?\bsrc=["'])([^"']+)(["'][^>]*)>/gi
 const A_HREF_RE = /<a\b([^>]*?\bhref=["'])([^"']+)(["'][^>]*)>/gi
