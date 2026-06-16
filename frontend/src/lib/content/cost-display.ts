@@ -5,10 +5,10 @@ import { localizedPath, type Locale } from '@/lib/i18n'
 import type { Taxonomy } from '@/lib/api/types'
 import { flagEmojiForCountry } from '@/lib/content/country-flags'
 import {
-  filterPagesByHub,
   getCountryDisplayFromTaxonomy,
   pageTitleFromSlug,
 } from '@/lib/content/hubs'
+import { filterPagesByLocale } from '@/lib/content/site-graph'
 import { slugToLabel } from '@/lib/routes'
 import { findCanonicalCostSlug, parseCostTail } from '@/lib/content/slug-canonical'
 import { loadGuideSummaries } from '@/lib/content/guide-display'
@@ -38,7 +38,10 @@ export interface CostArticleItem {
 }
 
 export function parseCostSlug(fullSlug: string): ParsedCostSlug | null {
-  const path = fullSlug.replace(/^\/?costs\//, '').replace(/^\//, '')
+  const path = fullSlug
+    .replace(/^\/?costs\//, '')
+    .replace(/^\/?cost\//, '')
+    .replace(/^\//, '')
   for (const treatmentId of TREATMENT_IDS) {
     const idx = path.indexOf(`-${treatmentId}-`)
     if (idx !== -1) {
@@ -69,14 +72,24 @@ function isCanonicalCostPage(slug: string, publishedSlugs: string[]): boolean {
   return canonicalSlugPath(canonical) === canonicalSlugPath(`/${normalized}`)
 }
 
+function isCostArticleSlug(slug: string): boolean {
+  const normalized = slug.replace(/^\//, '')
+  return normalized.startsWith('costs/') || normalized.startsWith('cost/')
+}
+
 export function getPublishedCostPages(
   pages: ContentListItem[],
   locale: Locale,
 ): ContentListItem[] {
   const publishedSlugs = pages.map((page) => page.slug)
-  return filterPagesByHub(pages, 'costs', locale).filter((page) =>
-    isCanonicalCostPage(page.slug, publishedSlugs),
-  )
+  const filtered = locale ? filterPagesByLocale(pages, locale) : pages
+  return filtered
+    .filter((page) => isCostArticleSlug(page.slug))
+    .filter((page) => isCanonicalCostPage(page.slug, publishedSlugs))
+    .sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )
 }
 
 export function getRelatedCostSlugs(

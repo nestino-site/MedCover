@@ -26,6 +26,7 @@ function verifySignature(body: string, signature: string, secret: string): boole
 interface WebhookPayload {
   pageId?: number
   slug?: string
+  previousSlug?: string
   siteId: number
   language?: string
   event: string
@@ -142,13 +143,27 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const slugPath = payload.slug ? canonicalSlugPath(payload.slug) : undefined
+  const previousSlugPath = payload.previousSlug
+    ? canonicalSlugPath(payload.previousSlug)
+    : undefined
   const primaryPath = normalizePath(slugPath ?? payload.affectedPaths?.[0] ?? '/')
   const pathsToRevalidate = payload.affectedPaths?.length
     ? payload.affectedPaths.map((p) => normalizePath(p))
     : [primaryPath]
 
+  if (previousSlugPath) {
+    pathsToRevalidate.push(normalizePath(previousSlugPath))
+  }
+
+  const seenPaths = new Set<string>()
   for (const publicPath of pathsToRevalidate) {
+    if (seenPaths.has(publicPath)) continue
+    seenPaths.add(publicPath)
     revalidateFromPath(publicPath, slugPath)
+  }
+
+  if (previousSlugPath) {
+    revalidateTag(cacheTags.pageBySlug(previousSlugPath), 'max')
   }
 
   revalidateTag(cacheTags.taxonomy, 'max')
