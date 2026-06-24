@@ -150,7 +150,7 @@ export function ClinicPdpView({
   relatedArticles,
   overviewLinks,
 }: ClinicPdpViewProps) {
-  const aboutText = clinic.shortDescription ?? clinic.longDescription ?? null
+  const aboutText = clinic.longDescription ?? clinic.shortDescription ?? null
   const sectionNav = buildSectionNav(clinic, faq, editorialHtml, aboutText)
   const faqCopy = en.clinicPdp.sections.faq
 

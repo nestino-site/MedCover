@@ -11,6 +11,7 @@ import { clinicPdpPath, slugToLabel } from '@/lib/routes'
 import { flagEmojiForCountry } from '@/lib/content/country-flags'
 import { loadPublishedPage } from './content'
 import { enrichClinicDetailFromCms } from '@/lib/clinics/cms-clinic-enrichment'
+import { faqsFromCmsSchema } from '@/lib/clinics/clinic-faqs'
 
 /** Derive taxonomy from published page slugs (real backend data). */
 export function buildTaxonomyFromPages(pages: ContentListItem[]): Taxonomy {
@@ -208,6 +209,7 @@ export async function getClinicDetailFromPage(
   const sparse: ClinicDetail = {
     ...base,
     longDescription: page.seo.metaDescription ?? null,
+    faqs: page.faq.length > 0 ? page.faq : faqsFromCmsSchema(page.schemaMarkup),
     media: page.heroImage?.url
       ? [{ url: page.heroImage.url, kind: 'PHOTO' as const, isPrimary: true }]
       : [],

@@ -18,6 +18,7 @@ import { primaryTreatmentSlugForCountry } from '@/lib/content/treatments'
 import { canonicalTreatmentSlug } from '@/lib/content/treatment-slugs'
 import { normalizeContentHtml } from '@/lib/content/html-content-images'
 import { enrichClinicDetailFromCms } from '@/lib/clinics/cms-clinic-enrichment'
+import { resolveClinicFaqs } from '@/lib/clinics/clinic-faqs'
 import {
   buildClinicMetadataFallback,
   synthesizeClinicAnswer,
@@ -267,7 +268,12 @@ async function ClinicPdpContent({
     4,
   )
 
-  const faq = cms.status === 'ok' ? cms.page.faq : undefined
+  const faq =
+    cms.status === 'ok'
+      ? resolveClinicFaqs(clinic, cms.page)
+      : clinic.faqs?.length
+        ? clinic.faqs
+        : undefined
   const cmsAnswer = cms.status === 'ok' ? heroAnswerFromCmsPage(cms.page) : undefined
   const rawEditorialHtml =
     cms.status === 'ok' && cms.page.htmlContent

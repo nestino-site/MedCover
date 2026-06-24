@@ -268,6 +268,7 @@ export const ClinicDetailSchema = ClinicCardSchema.extend({
   pricingPackages: arrayOrEmpty(PricingPackageSchema),
   longDescription: z.string().nullable().optional(),
   shortDescription: z.string().nullable().optional(),
+  faqs: z.array(FaqItemSchema).default([]),
   accreditations: arrayOrEmpty(z.union([z.string(), AccreditationSchema])).transform((items) =>
     items.map((item) =>
       typeof item === 'string'
